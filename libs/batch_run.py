@@ -17,7 +17,7 @@ def start_uvicorn(app_module, port, host="127.0.0.1", workers=1, reload=False):
         "--workers",
         str(workers),
         "--loop",
-        "uvloop"
+        "uvloop",
     ]
 
     if reload:
@@ -43,6 +43,18 @@ def batch_run(host="127.0.0.1", workers=1, reload=False):
             if p.poll() is None:
                 p.terminate()
                 p.wait()
+
+
+def single_run(app, port, host="127.0.0.1", workers=1, reload=False):
+    p = start_uvicorn(app, port, host, workers, reload)
+
+    try:
+        p.wait()
+    except KeyboardInterrupt:
+        print("Interrupted, stopping servers...")
+        if p.poll() is None:
+            p.terminate()
+            p.wait()
 
 
 if __name__ == "__main__":

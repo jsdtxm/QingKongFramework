@@ -5,7 +5,7 @@ import uvloop
 
 from core import db
 from libs.ascii_art import print_logo
-from libs.batch_run import batch_run
+from libs.batch_run import batch_run, single_run
 from libs.proxy import run_proxy
 
 
@@ -15,11 +15,16 @@ def cli():
 
 
 @cli.command()
+@click.argument("app", default="all", type=click.STRING)
 @click.option("--host", default="127.0.0.1", type=click.STRING)
+@click.option("--port", default=18000, type=click.INT)
 @click.option("--workers", default=1, type=click.INT)
 @click.option("--reload", is_flag=True)
-def serve(host, workers, reload):
-    batch_run(host, workers, reload)
+def serve(app, host, port, workers, reload):
+    if app == "all":
+        batch_run(host, workers, reload)
+    else:
+        single_run(app, port, host, workers, reload)
 
 
 @cli.command()
