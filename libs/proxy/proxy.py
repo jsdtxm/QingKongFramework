@@ -31,6 +31,9 @@ class ProxyLocation:
     def construct_target_url(self, path):
         return self.target + self.rewrite_path(path)
 
+    def to_aiohttp_route(self):
+        return aiohttp.web.route("*", self.path, handler_factory(self))
+
 
 PROXY_RULES = [
     ProxyLocation.prefix_proxy("main", "http://127.0.0.1:18001"),
@@ -83,12 +86,7 @@ def handler_factory(proxy_loc: ProxyLocation):
 
 app = aiohttp.web.Application()
 
-app.add_routes(
-    [
-        aiohttp.web.get(r"/main/{path:.*}", handler_factory(PROXY_RULES[0])),
-        aiohttp.web.get(r"/user/{path:.*}", handler_factory(PROXY_RULES[1])),
-    ]
-)
+app.add_routes([r.to_aiohttp_route() for r in PROXY_RULES])
 
 if __name__ == "__main__":
     aiohttp.web.run_app(app)
