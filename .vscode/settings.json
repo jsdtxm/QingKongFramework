@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
         "aiohttp",
+        "fastapi",
+        "qingkong",
         "uvicorn",
         "uvloop"
     ]
