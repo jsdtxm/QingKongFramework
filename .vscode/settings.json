@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "aiohttp",
-        "uvicorn"
+        "uvicorn",
+        "uvloop"
     ]
 }

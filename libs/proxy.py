@@ -2,6 +2,7 @@ import re
 
 import aiohttp
 import aiohttp.web
+import uvloop
 
 
 class ProxyLocation:
@@ -88,7 +89,7 @@ def run_proxy(host="127.0.0.1", port=8000):
     app = aiohttp.web.Application()
 
     app.add_routes([r.to_aiohttp_route() for r in PROXY_RULES])
-    aiohttp.web.run_app(app, host=host, port=port)
+    aiohttp.web.run_app(app, host=host, port=port, loop=uvloop.new_event_loop())
 
 
 if __name__ == "__main__":

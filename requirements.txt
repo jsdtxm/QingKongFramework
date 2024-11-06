@@ -1,5 +1,6 @@
 fastapi==0.115.4
 uvicorn==0.31.1
+uvloop==0.21.0
 
 tortoise==0.1.1
 

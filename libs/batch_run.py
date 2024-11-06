@@ -16,6 +16,8 @@ def start_uvicorn(app_module, port, host="127.0.0.1", workers=1, reload=False):
         host,
         "--workers",
         str(workers),
+        "--loop",
+        "uvloop"
     ]
 
     if reload:
