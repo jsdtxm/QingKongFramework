@@ -1,0 +1,11 @@
+fastapi==0.115.4
+uvicorn==0.31.1
+
+tortoise==0.1.1
+
+aiohttp==3.10.10
+
+typing-extensions==4.12.2
+
+# Dev
+fastapi-cli==0.0.5
