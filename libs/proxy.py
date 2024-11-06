@@ -84,9 +84,12 @@ def handler_factory(proxy_loc: ProxyLocation):
     return handler
 
 
-app = aiohttp.web.Application()
+def run_proxy(host="127.0.0.1", port=8000):
+    app = aiohttp.web.Application()
 
-app.add_routes([r.to_aiohttp_route() for r in PROXY_RULES])
+    app.add_routes([r.to_aiohttp_route() for r in PROXY_RULES])
+    aiohttp.web.run_app(app, host=host, port=port)
+
 
 if __name__ == "__main__":
-    aiohttp.web.run_app(app)
+    run_proxy()
