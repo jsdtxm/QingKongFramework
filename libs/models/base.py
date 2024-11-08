@@ -1,33 +1,25 @@
-from typing import Any
+from typing import Any, Union
 
+from tortoise.manager import Manager as TortoiseManager
 from tortoise.models import Model as TortoiseModel
-from tortoise.models import ModelMeta
+from tortoise.queryset import QuerySet
 
 from . import fields
 
 
-class DjangoModelManager:
-    def __init__(self, model: TortoiseModel):
-        self.model = model
+class Manager(TortoiseManager):
+    _model: TortoiseModel
 
     def create(self, *args, **kwargs):
-        return self.model.create(*args, **kwargs)
-
-    def filter(self, *args, **kwargs):
-        return self.model.filter(*args, **kwargs)
+        return self._model.create(*args, **kwargs)
 
 
-class DjangoModelMeta(ModelMeta):
-    objects: DjangoModelManager
-
-    def __getattribute__(cls, name):
-        if name == "objects":
-            return DjangoModelManager(cls)
-        return super().__getattribute__(name)
-
-
-class Model(TortoiseModel, metaclass=DjangoModelMeta):
+class Model(TortoiseModel):
     id = fields.BigIntField(primary_key=True)
+    objects: Union[Manager, QuerySet] = Manager()
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+
+    class Meta:
+        manager = Manager()
