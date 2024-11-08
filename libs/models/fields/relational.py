@@ -9,9 +9,95 @@ from tortoise.fields.relational import (
     ForeignKeyRelation,
     ManyToManyFieldInstance,
     ManyToManyRelation,
+    OneToOneFieldInstance,
+    OneToOneNullableRelation,
+    OneToOneRelation,
 )
 
 from . import utils
+
+
+@overload
+def OneToOneField(
+    model_name: Union[str, Model],
+    related_name: Union[Optional[str], Literal[False]] = None,
+    on_delete: OnDelete = CASCADE,
+    db_constraint: bool = True,
+    *,
+    null: Literal[True],
+    **kwargs: Any,
+) -> "OneToOneNullableRelation[MODEL]": ...
+
+
+@overload
+def OneToOneField(
+    model_name: Union[str, Model],
+    related_name: Union[Optional[str], Literal[False]] = None,
+    on_delete: OnDelete = CASCADE,
+    db_constraint: bool = True,
+    null: Literal[False] = False,
+    **kwargs: Any,
+) -> "OneToOneRelation[MODEL]": ...
+
+
+def OneToOneField(
+    model_name: Union[str, Model],
+    related_name: Union[Optional[str], Literal[False]] = None,
+    on_delete: OnDelete = CASCADE,
+    db_constraint: bool = True,
+    null: bool = False,
+    **kwargs: Any,
+) -> "OneToOneRelation[MODEL] | OneToOneNullableRelation[MODEL]":
+    """
+    OneToOne relation field.
+
+    This field represents a foreign key relation to another model.
+
+    See :ref:`one_to_one` for usage information.
+
+    You must provide the following:
+
+    ``model_name``:
+        The name of the related model in a :samp:`'{app}.{model}'` format.
+
+    The following is optional:
+
+    ``related_name``:
+        The attribute name on the related model to reverse resolve the foreign key.
+    ``on_delete``:
+        One of:
+            ``field.CASCADE``:
+                Indicate that the model should be cascade deleted if related model gets deleted.
+            ``field.RESTRICT``:
+                Indicate that the related model delete will be restricted as long as a
+                foreign key points to it.
+            ``field.SET_NULL``:
+                Resets the field to NULL in case the related model gets deleted.
+                Can only be set if field has ``null=True`` set.
+            ``field.SET_DEFAULT``:
+                Resets the field to ``default`` value in case the related model gets deleted.
+                Can only be set is field has a ``default`` set.
+            ``field.NO_ACTION``:
+                Take no action.
+    ``to_field``:
+        The attribute name on the related model to establish foreign key relationship.
+        If not set, pk is used
+    ``db_constraint``:
+        Controls whether or not a constraint should be created in the database for this foreign key.
+        The default is True, and that’s almost certainly what you want; setting this to False can be very bad for data integrity.
+    """
+
+    if issubclass(model_name, Model):
+        model_name = utils.model_object_to_name(model_name)
+
+    return OneToOneFieldInstance(
+        model_name,
+        related_name,
+        on_delete,
+        db_constraint=db_constraint,
+        null=null,
+        **kwargs,
+    )
 
 
 @overload
