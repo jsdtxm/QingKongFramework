@@ -81,7 +81,7 @@ def ForeignKeyField(
         If not set, pk is used
     ``db_constraint``:
         Controls whether or not a constraint should be created in the database for this foreign key.
-        The default is True, and that’s almost certainly what you want; setting this to False can be very bad for data integrity.
+        The default is True, and that's almost certainly what you want; setting this to False can be very bad for data integrity.
     """
 
     if issubclass(model_name, Model):
@@ -135,7 +135,7 @@ def ManyToManyField(
         The attribute name on the related model to reverse resolve the many to many.
     ``db_constraint``:
         Controls whether or not a constraint should be created in the database for this foreign key.
-        The default is True, and that’s almost certainly what you want; setting this to False can be very bad for data integrity.
+        The default is True, and that's almost certainly what you want; setting this to False can be very bad for data integrity.
     ``on_delete``:
         One of:
             ``field.CASCADE``:
