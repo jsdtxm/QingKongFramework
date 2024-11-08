@@ -1,14 +1,16 @@
-from tortoise.models import Model as TortoiseModel, ModelMeta
 from typing import Any
 
+from tortoise.models import Model as TortoiseModel
+from tortoise.models import ModelMeta
+
+
 class DjangoModelManager:
-    asd: str = 1
     def __init__(self, model: TortoiseModel):
         self.model = model
 
     def create(self, *args, **kwargs):
         return self.model.create(*args, **kwargs)
-    
+
     def filter(self, *args, **kwargs):
         return self.model.filter(*args, **kwargs)
 
