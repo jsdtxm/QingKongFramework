@@ -1,11 +1,10 @@
 import multiprocessing
 
 import click
-import uvloop
 
-from core import db
 from libs.ascii_art import print_logo
 from libs.batch_run import batch_run, single_run
+from libs.commands import db
 from libs.proxy import run_proxy
 
 
@@ -36,8 +35,7 @@ def proxy(host, port):
 
 @cli.command()
 def migrate():
-    uvloop.run(db.init())
-    print("COMPLETE")
+    db.migrate()
 
 
 @cli.command()

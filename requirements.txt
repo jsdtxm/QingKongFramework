@@ -10,7 +10,7 @@ aiohttp==3.10.10
 colorama==0.4.6
 click==8.1.7
 
-typing-extensions==4.12.2
+pydantic-settings==2.6.1
 
 # Dev
 fastapi-cli==0.0.5
