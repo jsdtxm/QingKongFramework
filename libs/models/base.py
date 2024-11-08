@@ -15,7 +15,7 @@ class Manager(TortoiseManager):
 
 
 class Model(TortoiseModel):
-    id = fields.BigIntField(primary_key=True)
+    id = fields.BigIntegerField(primary_key=True)
     objects: Union[Manager, QuerySet] = Manager()
 
     def __init__(self, **kwargs: Any) -> None:
