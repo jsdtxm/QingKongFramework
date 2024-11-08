@@ -1,0 +1,114 @@
+from typing import Any
+
+from tortoise.fields import data as tortoise_data_fields
+
+
+# Integer
+class SmallIntegerField(tortoise_data_fields.SmallIntField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class IntegerField(tortoise_data_fields.IntField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class BigIntegerField(tortoise_data_fields.BigIntField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class SmallAutoField(SmallIntegerField):
+    def __init__(self, verbose_name=None, primary_key=True, **kwargs: Any) -> None:
+        super().__init__(verbose_name, primary_key, **kwargs)
+
+
+class AutoField(IntegerField):
+    def __init__(self, verbose_name=None, primary_key=True, **kwargs: Any) -> None:
+        super().__init__(verbose_name, primary_key, **kwargs)
+
+
+class BigAutoField(BigIntegerField):
+    def __init__(self, verbose_name=None, primary_key=True, **kwargs: Any) -> None:
+        super().__init__(verbose_name, primary_key, **kwargs)
+
+
+# Float
+class FloatField(tortoise_data_fields.FloatField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class DecimalField(tortoise_data_fields.DecimalField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+# String
+class CharField(tortoise_data_fields.CharField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class TextField(tortoise_data_fields.TextField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+# Time
+class TimeField(tortoise_data_fields.TimeField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class DateField(tortoise_data_fields.DateField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class DateTimeField(tortoise_data_fields.DatetimeField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class TimeDeltaField(tortoise_data_fields.TimeDeltaField):
+    # Django don't support this field
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+# Others
+class BooleanField(tortoise_data_fields.BooleanField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class BinaryField(tortoise_data_fields.BinaryField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class JSONField(tortoise_data_fields.JSONField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+
+class UUIDField(tortoise_data_fields.UUIDField):
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
