@@ -13,6 +13,7 @@ from .data import (
     DateField,
     DateTimeField,
     DecimalField,
+    EmailField,
     FloatField,
     IntegerField,
     JSONField,

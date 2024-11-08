@@ -63,6 +63,11 @@ class TextField(tortoise_data_fields.TextField):
         super().__init__(**kwargs)
 
 
+class EmailField(CharField):
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("max_length", 254)
+        super().__init__(**kwargs)
+
 # Time
 class TimeField(tortoise_data_fields.TimeField):
     def __init__(self, verbose_name=None, **kwargs: Any) -> None:
