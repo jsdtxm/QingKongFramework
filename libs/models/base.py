@@ -3,6 +3,8 @@ from typing import Any
 from tortoise.models import Model as TortoiseModel
 from tortoise.models import ModelMeta
 
+from . import fields
+
 
 class DjangoModelManager:
     def __init__(self, model: TortoiseModel):
@@ -25,5 +27,7 @@ class DjangoModelMeta(ModelMeta):
 
 
 class Model(TortoiseModel, metaclass=DjangoModelMeta):
+    id = fields.BigIntField(primary_key=True)
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
