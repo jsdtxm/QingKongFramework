@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     INSTALLED_APPS: List[str] = [
         "libs.contrib.auth",
         "apps.main",
+        "apps.fake",
     ]
 
     DATABASES: dict[str, dict[str, Any]] = {
