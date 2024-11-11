@@ -1,5 +1,4 @@
-from colorama import init
-from colorama import Fore, Style
+from colorama import Fore, Style, init
 
 qingkong_ascii = r"""
  ________  ___  ________   ________          ___  __    ________  ________   ________     
@@ -13,8 +12,9 @@ qingkong_ascii = r"""
 """
 
 
-init()
+def print_logo(need_init=False):
+    if need_init:
+        init()
 
-def print_logo():
-      print(Fore.BLUE + qingkong_ascii[:-1])
-      print(Style.RESET_ALL)
+    print(Fore.BLUE + qingkong_ascii[:-1])
+    print(Style.RESET_ALL)
