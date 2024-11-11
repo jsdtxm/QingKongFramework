@@ -1,2 +1,3 @@
-from .base import Model as Model
+from .base import BaseModel
+from .model import Model
 from .fields import *

@@ -1,6 +1,6 @@
 from typing import Any, Literal, Optional, Union, overload
 
-from tortoise import Model
+from libs.models.base import BaseModel as Model
 from tortoise.fields.base import CASCADE, OnDelete
 from tortoise.fields.relational import (
     MODEL,
@@ -14,8 +14,7 @@ from tortoise.fields.relational import (
     OneToOneRelation,
 )
 
-from . import utils
-
+from libs.models import utils
 
 @overload
 def OneToOneField(
