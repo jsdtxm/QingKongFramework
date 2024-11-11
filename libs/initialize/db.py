@@ -49,7 +49,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
             }
 
         tortoise_config["connections"][alias] = c
-    print("tortoise_config", tortoise_config)
+    
     return tortoise_config
 
 
