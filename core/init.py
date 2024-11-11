@@ -1,5 +1,0 @@
-
-
-
-async def init():
-    pass

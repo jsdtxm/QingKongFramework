@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
     INSTALLED_APPS: List[str] = [
-        "main",
-        "user",
+        "libs.contrib.auth",
+        "apps.main",
     ]
 
     DATABASES: dict[str, dict[str, Any]] = {
@@ -18,5 +18,6 @@ class Settings(BaseSettings):
             "NAME": BASE_DIR / "db.sqlite3",
         },
     }
+
 
 settings = Settings()
