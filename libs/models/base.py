@@ -16,6 +16,11 @@ class Manager(TortoiseManager):
         return self._model.create(*args, **kwargs)
 
 
+class BaseMeta:
+    manager = Manager()
+    external: bool = False
+
+
 class ModelMeta(TortoiseModelMeta):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
         module_name: str = attrs["__module__"]
@@ -23,11 +28,12 @@ class ModelMeta(TortoiseModelMeta):
             app_config = apps.apps.app_configs[module_name.rsplit(".", 1)[0]]
             attrs["app"] = app_config
 
-            meta_class = attrs.get("Meta", type("Meta", (), {}))
+            meta_class = attrs.get("Meta", type("Meta", (BaseMeta,), {}))
             table = getattr(meta_class, "table", None)
             if table is None:
                 meta_class.table = f"{app_config.label}_{name.lower()}"
-                attrs["Meta"] = meta_class
+
+            attrs["Meta"] = meta_class
 
         return super().__new__(mcs, name, bases, attrs)
 
@@ -40,5 +46,5 @@ class BaseModel(TortoiseModel, metaclass=ModelMeta):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
-    class Meta:
-        manager = Manager()
+    class Meta(BaseMeta):
+        pass
