@@ -44,7 +44,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
             }
             credentials["database"] = config["NAME"]
             c = {
-                "engine": "tortoise.backends." + config["ENGINE"].split(".")[-1],
+                "engine": "libs.db.backends." + config["ENGINE"].split(".")[-1],
                 "credentials": credentials,
             }
 
