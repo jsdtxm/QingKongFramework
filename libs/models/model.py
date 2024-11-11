@@ -1,4 +1,3 @@
-
 from . import fields
 from .base import BaseModel
 
@@ -8,4 +7,3 @@ class Model(BaseModel):
 
     class Meta:
         abstract = True
-    
