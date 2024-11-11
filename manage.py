@@ -3,9 +3,9 @@ import multiprocessing
 import click
 
 from libs.ascii_art import print_logo
-from libs.batch_run import batch_run, single_run
 from libs.commands import db
 from libs.proxy import run_proxy
+from libs.serve import serve_app, serve_apps
 
 
 @click.group()
@@ -16,14 +16,13 @@ def cli():
 @cli.command()
 @click.argument("app", default="all", type=click.STRING)
 @click.option("--host", default="127.0.0.1", type=click.STRING)
-@click.option("--port", default=18000, type=click.INT)
 @click.option("--workers", default=1, type=click.INT)
 @click.option("--reload", is_flag=True)
-def serve(app, host, port, workers, reload):
+def serve(app, host, workers, reload):
     if app == "all":
-        batch_run(host, workers, reload)
+        serve_apps(host, workers, reload)
     else:
-        single_run(app, port, host, workers, reload)
+        serve_app(app, host, workers, reload)
 
 
 @cli.command()
