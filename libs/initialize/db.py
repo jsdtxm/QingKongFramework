@@ -31,7 +31,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
     for alias, config in databases.items():
         if re.search(r"sqlite3?$", config["ENGINE"]):
             c = {
-                "engine": "tortoise.backends.sqlite",
+                "engine": "libs.db.backends.sqlite",
                 "credentials": {
                     "file_path": str(config["NAME"]),
                     "journal_mode": "WAL",
