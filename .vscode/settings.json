@@ -4,6 +4,7 @@
         "fastapi",
         "pydantic",
         "qingkong",
+        "starlette",
         "uvicorn",
         "uvloop"
     ]
