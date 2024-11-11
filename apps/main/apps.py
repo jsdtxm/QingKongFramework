@@ -1,6 +1,5 @@
-from libs.apps import AppConfig
+from libs.apps.config import AppConfig
 
 
 class MainAppConfig(AppConfig):
-    name = 'main'
     port = 18001
