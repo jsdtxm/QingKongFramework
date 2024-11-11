@@ -1,7 +1,4 @@
-from tortoise.manager import Manager
-
-from libs.models import Model, fields
-
+from libs.models import Model, fields, BaseMeta
 
 class Tournament(Model):
     # Defining `id` field is optional, it will be defined automatically
@@ -29,3 +26,14 @@ class Event(Model):
 
     def __str__(self):
         return self.name
+
+
+class ExternalData(Model):
+    name = fields.CharField(max_length=255)
+
+
+    def __str__(self):
+        return self.name
+    
+    class Meta(BaseMeta):
+        external = True
