@@ -1,12 +1,18 @@
+import datetime
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar, Union, overload
+from uuid import UUID
 
 from libs.models.fields import data as models_data_fields
 
+if TYPE_CHECKING:  # pragma: nocoverage
+    from libs.serializers.base import Serializer
+
+T = TypeVar("T")
 DEFAULT_CHAR_LENGTH = 4096
 
 
-class DefaultDescribeMixin:
+class SerializerMixin(Generic[T]):
     default_value = None
 
     def describe(self, serializable: bool) -> dict:
@@ -15,73 +21,84 @@ class DefaultDescribeMixin:
             desc["default"] = self.default_value
         return desc
 
+    if TYPE_CHECKING:
+
+        def __new__(cls, *args: Any, **kwargs: Any) -> T: ...
+
+        @overload
+        def __get__(self, instance: "Serializer", owner: Type["Serializer"]) -> T: ...
+
 
 # Integer
-class SmallIntegerField(models_data_fields.SmallIntegerField):
+class SmallIntegerField(SerializerMixin[int], models_data_fields.SmallIntegerField):
     default_value = 0
 
 
-class IntegerField(DefaultDescribeMixin, models_data_fields.IntegerField):
+class IntegerField(SerializerMixin[int], models_data_fields.IntegerField):
     default_value = 0
 
 
-class BigIntegerField(models_data_fields.BigIntegerField):
+class BigIntegerField(SerializerMixin[int], models_data_fields.BigIntegerField):
     default_value = 0
 
 
 # Float
-class FloatField(models_data_fields.FloatField):
+class FloatField(SerializerMixin[float], models_data_fields.FloatField):
     default_value = 0.0
 
 
-class DecimalField(models_data_fields.DecimalField):
+class DecimalField(SerializerMixin[Decimal], models_data_fields.DecimalField):
     default_value = Decimal("0.0")
 
 
 # String
-class CharField(models_data_fields.CharField):
+class CharField(SerializerMixin[str], models_data_fields.CharField):
     def __init__(self, **kwargs: Any) -> None:
         kwargs.setdefault("max_length", DEFAULT_CHAR_LENGTH)
         super().__init__(**kwargs)
 
 
-class TextField(models_data_fields.TextField):
+class TextField(SerializerMixin[str], models_data_fields.TextField):
     pass
 
 
-class EmailField(models_data_fields.EmailField):
+class EmailField(SerializerMixin[str], models_data_fields.EmailField):
     pass
 
 
 # Time
-class TimeField(models_data_fields.TimeField):
+class TimeField(SerializerMixin[datetime.time], models_data_fields.TimeField):
     pass
 
 
-class DateField(models_data_fields.DateField):
+class DateField(SerializerMixin[datetime.date], models_data_fields.DateField):
     pass
 
 
-class DateTimeField(models_data_fields.DateTimeField):
+class DateTimeField(
+    SerializerMixin[datetime.datetime], models_data_fields.DateTimeField
+):
     pass
 
 
-class TimeDeltaField(models_data_fields.TimeDeltaField):
+class TimeDeltaField(
+    SerializerMixin[datetime.timedelta], models_data_fields.TimeDeltaField
+):
     pass
 
 
 # Others
-class BooleanField(models_data_fields.BooleanField):
+class BooleanField(SerializerMixin[bool], models_data_fields.BooleanField):
     pass
 
 
-class BinaryField(models_data_fields.BinaryField):
+class BinaryField(SerializerMixin[bytes], models_data_fields.BinaryField):
     pass
 
 
-class JSONField(models_data_fields.JSONField):
+class JSONField(SerializerMixin[Union[dict, list]], models_data_fields.JSONField):
     pass
 
 
-class UUIDField(models_data_fields.UUIDField):
+class UUIDField(SerializerMixin[UUID], models_data_fields.UUIDField):
     pass
