@@ -31,7 +31,11 @@ class ModelMetaClass(TortoiseModelMeta):
             meta_class = attrs.get("Meta", type("Meta", (BaseMeta,), {}))
             table = getattr(meta_class, "table", None)
             if table is None:
-                meta_class.table = f"{app_config.label}_{name.lower()}"
+                db_table = getattr(meta_class, "db_table", None)
+                if db_table:
+                    meta_class.table = db_table
+                else:
+                    meta_class.table = f"{app_config.label}_{name.lower()}"
 
             attrs["Meta"] = meta_class
 
