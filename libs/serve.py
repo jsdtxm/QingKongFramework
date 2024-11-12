@@ -12,6 +12,8 @@ from libs.initialize.db import get_tortoise_config, init_db
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
+    # TODO You must pass the application as an import string to enable 'reload' or 'workers'.
+
     apps = init_apps(settings.INSTALLED_APPS)
     app_config = apps.app_configs[f"apps.{app_name}"]
 
