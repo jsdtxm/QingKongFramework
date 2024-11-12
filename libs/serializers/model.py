@@ -1,8 +1,7 @@
 from typing import Tuple, Type
 
-from tortoise.contrib.pydantic import pydantic_model_creator
-
 from libs.serializers.base import Serializer, SerializerMetaclass
+from libs.serializers.creator import pydantic_model_creator
 
 
 class ModelSerializerMetaclass(SerializerMetaclass):
@@ -46,7 +45,7 @@ class ModelSerializerMetaclass(SerializerMetaclass):
 
             return pydantic_model_creator(meta.model)
 
-        return super().__new__(mcs, name, bases, attrs)
+        return super(SerializerMetaclass, mcs).__new__(mcs, name, bases, attrs)
 
 
 class ModelSerializer(Serializer, metaclass=ModelSerializerMetaclass):
@@ -60,4 +59,5 @@ class ModelSerializer(Serializer, metaclass=ModelSerializerMetaclass):
             exclude = (field1, field2)
     ```
     """
+
     pass
