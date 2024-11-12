@@ -1,6 +1,9 @@
 from decimal import Decimal
+from typing import Any
 
 from libs.models.fields import data as models_data_fields
+
+DEFAULT_CHAR_LENGTH = 4096
 
 
 class DefaultDescribeMixin:
@@ -37,7 +40,9 @@ class DecimalField(models_data_fields.DecimalField):
 
 # String
 class CharField(models_data_fields.CharField):
-    pass
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("max_length", DEFAULT_CHAR_LENGTH)
+        super().__init__(**kwargs)
 
 
 class TextField(models_data_fields.TextField):
