@@ -21,10 +21,10 @@ class BaseMeta:
     external: bool = False
 
 
-class ModelMeta(TortoiseModelMeta):
+class ModelMetaClass(TortoiseModelMeta):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
-        module_name: str = attrs["__module__"]
-        if module_name.endswith(".models"):
+        module_name: str = attrs.get("__module__", None)
+        if module_name and module_name.endswith(".models"):
             app_config = apps.apps.app_configs[module_name.rsplit(".", 1)[0]]
             attrs["app"] = app_config
 
@@ -38,7 +38,7 @@ class ModelMeta(TortoiseModelMeta):
         return super().__new__(mcs, name, bases, attrs)
 
 
-class BaseModel(TortoiseModel, metaclass=ModelMeta):
+class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
     objects: Union[Manager, QuerySet] = Manager()
 
     app: AppConfig
