@@ -22,10 +22,10 @@ DEFAULT_VALUE_DICT = {int: 0, float: 0.0, str: ""}
 
 
 def field_map_process(field_map):
-    for fname, fdesc in field_map.items():
-        if fdesc["default"] is None:
-            field_map[fname]["default"] = DEFAULT_VALUE_DICT.get(
-                fdesc["python_type"], None
+    for name, desc in field_map.items():
+        if desc["default"] is None:
+            field_map[name]["default"] = DEFAULT_VALUE_DICT.get(
+                desc["python_type"], None
             )
 
 
