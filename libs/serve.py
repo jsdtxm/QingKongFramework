@@ -4,6 +4,7 @@ import signal
 import sys
 
 import uvicorn
+from fastapi_pagination import add_pagination
 
 from common.settings import settings
 from libs.fastapi import FastAPI
@@ -21,6 +22,7 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
 
     app = FastAPI()
     app.include_router(app_config.import_module("views").router)
+    add_pagination(app)
 
     uvicorn.run(
         app,
