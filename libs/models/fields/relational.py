@@ -1,6 +1,5 @@
-from typing import Any, Literal, Optional, Union, overload
+from typing import Any, Literal, Optional, Type, Union, overload
 
-from libs.models.base import BaseModel as Model
 from tortoise.fields.base import CASCADE, OnDelete
 from tortoise.fields.relational import (
     MODEL,
@@ -15,6 +14,8 @@ from tortoise.fields.relational import (
 )
 
 from libs.models import utils
+from libs.models.base import BaseModel as Model
+
 
 @overload
 def OneToOneField(
@@ -101,7 +102,7 @@ def OneToOneField(
 
 @overload
 def ForeignKeyField(
-    model_name: Union[str, Model],
+    model_name: Union[str, Type[Model]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
@@ -113,7 +114,21 @@ def ForeignKeyField(
 
 @overload
 def ForeignKeyField(
-    model_name: Union[str, Model],
+    model_name: Union[str, Type[Model]],
+    related_name: Union[Optional[str], Literal[False]] = None,
+    to_field: Optional[str] = None,
+    source_field: Optional[str] = None,
+    on_delete: OnDelete = CASCADE,
+    db_constraint: bool = True,
+    *,
+    null: Literal[True],
+    **kwargs: Any,
+) -> "ForeignKeyNullableRelation[MODEL]": ...
+
+
+@overload
+def ForeignKeyField(
+    model_name: Union[str, Type[Model]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
@@ -123,7 +138,7 @@ def ForeignKeyField(
 
 
 def ForeignKeyField(
-    model_name: Union[str, Model],
+    model_name: Union[str, Type[Model]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
@@ -183,7 +198,7 @@ def ForeignKeyField(
 
 
 def ManyToManyField(
-    model_name: Union[str, Model],
+    model_name: Union[str, Type[Model]],
     through: Optional[str] = None,
     forward_key: Optional[str] = None,
     backward_key: str = "",
