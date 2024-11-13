@@ -1,4 +1,4 @@
-from tortoise.fields.base import CASCADE, SET_DEFAULT, SET_NULL, NO_ACTION, RESTRICT
+from tortoise.fields.base import CASCADE, NO_ACTION, RESTRICT, SET_DEFAULT, SET_NULL
 
 from .data import (
     BigAutoField,
@@ -22,8 +22,11 @@ from .data import (
 from .relational import ForeignKeyField
 from .relational import ForeignKeyField as ForeignKey
 from .relational import (
+    ForeignKeyFieldInstance,
     ForeignKeyRelation,
     ManyToManyField,
+    ManyToManyFieldInstance,
     ManyToManyRelation,
     OneToOneField,
+    OneToOneFieldInstance,
 )

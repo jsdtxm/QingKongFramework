@@ -1,4 +1,4 @@
-from typing import Any, Literal, Optional, Type, Union, overload
+from typing import TYPE_CHECKING, Any, Literal, Optional, Type, Union, overload
 
 from tortoise.fields.base import CASCADE, OnDelete
 from tortoise.fields.relational import (
@@ -12,14 +12,14 @@ from tortoise.fields.relational import (
     OneToOneNullableRelation,
     OneToOneRelation,
 )
+from tortoise.models import Model
 
 from libs.models import utils
-from libs.models.base import BaseModel as Model
 
 
 @overload
 def OneToOneField(
-    model_name: Union[str, Model],
+    model_name: Union[str, Type["Model"]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
@@ -31,7 +31,7 @@ def OneToOneField(
 
 @overload
 def OneToOneField(
-    model_name: Union[str, Model],
+    model_name: Union[str, Type["Model"]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
@@ -41,7 +41,7 @@ def OneToOneField(
 
 
 def OneToOneField(
-    model_name: Union[str, Model],
+    model_name: Union[str, Type["Model"]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
