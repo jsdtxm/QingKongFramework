@@ -15,6 +15,8 @@ from tortoise.contrib.pydantic.creator import (
 )
 from tortoise.fields import IntField, JSONField, TextField, relational
 
+from libs.serializers.fields import ListSerializer
+
 if TYPE_CHECKING:  # pragma: nocoverage
     from tortoise.models import Model
 
@@ -306,6 +308,17 @@ def pydantic_model_creator(
                     model = Optional[model]  # type: ignore
 
                 properties[fname] = model
+        
+        # HACK 
+        elif (
+            field_type is ListSerializer
+        ):
+            field_pydantic_type = fdesc.get("pydantic_type")
+
+            child = fdesc.get("child")
+            child_type = getattr(child, 'pydantic_type', child.field_type)
+
+            properties[fname] = field_pydantic_type[child_type]
 
         # Backward FK and ManyToMany fields are list of embedded schemas
         elif (

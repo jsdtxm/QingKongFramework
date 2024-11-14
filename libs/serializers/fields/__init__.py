@@ -1,7 +1,10 @@
 import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, Generic, List, Type, TypeVar, Union, overload
 from uuid import UUID
+
+from pydantic import constr
+from tortoise.fields import Field
 
 from libs.models.fields import data as models_data_fields
 
@@ -57,6 +60,10 @@ class CharField(SerializerMixin[str], models_data_fields.CharField):
         kwargs.setdefault("max_length", DEFAULT_CHAR_LENGTH)
         super().__init__(**kwargs)
 
+    @property
+    def pydantic_type(self):
+        return constr(max_length=self.max_length)
+
 
 class TextField(SerializerMixin[str], models_data_fields.TextField):
     pass
@@ -102,3 +109,21 @@ class JSONField(SerializerMixin[Union[dict, list]], models_data_fields.JSONField
 
 class UUIDField(SerializerMixin[UUID], models_data_fields.UUIDField):
     pass
+
+
+# Serializer Only
+class ListSerializer(SerializerMixin[list], Field, list):
+    def __init__(self, child, **kwargs: Any):
+        super().__init__(**kwargs)
+        self.child = child
+        self.field_type = list[child]
+
+    def describe(self, serializable: bool) -> dict:
+        desc = super().describe(serializable)
+        desc["child"] = self.child
+        desc["pydantic_type"] = self.pydantic_type
+        return desc
+
+    @property
+    def pydantic_type(self):
+        return List
