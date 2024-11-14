@@ -1,4 +1,5 @@
 import inspect
+from asyncio import create_task
 from contextlib import asynccontextmanager
 from typing import Optional, Type
 
@@ -10,6 +11,7 @@ from starlette.types import Lifespan
 from common.settings import settings
 from libs.apps.config import AppConfig
 from libs.initialize.apps import init_apps
+from libs.initialize.db import async_init_db, get_tortoise_config
 from libs.utils.typing import copy_method_signature
 
 
@@ -27,6 +29,8 @@ class FastAPI(RawFastAPI):
         **kwargs,
     ):
         apps = init_apps(settings.INSTALLED_APPS)
+        create_task(async_init_db(get_tortoise_config(settings.DATABASES)))
+
         name = name or inspect.stack()[1].filename.rsplit("/", 2)[-2]
 
         super().__init__(lifespan=lifespan or default_lifespan, **kwargs)
