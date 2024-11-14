@@ -18,7 +18,7 @@ def cli():
 @click.option("--host", default="127.0.0.1", type=click.STRING)
 @click.option("--workers", default=1, type=click.INT)
 @click.option("--reload", is_flag=True)
-def serve(app, host, workers, reload):
+def runserver(app, host, workers, reload):
     if app == "all":
         serve_apps(host, workers, reload)
     else:
