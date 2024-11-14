@@ -3,6 +3,7 @@ from asyncmy.cursors import DictCursor
 import asyncio
 
 async def table_to_django_model(db_config, table_name):
+    # TODO 字段名称标准化
     """
     将数据库表结构转换为Django模型定义。
 
