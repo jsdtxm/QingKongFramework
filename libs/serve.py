@@ -7,14 +7,11 @@ import uvicorn
 
 from common.settings import settings
 from libs.initialize.apps import init_apps
-from libs.initialize.db import get_tortoise_config, init_db
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     apps = init_apps(settings.INSTALLED_APPS)
     app_config = apps.app_configs[f"apps.{app_name}"]
-
-    init_db(get_tortoise_config(settings.DATABASES))
 
     uvicorn.run(
         f"apps.{app_name}.asgi:app",
