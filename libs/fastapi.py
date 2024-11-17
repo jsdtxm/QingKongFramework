@@ -1,6 +1,7 @@
 import inspect
 from asyncio import create_task
 from contextlib import asynccontextmanager
+from importlib import import_module
 from typing import Optional, Type
 
 from fastapi import FastAPI as RawFastAPI
@@ -27,6 +28,7 @@ class FastAPI(RawFastAPI):
         self,
         name: Type[AppConfig] = None,
         lifespan: Optional[Lifespan[AppType]] = None,
+        include_healthz: bool = True,
         **kwargs,
     ):
         apps = init_apps(settings.INSTALLED_APPS)
@@ -36,6 +38,9 @@ class FastAPI(RawFastAPI):
         name = name or inspect.stack()[1].filename.rsplit("/", 2)[-2]
 
         super().__init__(lifespan=lifespan or default_lifespan, **kwargs)
+
+        if include_healthz:
+            self.include_router(import_module("libs.contrib.healthz.views").router)
 
         self.include_router(
             apps.app_configs[f"apps.{name}"].import_module("views").router
