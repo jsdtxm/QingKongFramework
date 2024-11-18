@@ -33,7 +33,14 @@ class SerializerMetaclass(_model_construction.ModelMetaclass):
                 {
                     **fields_map,
                     "PydanticMeta": type(
-                        "PydanticMeta", (), {"include": fields_map.keys()}
+                        "PydanticMeta",
+                        (),
+                        {"include": fields_map.keys()},
+                    ),
+                    "Meta": type(
+                        "Meta",
+                        (),
+                        {"abstract": True},
                     ),
                 },
             )
