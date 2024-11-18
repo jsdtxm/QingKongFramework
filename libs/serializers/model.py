@@ -1,4 +1,8 @@
+from copy import deepcopy
 from typing import Tuple, Type
+
+from pydantic import BaseModel
+from tortoise.fields import Field
 
 from libs.serializers.base import Serializer, SerializerMetaclass
 from libs.serializers.creator import pydantic_model_creator
@@ -17,6 +21,11 @@ class ModelSerializerMetaclass(SerializerMetaclass):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
         if meta := attrs.get("Meta", None):
             pydantic_meta = getattr(meta.model, "PydanticMeta", None)
+            extra_fields = {
+                name: value
+                for name, value in attrs.items()
+                if isinstance(value, BaseModel) or isinstance(value, Field)
+            }
             if pydantic_meta is None:
                 fields = getattr(meta, "fields", ())
                 exclude = getattr(meta, "exclude", ())
@@ -41,9 +50,14 @@ class ModelSerializerMetaclass(SerializerMetaclass):
                         if v is not None
                     },
                 )
-                meta.model.PydanticMeta = pydantic_meta
+                model = deepcopy(meta.model)
+                model.PydanticMeta = pydantic_meta
+            else:
+                model = meta.model
 
-            return pydantic_model_creator(meta.model)
+            pydantic_model = pydantic_model_creator(model, extra_fields=extra_fields)
+
+            return pydantic_model
 
         return super(SerializerMetaclass, mcs).__new__(mcs, name, bases, attrs)
 

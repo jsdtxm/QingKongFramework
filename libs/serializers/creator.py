@@ -2,7 +2,7 @@ from base64 import b32encode
 from hashlib import sha3_224
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 
-from pydantic import ConfigDict, Field, computed_field, create_model
+from pydantic import BaseModel, ConfigDict, Field, computed_field, create_model
 from pydantic._internal._decorators import PydanticDescriptorProxy
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.contrib.pydantic.creator import (
@@ -13,6 +13,7 @@ from tortoise.contrib.pydantic.creator import (
     _pydantic_recursion_protector,
     get_annotations,
 )
+from tortoise.fields import Field as TortoiseField
 from tortoise.fields import IntField, JSONField, TextField, relational
 
 from libs.serializers.fields import ListSerializer
@@ -48,6 +49,7 @@ def pydantic_model_creator(
     model_config: Optional[ConfigDict] = None,
     validators: Optional[Dict[str, Any]] = None,
     module: str = __name__,
+    extra_fields: Optional[Dict[str, Any]] = None,
 ) -> Type[PydanticModel]:
     """
     Function to build `Pydantic Model <https://pydantic-docs.helpmanual.io/usage/models/>`__ off Tortoise Model.
@@ -85,6 +87,8 @@ def pydantic_model_creator(
     # Fully qualified class name
     fqname = cls.__module__ + "." + cls.__qualname__
     postfix = ""
+
+    extra_fields = extra_fields or {}
 
     def get_name() -> str:
         # If arguments are specified (different from the defaults), we append a hash to the
@@ -234,8 +238,17 @@ def pydantic_model_creator(
             if k in field_map
         }
 
-    # HACK
+    # HACK add default value
     field_map_process(field_map)
+
+    # HACK add extra fields
+
+    if extra_fields:
+        for k, v in extra_fields.items():
+            if isinstance(v, TortoiseField):
+                field_map[k] = v.describe(serializable=False)
+                field_map[k]["name"] = k
+                field_map[k]["db_column"] = k
 
     # Process fields
     for fname, fdesc in field_map.items():
@@ -308,15 +321,18 @@ def pydantic_model_creator(
                     model = Optional[model]  # type: ignore
 
                 properties[fname] = model
-        
-        # HACK 
-        elif (
-            field_type is ListSerializer
-        ):
+
+        # HACK
+        elif field_type is ListSerializer:
             field_pydantic_type = fdesc.get("pydantic_type")
 
             child = fdesc.get("child")
-            child_type = getattr(child, 'pydantic_type', child.field_type)
+            if isinstance(child, PydanticModel):
+                child_type = child
+            else:
+                child_type = getattr(
+                    child, "pydantic_type", getattr(child, "field_type", type(child))
+                )
 
             properties[fname] = field_pydantic_type[child_type]
 
@@ -382,6 +398,10 @@ def pydantic_model_creator(
                 ):
                     fconfig["default_factory"] = lambda: None
                 properties[fname] = (ftype, Field(**fconfig))
+
+    for k, v in extra_fields.items():
+        if isinstance(v, BaseModel):
+            properties[k] = (v, Field(**fconfig))
 
     # Here we endure that the name is unique, but complete objects are still labeled verbatim
     if not has_submodel:
