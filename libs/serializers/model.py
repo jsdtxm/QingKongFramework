@@ -26,6 +26,7 @@ class ModelSerializerMetaclass(SerializerMetaclass):
                 for name, value in attrs.items()
                 if isinstance(value, BaseModel) or isinstance(value, Field)
             }
+            model = deepcopy(meta.model)
             if pydantic_meta is None:
                 fields = getattr(meta, "fields", ())
                 exclude = getattr(meta, "exclude", ())
@@ -50,12 +51,14 @@ class ModelSerializerMetaclass(SerializerMetaclass):
                         if v is not None
                     },
                 )
-                model = deepcopy(meta.model)
-                model.PydanticMeta = pydantic_meta
-            else:
-                model = meta.model
 
-            pydantic_model = pydantic_model_creator(model, extra_fields=extra_fields)
+                model.PydanticMeta = pydantic_meta
+
+            model.__name__ = name
+
+            pydantic_model = pydantic_model_creator(
+                model, name=name, extra_fields=extra_fields
+            )
 
             return pydantic_model
 

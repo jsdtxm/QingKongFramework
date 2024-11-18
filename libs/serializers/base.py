@@ -40,7 +40,7 @@ class SerializerMetaclass(_model_construction.ModelMetaclass):
 
             try:
                 pydantic_model = pydantic_model_creator(
-                    model, validators=validators_map
+                    model, name=name, validators=validators_map
                 )
                 return pydantic_model
             except Exception as e:
