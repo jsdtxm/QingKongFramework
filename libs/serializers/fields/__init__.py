@@ -112,7 +112,11 @@ class UUIDField(SerializerMixin[UUID], models_data_fields.UUIDField):
 
 
 # Serializer Only
-class ListSerializer(SerializerMixin[list], Field, list):
+class NestedField(Field):
+    pass
+
+
+class ListSerializer(SerializerMixin[list], NestedField, list):
     def __init__(self, child, **kwargs: Any):
         super().__init__(**kwargs)
         self.child = child
@@ -127,3 +131,9 @@ class ListSerializer(SerializerMixin[list], Field, list):
     @property
     def pydantic_type(self):
         return List
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(child={self.child.__repr__()})"
