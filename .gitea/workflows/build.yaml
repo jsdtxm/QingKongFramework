@@ -1,0 +1,25 @@
+name: Actions Build Image
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: https://gitea.xiamin.tech/actions/checkout@v4
+      -
+        name: Login to GitLab
+        uses: https://gitea.xiamin.tech/docker_actions/login-action@v3
+        with:
+          registry: harbor.xiamin.tech
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      -
+        name: Build and push
+        uses: https://gitea.xiamin.tech/docker_actions/build-push-action@v6
+        with:
+          push: true
+          tags: harbor.xiamin.tech/qingkong_framework:${{ gitea.ref_name }}
+          file: "deploy/Dockerfile"
