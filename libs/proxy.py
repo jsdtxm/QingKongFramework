@@ -4,6 +4,9 @@ import aiohttp
 import aiohttp.web
 import uvloop
 
+from common.settings import settings
+from libs.initialize.apps import init_apps
+
 
 class ProxyLocation:
     prefix: str
@@ -17,6 +20,9 @@ class ProxyLocation:
         self.rewrite = rewrite
 
         self.prefix = re.search(r"^/(\S+)/\{", path).groups(1)[0]
+
+    def __repr__(self):
+        return f"ProxyLocation {self.prefix}/* -> {self.target}; Rewrite: {self.rewrite}"
 
     @classmethod
     def prefix_proxy(cls, prefix, target):
@@ -37,7 +43,7 @@ class ProxyLocation:
 
 
 PROXY_RULES = [
-    ProxyLocation.prefix_proxy("main", "http://127.0.0.1:18001"),
+    ProxyLocation.prefix_proxy("polypro", "http://127.0.0.1:18001"),
     ProxyLocation.prefix_proxy("user", "http://127.0.0.1:18002"),
 ]
 
@@ -86,10 +92,21 @@ def handler_factory(proxy_loc: ProxyLocation):
 
 
 def run_proxy(host="127.0.0.1", port=8000):
-    app = aiohttp.web.Application()
+    apps = init_apps(settings.INSTALLED_APPS)
 
-    app.add_routes([r.to_aiohttp_route() for r in PROXY_RULES])
-    aiohttp.web.run_app(app, host=host, port=port, loop=uvloop.new_event_loop())
+    proxy_rules = [
+        ProxyLocation.prefix_proxy(v.label, f"http://127.0.0.1:{v.port}")
+        for v in apps.app_configs.values()
+    ]
+
+    print("proxy_rules:")
+    for p in proxy_rules:
+        print(p)
+
+    proxy_app = aiohttp.web.Application()
+
+    proxy_app.add_routes([r.to_aiohttp_route() for r in proxy_rules])
+    aiohttp.web.run_app(proxy_app, host=host, port=port, loop=uvloop.new_event_loop())
 
 
 if __name__ == "__main__":
