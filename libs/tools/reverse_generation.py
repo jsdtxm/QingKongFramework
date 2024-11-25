@@ -60,7 +60,7 @@ async def table_to_django_model(db_config, table_name):
 
         model_definition += field_definition
 
-    model_definition += "\n    class Meta:\n        db_table = '" + table_name + "'\n"
+    model_definition += "\n    class Meta:\n        table = '" + table_name + "'\n"
 
     # 关闭数据库连接
     await conn.ensure_closed()
