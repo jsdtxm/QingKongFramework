@@ -32,4 +32,6 @@ COPY ./libs /app/libs
 COPY ./common /app/common
 COPY ./manage.py /app/
 
+EXPOSE 8000
+
 CMD ["python", "manage.py", "about"]
