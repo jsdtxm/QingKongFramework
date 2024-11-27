@@ -24,42 +24,14 @@ class ModelSerializerMetaclass(SerializerMetaclass):
             fields = getattr(meta, "fields", ())
             exclude = getattr(meta, "exclude", ())
 
-            pydantic_meta = getattr(meta.model, "PydanticMeta", None)
             extra_fields = {
                 name: value
                 for name, value in attrs.items()
                 if isinstance(value, BaseModel) or isinstance(value, Field)
             }
-            model = type(f"{name}SerializerModel", (meta.model,), {})
-            if pydantic_meta is None:
-                if fields:
-                    assert not (fields and exclude), (
-                        "Cannot set both 'fields' and 'exclude' options on "
-                        "serializer {serializer_class}.".format(serializer_class=name)
-                    )
-                    if fields == "__all__":
-                        fields, exclude = (), ()
-
-                pydantic_meta = type(
-                    "PydanticMeta",
-                    (),
-                    {
-                        k: v
-                        for k, v in {
-                            "include": fields,
-                            "exclude": exclude,
-                            "max_recursion": getattr(meta, "depth", None),
-                        }.items()
-                        if v is not None
-                    },
-                )
-
-                model.PydanticMeta = pydantic_meta
-
-            model.__name__ = name
 
             pydantic_model = pydantic_model_creator(
-                model,
+                meta.model,
                 name=name,
                 extra_fields=extra_fields,
                 include=fields,
