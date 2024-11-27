@@ -1,4 +1,3 @@
-from copy import deepcopy
 from typing import Tuple, Type
 
 from pydantic import BaseModel
@@ -19,17 +18,20 @@ class ModelSerializerMetaclass(SerializerMetaclass):
     #             )
     #         ]
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
+        fields, exclude = (), ()
+
         if meta := attrs.get("Meta", None):
+            fields = getattr(meta, "fields", ())
+            exclude = getattr(meta, "exclude", ())
+
             pydantic_meta = getattr(meta.model, "PydanticMeta", None)
             extra_fields = {
                 name: value
                 for name, value in attrs.items()
                 if isinstance(value, BaseModel) or isinstance(value, Field)
             }
-            model = deepcopy(meta.model)
+            model = type(f"{name}SerializerModel", (meta.model,), {})
             if pydantic_meta is None:
-                fields = getattr(meta, "fields", ())
-                exclude = getattr(meta, "exclude", ())
                 if fields:
                     assert not (fields and exclude), (
                         "Cannot set both 'fields' and 'exclude' options on "
@@ -57,7 +59,11 @@ class ModelSerializerMetaclass(SerializerMetaclass):
             model.__name__ = name
 
             pydantic_model = pydantic_model_creator(
-                model, name=name, extra_fields=extra_fields
+                model,
+                name=name,
+                extra_fields=extra_fields,
+                include=fields,
+                exclude=exclude,
             )
 
             return pydantic_model
