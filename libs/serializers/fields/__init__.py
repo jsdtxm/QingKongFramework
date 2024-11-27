@@ -118,7 +118,7 @@ class NestedField(Field):
 
 class ListSerializer(SerializerMixin[list], NestedField, list):
     def __init__(self, child, **kwargs: Any):
-        super().__init__(**kwargs)
+        super().__init__(**({'default': []}|kwargs))
         self.child = child
         self.field_type = list[child]
 
