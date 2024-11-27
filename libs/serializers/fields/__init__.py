@@ -136,4 +136,4 @@ class ListSerializer(SerializerMixin[list], NestedField, list):
         return self.__repr__()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(child={self.child.__repr__()})"
+        return f"{self.__class__.__name__}(child={self.child})"
