@@ -1,60 +1,251 @@
-from typing import Tuple, Type
+from abc import ABCMeta
+from typing import Any, Literal, Optional, Tuple, Type
 
-from pydantic._internal import _model_construction
-from pydantic._internal._decorators import (
-    FieldValidatorDecoratorInfo,
-    ModelValidatorDecoratorInfo,
-    PydanticDescriptorProxy,
+from pydantic import BaseModel, Field, create_model
+from pydantic._internal._model_construction import ModelMetaclass
+from pydantic.annotated_handlers import GetCoreSchemaHandler, GetJsonSchemaHandler
+from pydantic.json_schema import (
+    DEFAULT_REF_TEMPLATE,
+    GenerateJsonSchema,
+    JsonSchemaMode,
+    JsonSchemaValue,
 )
+from pydantic.main import IncEx
+from pydantic_core import CoreSchema
 from tortoise.contrib.pydantic.base import PydanticModel
-from tortoise.fields.base import Field
+from tortoise.fields.base import Field as TortoiseField
 
-from libs.models.base import BaseModel, ModelMetaClass
-from libs.serializers.creator import pydantic_model_creator
+from libs.utils.functional import classproperty
 
 
-class SerializerMetaclass(_model_construction.ModelMetaclass):
+class EmptyModelMetaclass(ModelMetaclass):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
-        if fields_map := dict(filter(lambda x: isinstance(x[1], Field), attrs.items())):
-            validators_map = dict(
-                filter(
-                    lambda x: isinstance(x[1], PydanticDescriptorProxy)
-                    and (
-                        isinstance(x[1].decorator_info, ModelValidatorDecoratorInfo)
-                        or isinstance(x[1].decorator_info, FieldValidatorDecoratorInfo)
-                    ),
-                    attrs.items(),
-                )
-            )
+        return type.__new__(mcs, name, bases, attrs)
 
-            model = ModelMetaClass(
-                name,
-                (BaseModel,),
-                {
-                    **fields_map,
-                    "PydanticMeta": type(
-                        "PydanticMeta",
-                        (),
-                        {"include": fields_map.keys()},
-                    ),
-                    "Meta": type(
-                        "Meta",
-                        (),
-                        {"abstract": True},
-                    ),
-                },
-            )
 
-            try:
-                pydantic_model = pydantic_model_creator(
-                    model, name=name, validators=validators_map
-                )
-                return pydantic_model
-            except Exception as e:
-                print("ERROR", e)
+class empty:
+    """
+    This class is used to represent no data being provided for a given input
+    or output value.
+
+    It is required because `None` may be a valid input or output value.
+    """
+
+    pass
+
+
+NOT_READ_ONLY_WRITE_ONLY = "May not set both `read_only` and `write_only`"
+NOT_READ_ONLY_REQUIRED = "May not set both `read_only` and `required`"
+NOT_REQUIRED_DEFAULT = "May not set both `required` and `default`"
+USE_READONLYFIELD = "Field(read_only=True) should be ReadOnlyField"
+MISSING_ERROR_MESSAGE = (
+    "ValidationError raised by `{class_name}`, but error key `{key}` does "
+    "not exist in the `error_messages` dictionary."
+)
+
+
+class OverrideMixin:
+    def __getattr__(self, item: str) -> Any:
+        return object.__getattribute__(self, item)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        return object.__setattr__(self, name, value)
+
+
+class RestField:
+    _creation_counter = 0
+
+    default_error_messages = {
+        "required": "This field is required.",
+        "null": "This field may not be null.",
+    }
+    default_validators = []
+    initial = None
+
+    def __init__(
+        self,
+        *,
+        read_only=False,
+        write_only=False,
+        required=None,
+        default=empty,
+        initial=empty,
+        source=None,
+        label=None,
+        help_text=None,
+        style=None,
+        error_messages=None,
+        validators=None,
+        allow_null=False,
+    ):
+        # If `required` is unset, then use `True` unless a default is provided.
+        if required is None:
+            required = default is empty and not read_only
+
+        # Some combinations of keyword arguments do not make sense.
+        assert not (read_only and write_only), NOT_READ_ONLY_WRITE_ONLY
+        assert not (read_only and required), NOT_READ_ONLY_REQUIRED
+        assert not (required and default is not empty), NOT_REQUIRED_DEFAULT
+        assert not (read_only and self.__class__ == Field), USE_READONLYFIELD
+
+        self.read_only = read_only
+        self.write_only = write_only
+        self.required = required
+        self.default = default
+        self.source = source
+        self.initial = self.initial if (initial is empty) else initial
+        self.label = label
+        self.help_text = help_text
+        self.style = {} if style is None else style
+        self.allow_null = allow_null
+
+        if validators is not None:
+            self.validators = list(validators)
+
+        # These are set up by `.bind()` when the field is added to a serializer.
+        self.field_name = None
+        self.parent = None
+
+        # Collect default error message from self and parent classes
+        messages = {}
+        for cls in reversed(self.__class__.__mro__):
+            messages.update(getattr(cls, "default_error_messages", {}))
+        messages.update(error_messages or {})
+        self.error_messages = messages
+
+
+class SerializerModel(
+    OverrideMixin, RestField, PydanticModel, metaclass=EmptyModelMetaclass
+):
+    pydantic_model: Type[BaseModel]
+
+    def __init__(self, instance=None, data=empty, **kwargs):
+        if instance:
+            self.instance = self.pydantic_model.model_validate(instance)
+        else:
+            self.instance = instance
+
+        if data is not empty:
+            self.initial_data = data
+        self.partial = kwargs.pop("partial", False)
+        self._context = kwargs.pop("context", {})
+        kwargs.pop("many", None)
+        super().__init__(**kwargs)
+
+    def model_dump(
+        self,
+        *,
+        mode: Literal["json", "python"] | str = "python",
+        include: IncEx | None = None,
+        exclude: IncEx | None = None,
+        context: Any | None = None,
+        by_alias: bool = False,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        round_trip: bool = False,
+        warnings: bool | Literal["none", "warn", "error"] = True,
+        serialize_as_any: bool = False,
+    ) -> dict[str, Any]:
+        return self.pydantic_model.__pydantic_serializer__.to_python(
+            self.instance,
+            mode=mode,
+            by_alias=by_alias,
+            include=include,
+            exclude=exclude,
+            context=context,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            round_trip=round_trip,
+            warnings=warnings,
+            serialize_as_any=serialize_as_any,
+        )
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source: type[BaseModel], handler: GetCoreSchemaHandler, /
+    ) -> CoreSchema:
+        return cls.pydantic_model.__get_pydantic_core_schema__(source, handler)
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+        /,
+    ) -> JsonSchemaValue:
+        return cls.pydantic_model.__get_pydantic_json_schema__(core_schema, handler)
+
+    @classmethod
+    def model_json_schema(
+        cls,
+        by_alias: bool = True,
+        ref_template: str = DEFAULT_REF_TEMPLATE,
+        schema_generator: type[GenerateJsonSchema] = GenerateJsonSchema,
+        mode: JsonSchemaMode = "validation",
+    ) -> dict[str, Any]:
+        return cls.pydantic_model.model_json_schema(
+            by_alias=by_alias,
+            ref_template=ref_template,
+            schema_generator=schema_generator,
+            mode=mode,
+        )
+
+    @classproperty
+    def __pydantic_validator__(cls):
+        return cls.pydantic_model.__pydantic_validator__
+
+    @classproperty
+    def model_fields(cls):
+        return cls.pydantic_model.model_fields
+
+    @classproperty
+    def model_config(cls):
+        return cls.pydantic_model.model_config
+
+
+class SerializerMetaclass(ABCMeta):
+    def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
+        if raw_fields_map := dict(
+            filter(
+                lambda x: isinstance(x[1], TortoiseField)
+                or isinstance(x[1], BaseModel),
+                attrs.items(),
+            )
+        ):
+            fields_map = {}
+            for key, field in raw_fields_map.items():
+                if isinstance(field, TortoiseField):
+                    fdesc = field.describe(serializable=False)
+
+                    field_default = fdesc.get("default")
+                    ptype = fdesc["python_type"]
+
+                    if field_default is not None or fdesc.get("nullable"):
+                        ptype = Optional[ptype]
+
+                    fields_map[key] = (ptype, Field())
+
+            pconfig = PydanticModel.model_config.copy()
+
+            if "title" not in pconfig:
+                pconfig["title"] = name
+            if "extra" not in pconfig:
+                pconfig["extra"] = "forbid"
+
+            pconfig["orig_model"] = None
+
+            pydantic_model = create_model(name, model_config=pconfig, **fields_map)
+            return type(
+                name, (SerializerModel,), attrs | {"pydantic_model": pydantic_model}
+            )
 
         return super().__new__(mcs, name, bases, attrs)
 
 
-class Serializer(PydanticModel, metaclass=SerializerMetaclass):
-    pass
+class Serializer(metaclass=SerializerMetaclass):
+    pydantic_model: BaseModel
+
+    def __init__(self, *args, **kwargs):
+        pass

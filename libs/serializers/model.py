@@ -1,13 +1,14 @@
 from typing import Tuple, Type
 
 from pydantic import BaseModel
+from pydantic._internal import _model_construction
+from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields import Field
 
-from libs.serializers.base import Serializer, SerializerMetaclass
 from libs.serializers.creator import pydantic_model_creator
 
 
-class ModelSerializerMetaclass(SerializerMetaclass):
+class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
     # TODO
     # read_only_fields = ['account_name']
     # extra_kwargs = {'password': {'write_only': True}}
@@ -40,10 +41,10 @@ class ModelSerializerMetaclass(SerializerMetaclass):
 
             return pydantic_model
 
-        return super(SerializerMetaclass, mcs).__new__(mcs, name, bases, attrs)
+        return super().__new__(mcs, name, bases, attrs)
 
 
-class ModelSerializer(Serializer, metaclass=ModelSerializerMetaclass):
+class ModelSerializer(PydanticModel, metaclass=ModelSerializerMetaclass):
     """
     ModelSerializer
     ```python
