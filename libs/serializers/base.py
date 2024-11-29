@@ -132,6 +132,12 @@ class SerializerModel(
         kwargs.pop("many", None)
         super().__init__(**kwargs)
 
+    def __str__(self):
+        return object.__str__(self)
+    
+    def __repr__(self):
+        return object.__repr__(self)
+
     def model_dump(
         self,
         *,
