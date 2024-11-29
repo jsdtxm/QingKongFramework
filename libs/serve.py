@@ -56,6 +56,7 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False):
 
     # Register the signal handler
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # Wait for all processes to complete
     for process in processes:
