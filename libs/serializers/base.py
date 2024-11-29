@@ -238,9 +238,15 @@ class SerializerMetaclass(ABCMeta):
                         ptype = Optional[ptype]
 
                     fields_map[key] = (ptype, Field())
-                elif (isinstance(field, type) and issubclass(field, BaseModel)) or isinstance(field, BaseModel):
-                    fields_map[key] = (field, Field())
+                elif (
+                    isinstance(field, type) and issubclass(field, BaseModel)
+                ) or isinstance(field, BaseModel):
+                    if not field.required:
+                        fields_map[key] = (Optional[field], Field())
+                    else:
+                        fields_map[key] = (field, Field())
                 else:
+                    raise NotImplementedError()
 
             validators_map = dict(
                 filter(
