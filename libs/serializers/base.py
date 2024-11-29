@@ -2,6 +2,11 @@ from abc import ABCMeta
 from typing import Any, Literal, Optional, Tuple, Type
 
 from pydantic import BaseModel, Field, create_model
+from pydantic._internal._decorators import (
+    FieldValidatorDecoratorInfo,
+    ModelValidatorDecoratorInfo,
+    PydanticDescriptorProxy,
+)
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic.annotated_handlers import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import (
@@ -134,7 +139,7 @@ class SerializerModel(
 
     def __str__(self):
         return object.__str__(self)
-    
+
     def __repr__(self):
         return object.__repr__(self)
 
@@ -236,7 +241,17 @@ class SerializerMetaclass(ABCMeta):
                 elif (isinstance(field, type) and issubclass(field, BaseModel)) or isinstance(field, BaseModel):
                     fields_map[key] = (field, Field())
                 else:
-                    raise NotImplemented()
+
+            validators_map = dict(
+                filter(
+                    lambda x: isinstance(x[1], PydanticDescriptorProxy)
+                    and (
+                        isinstance(x[1].decorator_info, ModelValidatorDecoratorInfo)
+                        or isinstance(x[1].decorator_info, FieldValidatorDecoratorInfo)
+                    ),
+                    attrs.items(),
+                )
+            )
 
             pconfig = PydanticModel.model_config.copy()
 
@@ -247,7 +262,9 @@ class SerializerMetaclass(ABCMeta):
 
             pconfig["orig_model"] = None
 
-            pydantic_model = create_model(name, model_config=pconfig, **fields_map)
+            pydantic_model = create_model(
+                name, model_config=pconfig, __validators__=validators_map, **fields_map
+            )
             return type(
                 name, (SerializerModel,), attrs | {"pydantic_model": pydantic_model}
             )
