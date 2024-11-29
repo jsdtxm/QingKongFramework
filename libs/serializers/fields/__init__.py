@@ -120,7 +120,12 @@ class ListSerializer(SerializerMixin[list], NestedField, list):
     def __init__(self, child, **kwargs: Any):
         super().__init__(**({'default': []}|kwargs))
         self.child = child
-        self.field_type = list[child]
+        if isinstance(child, Field):
+            child_desc = child.describe(serializable=False)
+            child_type = child_desc['python_type']
+            self.field_type = list[child_type]
+        else:
+            self.field_type = list[type(child)]
 
     def describe(self, serializable: bool) -> dict:
         desc = super().describe(serializable)
