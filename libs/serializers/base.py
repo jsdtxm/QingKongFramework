@@ -210,7 +210,8 @@ class SerializerMetaclass(ABCMeta):
         if raw_fields_map := dict(
             filter(
                 lambda x: isinstance(x[1], TortoiseField)
-                or isinstance(x[1], BaseModel),
+                or isinstance(x[1], BaseModel)
+                or (isinstance(x[1], type) and issubclass(x[1], BaseModel)),
                 attrs.items(),
             )
         ):
@@ -226,6 +227,10 @@ class SerializerMetaclass(ABCMeta):
                         ptype = Optional[ptype]
 
                     fields_map[key] = (ptype, Field())
+                elif (isinstance(field, type) and issubclass(field, BaseModel)) or isinstance(field, BaseModel):
+                    fields_map[key] = (field, Field())
+                else:
+                    raise NotImplemented()
 
             pconfig = PydanticModel.model_config.copy()
 
