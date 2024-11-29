@@ -40,3 +40,10 @@ class cached_property:
             return self
         res = instance.__dict__[self.name] = self.func(instance)
         return res
+
+
+class classproperty:
+    def __init__(self, func):
+        self.fget = func
+    def __get__(self, instance, owner):
+        return self.fget(owner)
