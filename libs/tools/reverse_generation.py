@@ -2,6 +2,12 @@ from asyncmy import connect
 from asyncmy.cursors import DictCursor
 import asyncio
 
+def to_camel_case(snake_str):
+    # 将字符串按'_'分割成列表
+    components = snake_str.split('_')
+    # 使用str.title()方法将每个单词的首字母转为大写，然后用join()方法连接起来
+    return ''.join(x.capitalize() for x in components)
+
 async def table_to_django_model(db_config, table_name):
     # TODO 字段名称标准化
     """
@@ -18,7 +24,7 @@ async def table_to_django_model(db_config, table_name):
         columns = await cursor.fetchall()
 
     # 生成Django模型定义
-    model_definition = f"class {table_name.capitalize()}(models.Model):\n"
+    model_definition = f"class {to_camel_case(table_name)}(models.Model):\n"
     for column in columns:
         column_name = column['Field']
         data_type = column['Type']
@@ -52,6 +58,8 @@ async def table_to_django_model(db_config, table_name):
             field_definition += f"max_length={max_length}, "
         if not is_nullable:
             field_definition += "null=False, "
+        else:
+            field_definition += "null=True, "
         if default_value:
             field_definition += f"default={default_value}, "
         if is_primary_key:
