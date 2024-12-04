@@ -13,6 +13,7 @@ from common.settings import settings
 from libs.apps.config import AppConfig
 from libs.initialize.apps import init_apps
 from libs.initialize.db import async_init_db, get_tortoise_config, init_models
+from libs.router import router_convert
 from libs.utils.typing import copy_method_signature
 
 
@@ -42,7 +43,9 @@ class FastAPI(RawFastAPI):
         if include_healthz:
             self.include_router(import_module("libs.contrib.healthz.views").router)
 
-        self.include_router(
-            apps.app_configs[f"apps.{name}"].import_module("views").router
-        )
+        for router in router_convert(
+            apps.app_configs[f"apps.{name}"].import_module("urls").urlpatterns
+        ):
+            self.include_router(**router)
+        
         add_pagination(self)
