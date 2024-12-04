@@ -45,7 +45,7 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False):
     port_counter = Counter(
         [app_config.port for app_config in apps.app_configs.values()]
     )
-    for _, count in port_counter:
+    for _, count in port_counter.items():
         if count > 1:
             print("app port duplicate")
 
