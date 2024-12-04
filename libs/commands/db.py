@@ -1,9 +1,9 @@
-from tortoise import Tortoise
-from libs.initialize.apps import init_apps
-
-from libs.initialize.db import async_init_db, get_tortoise_config
 import uvloop
 from common.settings import settings
+from libs.initialize.apps import init_apps
+from libs.initialize.db import async_init_db, get_tortoise_config
+from tortoise import Tortoise
+
 
 async def async_migrate():
     init_apps(settings.INSTALLED_APPS)

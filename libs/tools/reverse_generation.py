@@ -1,12 +1,9 @@
-from asyncmy import connect
-from asyncmy.cursors import DictCursor
 import asyncio
 
-def to_camel_case(snake_str):
-    # 将字符串按'_'分割成列表
-    components = snake_str.split('_')
-    # 使用str.title()方法将每个单词的首字母转为大写，然后用join()方法连接起来
-    return ''.join(x.capitalize() for x in components)
+from asyncmy import connect
+from asyncmy.cursors import DictCursor
+from libs.utils.strings import to_camel_case
+
 
 async def table_to_django_model(db_config, table_name):
     # TODO 字段名称标准化
@@ -26,31 +23,33 @@ async def table_to_django_model(db_config, table_name):
     # 生成Django模型定义
     model_definition = f"class {to_camel_case(table_name)}(models.Model):\n"
     for column in columns:
-        column_name = column['Field']
-        data_type = column['Type']
-        is_nullable = column['Null'] == 'YES'
-        is_primary_key = column['Key'] == 'PRI'
-        default_value = column['Default']
+        column_name = column["Field"]
+        data_type = column["Type"]
+        is_nullable = column["Null"] == "YES"
+        is_primary_key = column["Key"] == "PRI"
+        default_value = column["Default"]
 
         # 将MySQL数据类型映射到Django字段类型
-        field_type = 'models.CharField'  # 默认字段类型
+        field_type = "models.CharField"  # 默认字段类型
         max_length = None
-        if data_type.startswith('int'):
-            field_type = 'models.IntegerField'
-        elif data_type.startswith('varchar'):
-            field_type = 'models.CharField'
-            max_length = int(data_type.split('(')[1].split(')')[0])
-        elif data_type.startswith('text'):
-            field_type = 'models.TextField'
-        elif data_type.startswith('datetime'):
-            field_type = 'models.DateTimeField'
-        elif data_type.startswith('date'):
-            field_type = 'models.DateField'
-        elif data_type.startswith('float'):
-            field_type = 'models.FloatField'
-        elif data_type.startswith('decimal'):
-            field_type = 'models.DecimalField'
-            max_digits, decimal_places = map(int, data_type.split('(')[1].split(')')[0].split(','))
+        if data_type.startswith("int"):
+            field_type = "models.IntegerField"
+        elif data_type.startswith("varchar"):
+            field_type = "models.CharField"
+            max_length = int(data_type.split("(")[1].split(")")[0])
+        elif data_type.startswith("text"):
+            field_type = "models.TextField"
+        elif data_type.startswith("datetime"):
+            field_type = "models.DateTimeField"
+        elif data_type.startswith("date"):
+            field_type = "models.DateField"
+        elif data_type.startswith("float"):
+            field_type = "models.FloatField"
+        elif data_type.startswith("decimal"):
+            field_type = "models.DecimalField"
+            max_digits, decimal_places = map(
+                int, data_type.split("(")[1].split(")")[0].split(",")
+            )
 
         # 生成字段定义
         field_definition = f"    {column_name} = {field_type}("
@@ -64,7 +63,7 @@ async def table_to_django_model(db_config, table_name):
             field_definition += f"default={default_value}, "
         if is_primary_key:
             field_definition += "primary_key=True, "
-        field_definition = field_definition.rstrip(', ') + ")\n"
+        field_definition = field_definition.rstrip(", ") + ")\n"
 
         model_definition += field_definition
 
@@ -75,18 +74,15 @@ async def table_to_django_model(db_config, table_name):
 
     return model_definition
 
+
 async def run(table_name, db_config):
     model_definition = await table_to_django_model(db_config, table_name)
     print(model_definition)
 
-if __name__ == "__main__":
-    db_config = {
-        'host': '',
-        'user': '',
-        'password': '',
-        'db': ''
-    }
 
-    table_name = ''
+if __name__ == "__main__":
+    db_config = {"host": "", "user": "", "password": "", "db": ""}
+
+    table_name = ""
 
     asyncio.run(run(table_name, db_config))

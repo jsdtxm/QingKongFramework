@@ -7,6 +7,7 @@ import uvicorn
 
 from common.settings import settings
 from libs.initialize.apps import init_apps
+from collections import Counter
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
@@ -23,7 +24,7 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     )
 
 
-processes : list[multiprocessing.Process] = []
+processes: list[multiprocessing.Process] = []
 
 
 def signal_handler(sig, frame):
@@ -33,15 +34,25 @@ def signal_handler(sig, frame):
             process.terminate()
     sys.exit(0)
 
+
 def _serve_app(config):
     return serve_app(*config)
 
+
 def serve_apps(host: str = "127.0.0.1", workers=1, reload=False):
     apps = init_apps(settings.INSTALLED_APPS)
+
+    port_counter = Counter(
+        [app_config.port for app_config in apps.app_configs.values()]
+    )
+    for _, count in port_counter:
+        if count > 1:
+            print("app port duplicate")
+
     app_params = list(
         map(
             lambda x: (x.label, host, workers, reload),
-            filter(lambda x: x.name.startswith("apps."), apps.app_configs.values())
+            filter(lambda x: x.name.startswith("apps."), apps.app_configs.values()),
         )
     )
 
