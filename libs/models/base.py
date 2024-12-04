@@ -52,3 +52,8 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
 
     class Meta(BaseMeta):
         pass
+
+    class PydanticMeta:
+        include = ()
+        exclude = ()
+        max_recursion = 1

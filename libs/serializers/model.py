@@ -1,14 +1,14 @@
-from copy import deepcopy
 from typing import Tuple, Type
 
 from pydantic import BaseModel
+from pydantic._internal import _model_construction
+from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields import Field
 
-from libs.serializers.base import Serializer, SerializerMetaclass
 from libs.serializers.creator import pydantic_model_creator
 
 
-class ModelSerializerMetaclass(SerializerMetaclass):
+class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
     # TODO
     # read_only_fields = ['account_name']
     # extra_kwargs = {'password': {'write_only': True}}
@@ -19,53 +19,32 @@ class ModelSerializerMetaclass(SerializerMetaclass):
     #             )
     #         ]
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
+        fields, exclude = (), ()
+
         if meta := attrs.get("Meta", None):
-            pydantic_meta = getattr(meta.model, "PydanticMeta", None)
+            fields = getattr(meta, "fields", ())
+            exclude = getattr(meta, "exclude", ())
+
             extra_fields = {
                 name: value
                 for name, value in attrs.items()
                 if isinstance(value, BaseModel) or isinstance(value, Field)
             }
-            model = deepcopy(meta.model)
-            if pydantic_meta is None:
-                fields = getattr(meta, "fields", ())
-                exclude = getattr(meta, "exclude", ())
-                if fields:
-                    assert not (fields and exclude), (
-                        "Cannot set both 'fields' and 'exclude' options on "
-                        "serializer {serializer_class}.".format(serializer_class=name)
-                    )
-                    if fields == "__all__":
-                        fields, exclude = (), ()
-
-                pydantic_meta = type(
-                    "PydanticMeta",
-                    (),
-                    {
-                        k: v
-                        for k, v in {
-                            "include": fields,
-                            "exclude": exclude,
-                            "max_recursion": getattr(meta, "depth", None),
-                        }.items()
-                        if v is not None
-                    },
-                )
-
-                model.PydanticMeta = pydantic_meta
-
-            model.__name__ = name
 
             pydantic_model = pydantic_model_creator(
-                model, name=name, extra_fields=extra_fields
+                meta.model,
+                name=name,
+                extra_fields=extra_fields,
+                include=fields,
+                exclude=exclude,
             )
 
             return pydantic_model
 
-        return super(SerializerMetaclass, mcs).__new__(mcs, name, bases, attrs)
+        return super().__new__(mcs, name, bases, attrs)
 
 
-class ModelSerializer(Serializer, metaclass=ModelSerializerMetaclass):
+class ModelSerializer(PydanticModel, metaclass=ModelSerializerMetaclass):
     """
     ModelSerializer
     ```python
