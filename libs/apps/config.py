@@ -35,9 +35,6 @@ class AppConfig(metaclass=AppConfigMeta):
         self.name = name
         self.module = module
 
-        # self.import_models()
-        self.import_urls()
-
     def __str__(self):
         return f"<QingKongFramework.AppConfig {self.name}>"
 
@@ -148,9 +145,3 @@ class AppConfig(metaclass=AppConfigMeta):
         if module_has_submodule(self.module, name):
             module_name = "%s.%s" % (self.name, name)
             return import_module(module_name)
-
-    def import_models(self):
-        self.models_module = self.import_module("models")
-
-    def import_urls(self):
-        self.urls_module = self.import_module("urls")
