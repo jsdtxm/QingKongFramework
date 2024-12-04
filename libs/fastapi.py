@@ -8,12 +8,11 @@ from fastapi import FastAPI as RawFastAPI
 from fastapi.applications import AppType
 from fastapi_pagination import add_pagination
 from starlette.types import Lifespan
-from tortoise import Tortoise
 
 from common.settings import settings
 from libs.apps.config import AppConfig
 from libs.initialize.apps import init_apps
-from libs.initialize.db import async_init_db, get_tortoise_config
+from libs.initialize.db import async_init_db, get_tortoise_config, init_models
 from libs.utils.typing import copy_method_signature
 
 
@@ -32,7 +31,8 @@ class FastAPI(RawFastAPI):
         **kwargs,
     ):
         apps = init_apps(settings.INSTALLED_APPS)
-        Tortoise.init_models(["apps.polypro.models"], "polypro")
+
+        init_models()
         create_task(async_init_db(get_tortoise_config(settings.DATABASES)))
 
         name = name or inspect.stack()[1].filename.rsplit("/", 2)[-2]

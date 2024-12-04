@@ -49,8 +49,20 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
             }
 
         tortoise_config["connections"][alias] = c
-    
+
     return tortoise_config
+
+
+def init_models():
+    """
+    init_models
+    """
+
+    apps: Apps = import_module("libs.apps").apps
+
+    for app_config in apps.app_configs.values():
+        if module_has_submodule(app_config.module, "models"):
+            Tortoise.init_models([f"{app_config.name}.models"], app_config.label)
 
 
 async def async_init_db(config: dict):
