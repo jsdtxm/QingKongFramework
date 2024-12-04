@@ -1,10 +1,8 @@
 import multiprocessing
 
-from libs.commands import about, cli, migrate, runserver
+from libs.commands import about, cli, migrate, proxy, runserver
 
-cli.command()(runserver)
-cli.command()(migrate)
-cli.command()(about)
+cli.register_commands(runserver, proxy, migrate, about)
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
