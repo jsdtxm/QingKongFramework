@@ -6,7 +6,7 @@ import uvloop
 from tortoise import Tortoise
 
 from libs.apps import Apps
-from libs.utils.module_loading import module_has_submodule
+from libs.utils.module_loading import module_has_submodule, package_try_import
 
 
 def get_tortoise_config(databases: dict[str, dict[str, Any]]):
@@ -21,12 +21,18 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
         "apps": {},
     }
 
+    connection_routers = []
     for app_config in apps.app_configs.values():
-        if module_has_submodule(app_config.module, "models"):
-            tortoise_config["apps"][app_config.label] = {
-                "models": [app_config.name + ".models"],
+        if models := package_try_import(app_config.module, "models"):
+            models_module_path = app_config.name + ".models"
+            app_model_config = {
+                "models": [models_module_path],
                 "default_connection": "default",
             }
+            if hasattr(models, "Router"):
+                connection_routers.append(models_module_path+".Router")
+            
+            tortoise_config["apps"][app_config.label] = app_model_config
 
     for alias, config in databases.items():
         if re.search(r"sqlite3?$", config["ENGINE"]):
@@ -49,6 +55,8 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
             }
 
         tortoise_config["connections"][alias] = c
+    
+    tortoise_config["routers"] = connection_routers
 
     return tortoise_config
 
