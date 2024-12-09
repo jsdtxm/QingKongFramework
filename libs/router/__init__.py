@@ -51,6 +51,7 @@ class ApiPath:
         self.endpoint = endpoint
         self.name = name
         self.response_model = response_model
+        self.response_class = response_class
 
         self.methods = methods
 
@@ -106,13 +107,21 @@ def router_convert(urlpatterns: List[ApiPath]):
                     methods=[
                         method,
                     ],
-                    response_model=url.response_model
+                    response_model=url.response_model,
+                    response_class=url.response_class,
                 )
             router_list.append(RouterWrapper(router, url.path))
         else:
             if not url.path.startswith("/"):
                 url.path = "/" + url.path
-            root.add_api_route(url.path, url.endpoint, name=url.name, response_model=url.response_model, methods=url.methods)
+            root.add_api_route(
+                url.path,
+                url.endpoint,
+                name=url.name,
+                methods=url.methods,
+                response_model=url.response_model,
+                response_class=url.response_class,
+            )
 
     router_list.append(RouterWrapper(root))
 
