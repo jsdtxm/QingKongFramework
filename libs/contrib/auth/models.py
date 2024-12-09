@@ -11,7 +11,3 @@ class AbstractUser(models.Model):
 
     class Meta:
         abstract = True
-
-
-class User(models.Model):
-    pass
