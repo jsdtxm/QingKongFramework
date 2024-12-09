@@ -19,6 +19,7 @@ class Manager(TortoiseManager):
 class BaseMeta:
     manager = Manager()
     external: bool = False
+    app: str = "none"
 
 
 class ModelMetaClass(TortoiseModelMeta):
@@ -37,6 +38,7 @@ class ModelMetaClass(TortoiseModelMeta):
                 else:
                     meta_class.table = f"{app_config.label}_{name.lower()}"
 
+            meta_class.app = app_config.label
             attrs["Meta"] = meta_class
 
         return super().__new__(mcs, name, bases, attrs)
