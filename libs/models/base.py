@@ -26,19 +26,22 @@ class ModelMetaClass(TortoiseModelMeta):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
         module_name: str = attrs.get("__module__", None)
         if module_name and module_name.endswith(".models"):
-            app_config = apps.apps.app_configs[module_name.rsplit(".", 1)[0]]
-            attrs["app"] = app_config
-
             meta_class = attrs.get("Meta", type("Meta", (BaseMeta,), {}))
+            abstract = getattr(meta_class, "abstract", False)
+
+            if not abstract:
+                app_config = apps.apps.app_configs[module_name.rsplit(".", 1)[0]]
+                attrs["app"] = app_config
+                meta_class.app = app_config.label
+
             table = getattr(meta_class, "table", None)
             if table is None:
                 db_table = getattr(meta_class, "db_table", None)
                 if db_table:
                     meta_class.table = db_table
-                else:
+                elif not abstract:
                     meta_class.table = f"{app_config.label}_{name.lower()}"
 
-            meta_class.app = app_config.label
             attrs["Meta"] = meta_class
 
         return super().__new__(mcs, name, bases, attrs)
