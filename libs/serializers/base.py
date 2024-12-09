@@ -235,14 +235,14 @@ class SerializerMetaclass(ABCMeta):
                     ptype = fdesc["python_type"]
 
                     if field_default is not None or fdesc.get("nullable"):
-                        ptype = Optional[ptype]
-
-                    fields_map[key] = (ptype, Field())
+                        fields_map[key] = (Optional[ptype], Field(default=None))
+                    else:
+                        fields_map[key] = (ptype, Field())
                 elif (
                     isinstance(field, type) and issubclass(field, BaseModel)
                 ) or isinstance(field, BaseModel):
                     if not field.required:
-                        fields_map[key] = (Optional[field], Field())
+                        fields_map[key] = (Optional[field], Field(default=None))
                     else:
                         fields_map[key] = (field, Field())
                 else:
