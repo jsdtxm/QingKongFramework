@@ -34,6 +34,8 @@ async def table_to_django_model(db_config, table_name):
         max_length = None
         if data_type.startswith("int"):
             field_type = "models.IntegerField"
+        elif data_type.startswith('tinyint'):
+            field_type = 'models.SmallIntegerField'
         elif data_type.startswith("varchar"):
             field_type = "models.CharField"
             max_length = int(data_type.split("(")[1].split(")")[0])
