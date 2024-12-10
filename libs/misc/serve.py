@@ -3,12 +3,14 @@ import multiprocessing.pool
 import signal
 import sys
 from collections import Counter
+from copy import deepcopy
 
 import uvicorn
 import uvicorn._subprocess
 
 from common.settings import settings
 from libs.initialize.apps import init_apps
+from libs.logging import log_config_template
 from libs.patchs.uvicorn.subprocess import subprocess_started
 from libs.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
 
@@ -18,16 +20,23 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     app_config = apps.app_configs[f"apps.{app_name}"]
 
     # patch
-    uvicorn.supervisors.watchfilesreload.WatchFilesReload.__init__ = WatchFilesReload_init
+    uvicorn.supervisors.watchfilesreload.WatchFilesReload.__init__ = (
+        WatchFilesReload_init
+    )
+
+    log_config = deepcopy(log_config_template)
+    for formatter in log_config["formatters"].values():
+        formatter["app_label"] = app_config.label
 
     uvicorn.run(
         f"apps.{app_name}.asgi:app",
         host=host,
         port=app_config.port,
-        reload_dirs=[f"/workspace/polypro_backend/apps/{app_name}"],
         log_level="info",
         workers=workers,
         reload=reload,
+        reload_dirs=[f"/workspace/polypro_backend/apps/{app_name}"] if reload else None,
+        log_config=log_config
     )
 
 
