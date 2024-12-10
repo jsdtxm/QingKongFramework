@@ -22,7 +22,9 @@ class ProxyLocation:
         self.prefix = re.search(r"^/(\S+)/\{", path).groups(1)[0]
 
     def __repr__(self):
-        return f"ProxyLocation {self.prefix}/* -> {self.target}; Rewrite: {self.rewrite}"
+        return (
+            f"ProxyLocation {self.prefix}/* -> {self.target}; Rewrite: {self.rewrite}"
+        )
 
     @classmethod
     def prefix_proxy(cls, prefix, target):
@@ -40,12 +42,6 @@ class ProxyLocation:
 
     def to_aiohttp_route(self):
         return aiohttp.web.route("*", self.path, handler_factory(self))
-
-
-PROXY_RULES = [
-    ProxyLocation.prefix_proxy("polypro", "http://127.0.0.1:18001"),
-    ProxyLocation.prefix_proxy("user", "http://127.0.0.1:18002"),
-]
 
 
 def swagger_proxy_middleware(
@@ -91,11 +87,11 @@ def handler_factory(proxy_loc: ProxyLocation):
     return handler
 
 
-def run_proxy(host="127.0.0.1", port=8000):
+def run_proxy(host="127.0.0.1", port=8000, upstream="127.0.0.1"):
     apps = init_apps(settings.INSTALLED_APPS)
 
     proxy_rules = [
-        ProxyLocation.prefix_proxy(v.prefix, f"http://127.0.0.1:{v.port}")
+        ProxyLocation.prefix_proxy(v.prefix, f"http://{upstream}:{v.port}")
         for v in apps.app_configs.values()
     ]
 

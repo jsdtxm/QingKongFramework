@@ -1,7 +1,7 @@
 import click
 
-from libs.misc.serve import serve_app, serve_apps
 from libs.misc.proxy import run_proxy
+from libs.misc.serve import serve_app, serve_apps
 
 
 @click.argument("app", default="all", type=click.STRING)
@@ -17,5 +17,6 @@ def runserver(app, host, workers, reload):
 
 @click.option("--host", default="127.0.0.1", type=click.STRING)
 @click.option("--port", default=8000, type=click.INT)
-def proxy(host, port):
-    run_proxy(host, port)
+@click.option("--upstream", default="127.0.0.1", type=click.STRING)
+def proxy(host, port, upstream):
+    run_proxy(host, port, upstream)
