@@ -87,11 +87,15 @@ def handler_factory(proxy_loc: ProxyLocation):
     return handler
 
 
-def run_proxy(host="127.0.0.1", port=8000, upstream="127.0.0.1"):
+def run_proxy(
+    host="127.0.0.1", port=8000, upstream_dict={}, default_upstream="127.0.0.1"
+):
     apps = init_apps(settings.INSTALLED_APPS)
 
     proxy_rules = [
-        ProxyLocation.prefix_proxy(v.prefix, f"http://{upstream}:{v.port}")
+        ProxyLocation.prefix_proxy(
+            v.prefix, f"http://{upstream_dict.get(v.prefix, default_upstream)}:{v.port}"
+        )
         for v in apps.app_configs.values()
     ]
 
