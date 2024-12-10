@@ -95,7 +95,7 @@ def run_proxy(host="127.0.0.1", port=8000):
     apps = init_apps(settings.INSTALLED_APPS)
 
     proxy_rules = [
-        ProxyLocation.prefix_proxy(v.label, f"http://127.0.0.1:{v.port}")
+        ProxyLocation.prefix_proxy(v.prefix, f"http://127.0.0.1:{v.port}")
         for v in apps.app_configs.values()
     ]
 
