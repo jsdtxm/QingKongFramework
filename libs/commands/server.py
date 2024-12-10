@@ -1,5 +1,4 @@
 import click
-import json
 
 from libs.misc.proxy import run_proxy
 from libs.misc.serve import serve_app, serve_apps
@@ -16,9 +15,21 @@ def runserver(app, host, workers, reload):
         serve_app(app, host, workers, reload)
 
 
+def parse_dict(ctx, param, value):
+    """Parse a series of key-value pairs into a dictionary."""
+    d = {}
+    if value:
+        for item in value:
+            if "=" not in item:
+                raise click.BadParameter(f"Expected format 'key=value', got '{item}'")
+            k, v = item.split("=", 1)
+            d[k] = v
+    return d
+
+
 @click.option("--host", default="127.0.0.1", type=click.STRING)
 @click.option("--port", default=8000, type=click.INT)
-@click.option("--upstream", default="{}", type=click.STRING)
+@click.option("--upstream", callback=parse_dict, multiple=True)
 @click.option("--default-upstream", default="127.0.0.1", type=click.STRING)
 def proxy(host, port, upstream, default_upstream):
-    run_proxy(host, port, json.loads(upstream), default_upstream)
+    run_proxy(host, port, upstream, default_upstream)
