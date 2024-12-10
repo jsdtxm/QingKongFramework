@@ -17,10 +17,10 @@ from libs.exceptions import ImproperlyConfigured
 from libs.utils.module_loading import import_string
 
 PASSWORD_HASHERS = [
-    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
-    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
-    "django.contrib.auth.hashers.Argon2PasswordHasher",
-    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "libs.django.hashers.PBKDF2PasswordHasher",
+    "libs.django.hashers.PBKDF2SHA1PasswordHasher",
+    "libs.django.hashers.Argon2PasswordHasher",
+    "libs.django.hashers.BCryptSHA256PasswordHasher",
 ]
 
 
