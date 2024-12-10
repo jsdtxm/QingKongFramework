@@ -235,14 +235,14 @@ class SerializerMetaclass(ABCMeta):
                     ptype = fdesc["python_type"]
 
                     if field_default is not None or fdesc.get("nullable"):
-                        fields_map[key] = (Optional[ptype], Field(default=None))
+                        fields_map[key] = (Optional[ptype], Field(default=field.default))
                     else:
-                        fields_map[key] = (ptype, Field())
+                        fields_map[key] = (ptype, Field(default=field.default))
                 elif (
                     isinstance(field, type) and issubclass(field, BaseModel)
                 ) or isinstance(field, BaseModel):
-                    if not field.required:
-                        fields_map[key] = (Optional[field], Field(default=None))
+                    if not getattr(field, "required", False):
+                        fields_map[key] = (Optional[field], Field(default=getattr(field, "default", None)))
                     else:
                         fields_map[key] = (field, Field())
                 else:
@@ -281,5 +281,5 @@ class SerializerMetaclass(ABCMeta):
 class Serializer(metaclass=SerializerMetaclass):
     pydantic_model: BaseModel
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, required=False, default=None, **kwargs):
         pass
