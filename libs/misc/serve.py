@@ -2,12 +2,14 @@ import multiprocessing
 import multiprocessing.pool
 import signal
 import sys
+from collections import Counter
 
 import uvicorn
+import uvicorn._subprocess
 
 from common.settings import settings
 from libs.initialize.apps import init_apps
-from collections import Counter
+from libs.patchs.uvicorn.subprocess import subprocess_started
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
@@ -42,6 +44,8 @@ def _serve_app(config):
 def serve_apps(host: str = "127.0.0.1", workers=1, reload=False):
     apps = init_apps(settings.INSTALLED_APPS)
 
+    uvicorn._subprocess.subprocess_started = subprocess_started
+
     port_counter = Counter(
         [app_config.port for app_config in apps.app_configs.values()]
     )
@@ -60,7 +64,7 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False):
 
     # Create and start each process manually
     for param in app_params:
-        p = multiprocessing.Process(target=_serve_app, args=(param,))
+        p = multiprocessing.Process(target=_serve_app, args=(param,), daemon=False)
         p.daemon = False  # Set daemon to False
         p.start()
         processes.append(p)
