@@ -10,16 +10,21 @@ import uvicorn._subprocess
 from common.settings import settings
 from libs.initialize.apps import init_apps
 from libs.patchs.uvicorn.subprocess import subprocess_started
+from libs.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     apps = init_apps(settings.INSTALLED_APPS)
     app_config = apps.app_configs[f"apps.{app_name}"]
 
+    # patch
+    uvicorn.supervisors.watchfilesreload.WatchFilesReload.__init__ = WatchFilesReload_init
+
     uvicorn.run(
         f"apps.{app_name}.asgi:app",
         host=host,
         port=app_config.port,
+        reload_dirs=[f"/workspace/polypro_backend/apps/{app_name}"],
         log_level="info",
         workers=workers,
         reload=reload,
@@ -44,6 +49,7 @@ def _serve_app(config):
 def serve_apps(host: str = "127.0.0.1", workers=1, reload=False):
     apps = init_apps(settings.INSTALLED_APPS)
 
+    # patch
     uvicorn._subprocess.subprocess_started = subprocess_started
 
     port_counter = Counter(
