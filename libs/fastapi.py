@@ -1,8 +1,8 @@
 import inspect
 from asyncio import create_task
-from contextlib import asynccontextmanager
+from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
 from importlib import import_module
-from typing import Optional, Sequence, Type
+from typing import Callable, Optional, Sequence, Type
 
 from fastapi import FastAPI as RawFastAPI
 from fastapi.applications import AppType
@@ -10,9 +10,11 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi_pagination import add_pagination
 from starlette.middleware import Middleware
 from starlette.types import Lifespan
+from tortoise import Tortoise
 
 from common.settings import settings
 from libs.apps.config import AppConfig
+from libs.cache import connections
 from libs.initialize.apps import init_apps
 from libs.initialize.cache import init_cache
 from libs.initialize.db import async_init_db, get_tortoise_config, init_models
@@ -23,6 +25,22 @@ from libs.utils.typing import copy_method_signature
 @asynccontextmanager
 async def default_lifespan(app: RawFastAPI):
     yield
+
+
+def lifespan_wrapper(lifespan: Callable[[RawFastAPI], _AsyncGeneratorContextManager]):
+    @asynccontextmanager
+    async def wrapper(
+        app: RawFastAPI,
+    ):
+        async with lifespan(app):
+            yield
+
+        await Tortoise.close_connections()
+
+        for conn in connections.values():
+            await conn.close()
+
+    return wrapper
 
 
 class FastAPI(RawFastAPI):
@@ -50,7 +68,9 @@ class FastAPI(RawFastAPI):
             )
 
         super().__init__(
-            lifespan=lifespan or default_lifespan, middleware=middleware, **kwargs
+            lifespan=lifespan_wrapper(lifespan or default_lifespan),
+            middleware=middleware,
+            **kwargs,
         )
 
         if include_healthz:
