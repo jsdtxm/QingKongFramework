@@ -51,9 +51,12 @@ class ApiPath:
         self.endpoint = endpoint
         self.name = name
         self.response_model = response_model
-        self.response_class = response_class
+
+        self.dependencies = dependencies
 
         self.methods = methods
+
+        self.response_class = response_class
 
 
 path = ApiPath
