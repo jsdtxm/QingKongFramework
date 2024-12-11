@@ -43,6 +43,18 @@ def cache(
     :param key_builder:
 
     :return:
+
+    Example:
+    ```
+    @cache()
+    async def get_cache():
+        return 1
+
+    @app.get("/")
+    @cache(expire=60)
+    async def index():
+        return dict(hello="world")
+    ```
     """
 
     # HACK
