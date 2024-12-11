@@ -55,14 +55,16 @@ def _serve_app(config):
     return serve_app(*config)
 
 
-def serve_apps(host: str = "127.0.0.1", workers=1, reload=False):
+def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
     apps = init_apps(settings.INSTALLED_APPS)
+
+    app_configs = [x for x in apps.app_configs.values() if x.name.split(".")[-1] not in exclude]
 
     # patch
     uvicorn._subprocess.subprocess_started = subprocess_started
 
     port_counter = Counter(
-        [app_config.port for app_config in apps.app_configs.values()]
+        [app_config.port for app_config in app_configs]
     )
     for _, count in port_counter.items():
         if count > 1:
@@ -71,7 +73,7 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False):
     app_params = list(
         map(
             lambda x: (x.label, host, workers, reload),
-            filter(lambda x: x.name.startswith("apps."), apps.app_configs.values()),
+            filter(lambda x: x.name.startswith("apps."), app_configs),
         )
     )
 

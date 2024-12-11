@@ -7,11 +7,12 @@ from libs.misc.serve import serve_app, serve_apps
 
 @click.argument("app", default="all", type=click.STRING)
 @click.option("--host", default="127.0.0.1", type=click.STRING)
+@click.option("--exclude", multiple=True, default=[])
 @click.option("--workers", default=1, type=click.INT)
 @click.option("--reload", is_flag=True)
-def runserver(app, host, workers, reload):
+def runserver(app, host, exclude, workers, reload):
     if app == "all":
-        serve_apps(host, workers, reload)
+        serve_apps(host, workers, reload, exclude)
     else:
         serve_app(app, host, workers, reload)
 
