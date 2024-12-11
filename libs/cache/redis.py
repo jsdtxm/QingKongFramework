@@ -14,6 +14,7 @@ from fastapi_cache.decorator import (
     logger,
 )
 from fastapi_cache.types import KeyBuilder
+from redis.asyncio.client import Redis
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.status import HTTP_304_NOT_MODIFIED
@@ -21,7 +22,7 @@ from starlette.status import HTTP_304_NOT_MODIFIED
 from libs.cache.states import caches, connections
 
 
-def get_redis_connection(alias: str = "default"):
+def get_redis_connection(alias: str = "default") -> Redis:
     return connections.get(alias)
 
 
