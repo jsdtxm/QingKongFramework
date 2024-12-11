@@ -1,5 +1,6 @@
 import click
 
+from libs.commands.utils import parse_dict
 from libs.misc.proxy import run_proxy
 from libs.misc.serve import serve_app, serve_apps
 
@@ -13,18 +14,6 @@ def runserver(app, host, workers, reload):
         serve_apps(host, workers, reload)
     else:
         serve_app(app, host, workers, reload)
-
-
-def parse_dict(ctx, param, value):
-    """Parse a series of key-value pairs into a dictionary."""
-    d = {}
-    if value:
-        for item in value:
-            if "=" not in item:
-                raise click.BadParameter(f"Expected format 'key=value', got '{item}'")
-            k, v = item.split("=", 1)
-            d[k] = v
-    return d
 
 
 @click.option("--host", default="127.0.0.1", type=click.STRING)
