@@ -20,7 +20,7 @@ from libs.initialize.cache import init_cache
 from libs.initialize.db import async_init_db, get_tortoise_config, init_models
 from libs.router import router_convert
 from libs.utils.typing import copy_method_signature
-
+from libs.contrib.limiter import FastAPILimiter
 
 @asynccontextmanager
 async def default_lifespan(app: RawFastAPI):
@@ -32,6 +32,8 @@ def lifespan_wrapper(lifespan: Callable[[RawFastAPI], _AsyncGeneratorContextMana
     async def wrapper(
         app: RawFastAPI,
     ):
+        await FastAPILimiter.init()
+
         async with lifespan(app):
             yield
 
