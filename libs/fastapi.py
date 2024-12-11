@@ -2,11 +2,13 @@ import inspect
 from asyncio import create_task
 from contextlib import asynccontextmanager
 from importlib import import_module
-from typing import Optional, Type
+from typing import Optional, Sequence, Type
 
 from fastapi import FastAPI as RawFastAPI
 from fastapi.applications import AppType
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi_pagination import add_pagination
+from starlette.middleware import Middleware
 from starlette.types import Lifespan
 
 from common.settings import settings
@@ -30,6 +32,7 @@ class FastAPI(RawFastAPI):
         name: Type[AppConfig] = None,
         lifespan: Optional[Lifespan[AppType]] = None,
         include_healthz: bool = True,
+        middleware: Sequence[Middleware] = [],
         **kwargs,
     ):
         apps = init_apps(settings.INSTALLED_APPS)
@@ -41,7 +44,14 @@ class FastAPI(RawFastAPI):
 
         name = name or inspect.stack()[1].filename.rsplit("/", 2)[-2]
 
-        super().__init__(lifespan=lifespan or default_lifespan, **kwargs)
+        if not any((m.cls is TrustedHostMiddleware for m in middleware)):
+            middleware.append(
+                Middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
+            )
+
+        super().__init__(
+            lifespan=lifespan or default_lifespan, middleware=middleware, **kwargs
+        )
 
         if include_healthz:
             self.include_router(import_module("libs.contrib.healthz.views").router)
