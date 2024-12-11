@@ -10,7 +10,9 @@ class BaseSettings(PydanticBaseSettings):
 
     BASE_DIR: Path
     INSTALLED_APPS: List[str]
+
     DATABASES: dict[str, dict[str, Any]]
+    CACHES: dict[str, dict[str, Any]]
 
     AUTH_USER_MODEL: str | None = None
 
