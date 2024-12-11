@@ -99,6 +99,11 @@ def run_proxy(
         for v in apps.app_configs.values()
     ]
 
+    # Extra proxy
+    proxy_rules.extend(
+        [ProxyLocation.prefix_proxy(p[0], p[1]) for p in settings.EXTRA_PROXY]
+    )
+
     print("proxy_rules:")
     for p in proxy_rules:
         print(p)
