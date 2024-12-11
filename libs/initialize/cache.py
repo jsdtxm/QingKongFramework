@@ -15,5 +15,10 @@ def init_cache():
         else:
             cache_class = type("", (FastAPICache,), {})
 
-        cache_class.init(RedisCache(redis), prefix="qk")
+        cache_class.init(
+            RedisCache(redis),
+            prefix="qk",
+            expire=3600,
+            cache_status_header="X-QingKong-Cache",
+        )
         caches[alias] = cache_class
