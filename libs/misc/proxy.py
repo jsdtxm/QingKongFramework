@@ -78,6 +78,7 @@ def handler_factory(proxy_loc: ProxyLocation):
                     k: v
                     for k, v in response.headers.items()
                     if k.lower() != "content-length"
+                    and k.lower() != "transfer-encoding"
                 }
 
                 return aiohttp.web.Response(
