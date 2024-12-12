@@ -105,7 +105,7 @@ def router_convert(urlpatterns: List[ApiPath]):
             for method in url.endpoint.view_class.implemented_methods():
                 router.add_api_route(
                     "/",
-                    url.endpoint.view,
+                    url.endpoint.get_typed_view(method),
                     name=url.name,
                     methods=[
                         method,

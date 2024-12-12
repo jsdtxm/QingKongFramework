@@ -22,12 +22,22 @@ class ViewWrapper:
             return await self.view_method(request)
         
         return view_wrapper
+    
+    def get_typed_view(self, method: str):
+        def wrapper():
+            return self.view
+        
+        wrapper.__name__ = f"{self.view_class.__name__}_{method}"
+        
+        return wrapper
 
 class View:
     """
     Intentionally simple parent class for all views. Only implements
     dispatch-by-method and simple sanity checking.
     """
+
+    # TODO support Auth
 
     http_method_names = [
         "get",
