@@ -32,6 +32,9 @@ bcrypt==4.2.1
 passlib==1.7.4
 python-multipart==0.0.19
 
+# Xcaptcha
+cryptography==44.0.0
+
 # Cache
 async-lru==2.0.4
 
