@@ -25,3 +25,5 @@ class BaseSettings(PydanticBaseSettings):
     XCAPTCHA_URL: Optional[str] = None
     XCAPTCHA_ENCRYPT_KEY: Optional[str] = None
     XCAPTCHA_API_KEY: Optional[str] = None
+
+    XCAPTCHA_SERVICE_PORT: int = 28000
