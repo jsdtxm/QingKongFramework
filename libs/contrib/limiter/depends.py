@@ -8,7 +8,7 @@ from starlette.responses import Response
 from starlette.websockets import WebSocket
 
 from libs.cache import get_redis_connection
-from libs.contrib.limiter import FastAPILimiter
+from libs.contrib.limiter import RedisRateLimiter
 
 lua_sha_dict: Dict[Tuple[AnyStr, AnyStr], Any] = {}
 
@@ -24,7 +24,7 @@ class RateLimiter:
         identifier: Optional[Callable] = None,
         callback: Optional[Callable] = None,
         connection_alias: str = "default",
-        limiter: Type[FastAPILimiter] = FastAPILimiter,
+        limiter: Type[RedisRateLimiter] = RedisRateLimiter,
     ):
         self.times = times
         self.milliseconds = (

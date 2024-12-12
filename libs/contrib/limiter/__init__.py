@@ -48,7 +48,7 @@ async def ws_default_callback(ws: WebSocket, pexpire: int):
     )
 
 
-class FastAPILimiter:
+class RedisRateLimiter:
     prefix: Optional[str] = None
     identifier: Optional[Callable] = None
     http_callback: Optional[Callable] = None
