@@ -8,7 +8,7 @@ from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 from starlette.websockets import WebSocket
 
 
-async def default_identifier(request: Union[Request, WebSocket]):
+async def ip_identifier(request: Union[Request, WebSocket]):
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         ip = forwarded.split(",")[0]
@@ -74,7 +74,7 @@ end"""
     async def init(
         cls,
         prefix: str = "fastapi-limiter",
-        identifier: Callable = default_identifier,
+        identifier: Callable = ip_identifier,
         http_callback: Callable = http_default_callback,
         ws_callback: Callable = ws_default_callback,
     ) -> None:

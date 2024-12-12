@@ -1,6 +1,5 @@
 import asyncio
-from typing import (Annotated, Any, AnyStr, Callable, Dict, Optional, Tuple,
-                    Type)
+from typing import Annotated, Any, AnyStr, Callable, Dict, Optional, Tuple, Type
 
 import redis as pyredis
 from pydantic import Field
@@ -52,9 +51,7 @@ class RateLimiter:
         )
         return pexpire
 
-    async def __call__(self, request: Request, response: Response):
-        if not self.connection:
-            raise Exception("Redis connection Invalid")
+    def get_dep_index(self, request: Request):
         route_index = 0
         dep_index = 0
         for i, route in enumerate(request.app.routes):
@@ -64,6 +61,13 @@ class RateLimiter:
                     if self is dependency.dependency:
                         dep_index = j
                         break
+        return route_index, dep_index
+
+    async def __call__(self, request: Request, response: Response):
+        if not self.connection:
+            raise Exception("Redis connection Invalid")
+
+        route_index, dep_index = self.get_dep_index(request)
 
         # moved here because constructor run before app startup
         identifier = self.identifier or self.limiter.identifier
