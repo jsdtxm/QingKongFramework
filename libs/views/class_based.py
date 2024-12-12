@@ -24,8 +24,7 @@ class ViewWrapper:
         return view_wrapper
     
     def get_typed_view(self, method: str):
-        def wrapper():
-            return self.view
+        wrapper = self.view
         
         wrapper.__name__ = f"{self.view_class.__name__}_{method}"
         
