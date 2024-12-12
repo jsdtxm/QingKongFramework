@@ -1,9 +1,10 @@
 import logging
 from functools import update_wrapper
-from typing import Self, Dict, Any
+from typing import Any, Dict, Self
 
 from starlette.requests import Request
 
+from libs.requests import DjangoStyleRequest
 from libs.responses import HttpResponse, HttpResponseNotAllowed
 from libs.utils.functional import classonlymethod
 
@@ -16,19 +17,26 @@ class ViewWrapper:
         self.view_class = view_class
         self.initkwargs = initkwargs
 
+    @staticmethod
+    def django_request_adapter(request: Request):
+        pass
+
     @property
     def view(self):
         async def view_wrapper(request: Request):
+            # HACK
+            request.__class__ = DjangoStyleRequest
             return await self.view_method(request)
-        
+
         return view_wrapper
-    
+
     def get_typed_view(self, method: str):
         wrapper = self.view
-        
+
         wrapper.__name__ = f"{self.view_class.__name__}_{method}"
-        
+
         return wrapper
+
 
 class View:
     """
@@ -58,7 +66,7 @@ class View:
         # instance, or raise an error.
         for key, value in kwargs.items():
             setattr(self, key, value)
-    
+
     @classonlymethod
     def as_view(cls, **initkwargs):
         """Main entry point for a request-response process."""
