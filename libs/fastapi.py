@@ -53,7 +53,6 @@ class FastAPI(RawFastAPI):
     @copy_method_signature(RawFastAPI.__init__)
     def __init__(
         self,
-        name: Type[AppConfig] = None,
         lifespan: Optional[Lifespan[AppType]] = None,
         include_healthz: bool = True,
         middleware: Sequence[Middleware] = [],
@@ -66,7 +65,7 @@ class FastAPI(RawFastAPI):
 
         init_cache()
 
-        name = name or inspect.stack()[1].filename.rsplit("/", 2)[-2]
+        package = inspect.stack()[1].frame.f_locals.get('__package__')
 
         if not any((m.cls is TrustedHostMiddleware for m in middleware)):
             middleware.append(
@@ -83,7 +82,7 @@ class FastAPI(RawFastAPI):
             self.include_router(import_module("libs.contrib.healthz.views").router)
 
         for router in router_convert(
-            apps.app_configs[f"apps.{name}"].import_module("urls").urlpatterns
+            apps.app_configs[package].import_module("urls").urlpatterns
         ):
             self.include_router(**router)
 

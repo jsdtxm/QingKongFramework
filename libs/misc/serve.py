@@ -17,7 +17,11 @@ from libs.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     apps = init_apps(settings.INSTALLED_APPS)
-    app_config = apps.app_configs[f"apps.{app_name}"]
+
+    if "." not in app_name:
+        app_name = f"apps.{app_name}"
+
+    app_config = apps.app_configs[app_name]
 
     # patch
     uvicorn.supervisors.watchfilesreload.WatchFilesReload.__init__ = (
@@ -29,14 +33,14 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         formatter["app_label"] = app_config.label
 
     uvicorn.run(
-        f"apps.{app_name}.asgi:app",
+        f"{app_name}.asgi:app",
         host=host,
         port=app_config.port,
         log_level="info",
         workers=workers,
         reload=reload,
         reload_dirs=[f"/workspace/polypro_backend/apps/{app_name}"] if reload else None,
-        log_config=log_config
+        log_config=log_config,
     )
 
 
@@ -58,7 +62,9 @@ def _serve_app(config):
 def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
     apps = init_apps(settings.INSTALLED_APPS)
 
-    app_configs = [x for x in apps.app_configs.values() if x.name.split(".")[-1] not in exclude]
+    app_configs = [
+        x for x in apps.app_configs.values() if x.name.split(".")[-1] not in exclude
+    ]
 
     # patch
     uvicorn._subprocess.subprocess_started = subprocess_started
@@ -72,8 +78,8 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
 
     app_params = list(
         map(
-            lambda x: (x.label, host, workers, reload),
-            filter(lambda x: x.name.startswith("apps."), app_configs),
+            lambda x: (x.name, host, workers, reload),
+            app_configs,
         )
     )
 
