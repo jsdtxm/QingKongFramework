@@ -6,6 +6,8 @@ from starlette.responses import RedirectResponse as RedirectResponse  # noqa
 from starlette.responses import Response as Response  # noqa
 from starlette.responses import StreamingResponse as StreamingResponse  # noqa
 
+JsonResponse = JSONResponse
+
 
 class HttpResponse(Response):
     pass
