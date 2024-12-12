@@ -100,6 +100,8 @@ def router_convert(urlpatterns: List[ApiPath]):
         elif isinstance(url.endpoint, ViewWrapper):
             if not url.path.startswith("/"):
                 url.path = "/" + url.path
+            if url.path.endswith("/"):
+                url.path = url.path[:-1]
 
             router = APIRouter()
             for method in url.endpoint.view_class.implemented_methods():
@@ -117,6 +119,9 @@ def router_convert(urlpatterns: List[ApiPath]):
         else:
             if not url.path.startswith("/"):
                 url.path = "/" + url.path
+            if url.path.endswith("/"):
+                url.path = url.path[:-1]
+                
             root.add_api_route(
                 url.path,
                 url.endpoint,
