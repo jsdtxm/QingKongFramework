@@ -42,8 +42,9 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         workers=workers,
         reload=reload,
         reload_dirs=[
-            Path(inspect.getfile(inspect.getmodule(app_config))).parent,
-            Path(inspect.getfile(inspect.currentframe())).parent.parent,
+            Path(inspect.getfile(inspect.getmodule(app_config))).parent,    # app dir
+            Path(inspect.getfile(inspect.currentframe())).parent.parent,    # libs dir
+            Path(inspect.getfile(inspect.getmodule(settings))).parent,      # common dir
         ]
         if reload
         else None,
