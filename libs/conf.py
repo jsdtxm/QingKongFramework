@@ -22,8 +22,13 @@ class BaseSettings(PydanticBaseSettings):
 
     EXTRA_PROXY: List[Tuple[str, str]] = []
 
+    RATE_LIMITER_CLASS: str = "libs.contrib.limiter.RedisRateLimiter"
+
     XCAPTCHA_URL: Optional[str] = None
     XCAPTCHA_ENCRYPT_KEY: Optional[str] = None
     XCAPTCHA_API_KEY: Optional[str] = None
 
+    XCAPTCHA_LIMITER_CLASS: str = "libs.contrib.xcaptcha.XCaptchaLimiter"
     XCAPTCHA_SERVICE_PORT: int = 28000
+
+

@@ -1,6 +1,7 @@
 import copy
 import os
 import sys
+from functools import lru_cache
 from importlib import import_module
 from importlib.util import find_spec as importlib_find
 
@@ -33,6 +34,19 @@ def import_string(dotted_path):
             'Module "%s" does not define a "%s" attribute/class'
             % (module_path, class_name)
         ) from err
+
+
+def cached_import_module(module_path):
+    """
+    Import a dotted module path and return the attribute/class designated by the
+    last name in the path. Raise ImportError if the import failed.
+    """
+
+    module = sys.modules.get(module_path)
+    if not module:
+        return import_module(module_path)
+
+    return module
 
 
 def autodiscover_modules(*args, **kwargs):
@@ -71,6 +85,7 @@ def autodiscover_modules(*args, **kwargs):
                     raise
 
 
+@lru_cache()
 def module_has_submodule(package, module_name):
     """See if 'module' is in 'package'."""
     try:
@@ -95,7 +110,7 @@ def package_try_import(package, module_name):
     except AttributeError:
         # package isn't a package.
         return False
-    
+
     full_module_name = package_name + "." + module_name
     try:
         module = import_module(full_module_name)

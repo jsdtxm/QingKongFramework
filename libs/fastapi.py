@@ -1,7 +1,6 @@
 import inspect
 from asyncio import create_task
 from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
-from importlib import import_module
 from typing import Callable, Optional, Sequence
 
 from fastapi import FastAPI as RawFastAPI
@@ -14,12 +13,11 @@ from tortoise import Tortoise
 
 from common.settings import settings
 from libs.cache import connections
-from libs.contrib.limiter import FastAPILimiter
-from libs.contrib.xcaptcha import XCaptchaLimiter
 from libs.initialize.apps import init_apps
 from libs.initialize.cache import init_cache
 from libs.initialize.db import async_init_db, get_tortoise_config, init_models
 from libs.router import router_convert
+from libs.utils.module_loading import import_string
 from libs.utils.typing import copy_method_signature
 
 
@@ -32,10 +30,12 @@ def lifespan_wrapper(lifespan: Callable[[RawFastAPI], _AsyncGeneratorContextMana
     @asynccontextmanager
     async def wrapper(
         app: RawFastAPI,
-    ):  
-        # TODO 修改初始化方式
-        await FastAPILimiter.init()
-        await XCaptchaLimiter.init()
+    ):
+        if p := settings.RATE_LIMITER_CLASS:
+            await import_string(p).init()
+
+        if p := settings.XCAPTCHA_LIMITER_CLASS:
+            await import_string(p).init()
 
         async with lifespan(app):
             yield
@@ -64,7 +64,7 @@ class FastAPI(RawFastAPI):
 
         init_cache()
 
-        package = inspect.stack()[1].frame.f_locals.get('__package__')
+        package = inspect.stack()[1].frame.f_locals.get("__package__")
 
         if not any((m.cls is TrustedHostMiddleware for m in middleware)):
             middleware.append(
@@ -78,7 +78,7 @@ class FastAPI(RawFastAPI):
         )
 
         if include_healthz:
-            self.include_router(import_module("libs.contrib.healthz.views").router)
+            self.include_router(import_string("libs.contrib.healthz.views.router"))
 
         for router in router_convert(
             apps.app_configs[package].import_module("urls").urlpatterns

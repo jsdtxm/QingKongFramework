@@ -1,10 +1,13 @@
 import inspect
 import types
-from importlib import import_module
 from typing import Tuple, Type
 
 from libs.exceptions import ImproperlyConfigured
-from libs.utils.module_loading import import_string, module_has_submodule
+from libs.utils.module_loading import (
+    cached_import_module,
+    import_string,
+    module_has_submodule,
+)
 
 APPS_MODULE_NAME = "apps"
 MODELS_MODULE_NAME = "models"
@@ -53,7 +56,7 @@ class AppConfig(metaclass=AppConfigMeta):
 
         # If import_module succeeds, entry points to the app module.
         try:
-            app_module = import_module(entry)
+            app_module = cached_import_module(entry)
         except Exception:
             pass
         else:
@@ -65,7 +68,7 @@ class AppConfig(metaclass=AppConfigMeta):
             # the default one can declare default = True.
             if module_has_submodule(app_module, APPS_MODULE_NAME):
                 mod_path = "%s.%s" % (entry, APPS_MODULE_NAME)
-                mod = import_module(mod_path)
+                mod = cached_import_module(mod_path)
                 # Check if there's exactly one AppConfig candidate,
                 # excluding those that explicitly define default = False.
                 app_configs = [
@@ -127,7 +130,7 @@ class AppConfig(metaclass=AppConfigMeta):
 
         # Ensure app_name points to a valid module.
         try:
-            app_module = import_module(app_name)
+            app_module = cached_import_module(app_name)
         except ImportError:
             raise ImproperlyConfigured(
                 "Cannot import '%s'. Check that '%s.%s.name' is correct."
@@ -144,4 +147,4 @@ class AppConfig(metaclass=AppConfigMeta):
     def import_module(self, name: str):
         if module_has_submodule(self.module, name):
             module_name = "%s.%s" % (self.name, name)
-            return import_module(module_name)
+            return cached_import_module(module_name)
