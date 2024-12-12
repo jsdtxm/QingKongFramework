@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 from pydantic_settings import BaseSettings as PydanticBaseSettings
 from pydantic_settings import SettingsConfigDict
@@ -21,3 +21,7 @@ class BaseSettings(PydanticBaseSettings):
     AUTH_USER_MODEL: str | None = None
 
     EXTRA_PROXY: List[Tuple[str, str]] = []
+
+    XCAPTCHA_URL: Optional[str] = None
+    XCAPTCHA_ENCRYPT_KEY: Optional[str] = None
+    XCAPTCHA_API_KEY: Optional[str] = None
