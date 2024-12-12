@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 
 import aiohttp
 import aiohttp.web
@@ -104,6 +105,11 @@ def run_proxy(
     proxy_rules.extend(
         [ProxyLocation.prefix_proxy(p[0], p[1]) for p in settings.EXTRA_PROXY]
     )
+
+    prefix_counter = Counter([rule.prefix for rule in proxy_rules])
+    for _, count in prefix_counter.items():
+        if count > 1:
+            raise Exception("Prefix duplicate")
 
     print("proxy_rules:")
     for p in proxy_rules:
