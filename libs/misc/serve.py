@@ -69,12 +69,10 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
     # patch
     uvicorn._subprocess.subprocess_started = subprocess_started
 
-    port_counter = Counter(
-        [app_config.port for app_config in app_configs]
-    )
+    port_counter = Counter([app_config.port for app_config in app_configs])
     for _, count in port_counter.items():
         if count > 1:
-            print("app port duplicate")
+            raise Exception("App port duplicate")
 
     app_params = list(
         map(
