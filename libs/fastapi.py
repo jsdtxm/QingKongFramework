@@ -2,7 +2,7 @@ import inspect
 from asyncio import create_task
 from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
 from importlib import import_module
-from typing import Callable, Optional, Sequence, Type
+from typing import Callable, Optional, Sequence
 
 from fastapi import FastAPI as RawFastAPI
 from fastapi.applications import AppType
@@ -13,7 +13,6 @@ from starlette.types import Lifespan
 from tortoise import Tortoise
 
 from common.settings import settings
-from libs.apps.config import AppConfig
 from libs.cache import connections
 from libs.contrib.limiter import FastAPILimiter
 from libs.contrib.xcaptcha import XCaptchaLimiter

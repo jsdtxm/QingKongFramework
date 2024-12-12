@@ -1,9 +1,11 @@
+import inspect
 import multiprocessing
 import multiprocessing.pool
 import signal
 import sys
 from collections import Counter
 from copy import deepcopy
+from pathlib import Path
 
 import uvicorn
 import uvicorn._subprocess
@@ -39,7 +41,11 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         log_level="info",
         workers=workers,
         reload=reload,
-        reload_dirs=[f"/workspace/polypro_backend/apps/{app_name}"] if reload else None,
+        reload_dirs=[
+            Path(inspect.getfile(inspect.getmodule(app_config))).parent,
+        ]
+        if reload
+        else None,
         log_config=log_config,
     )
 
