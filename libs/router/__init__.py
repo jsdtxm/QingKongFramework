@@ -114,6 +114,7 @@ def router_convert(urlpatterns: List[ApiPath]):
                     ],
                     response_model=url.response_model,
                     response_class=url.response_class,
+                    include_in_schema=True if method != "options" else False,
                 )
             router_list.append(RouterWrapper(router, url.path))
         else:
