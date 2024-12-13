@@ -1,7 +1,7 @@
 import click
 
 from libs.commands.utils import parse_dict
-from libs.misc.proxy import run_proxy
+from libs.misc.gateway import run_proxy
 from libs.misc.serve import serve_app, serve_apps
 
 

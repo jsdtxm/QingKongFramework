@@ -1,13 +1,21 @@
+import logging
+import logging.config
 import re
 from collections import Counter
 
 import aiohttp
 import aiohttp.client_exceptions
 import aiohttp.web
+import click
 import uvloop
 
 from common.settings import settings
 from libs.initialize.apps import init_apps
+from libs.logging import generate_app_logging_config
+
+logging.config.dictConfig(generate_app_logging_config("gateway"))
+access_logger = logging.getLogger("qingkong.access")
+error_logger = logging.getLogger("qingkong.error")
 
 
 class ProxyLocation:
@@ -27,6 +35,9 @@ class ProxyLocation:
         return (
             f"ProxyLocation {self.prefix}/* -> {self.target}; Rewrite: {self.rewrite}"
         )
+
+    def log(self):
+        return f"ProxyLocation {click.style(f"{self.prefix}/*", fg="bright_blue")} -> {click.style(self.target, fg="bright_cyan")}; Rewrite: {click.style(self.rewrite, fg="magenta")}"
 
     @classmethod
     def prefix_proxy(cls, prefix, target):
@@ -91,7 +102,7 @@ def handler_factory(proxy_loc: ProxyLocation):
 
 
 async def error_middleware(app, handler):
-    async def middleware_handler(request):
+    async def middleware_handler(request: aiohttp.web.Request):
         try:
             return await handler(request)
         except aiohttp.web.HTTPException as ex:
@@ -108,6 +119,22 @@ async def error_middleware(app, handler):
             return aiohttp.web.json_response(
                 {"error": "Internal Server Error", "message": str(ex)}, status=500
             )
+
+    return middleware_handler
+
+
+async def log_middleware(app, handler):
+    async def middleware_handler(request: aiohttp.web.Request):
+        response: aiohttp.web.Response = await handler(request)
+        access_logger.info(
+            '%s - "%s %s HTTP/%s" %d',
+            request.remote,
+            request.method,
+            request.path_qs,
+            f"{request.version.major}.{request.version.minor}",
+            response.status,
+        )
+        return response
 
     return middleware_handler
 
@@ -134,14 +161,18 @@ def run_proxy(
         if count > 1:
             raise Exception("Prefix duplicate")
 
-    print("proxy_rules:")
+    error_logger.info("Gateway proxy rules:")
     for p in proxy_rules:
-        print(p)
+        error_logger.info(p.log())
 
-    proxy_app = aiohttp.web.Application(middlewares=[error_middleware])
+    proxy_app = aiohttp.web.Application(middlewares=[log_middleware, error_middleware])
 
     proxy_app.add_routes([r.to_aiohttp_route() for r in proxy_rules])
-    aiohttp.web.run_app(proxy_app, host=host, port=port, loop=uvloop.new_event_loop())
+
+    error_logger.info(f"Gateway running on {click.style(f"http://{host}:{port}", fg="bright_white")} (Press CTRL+C to quit)")
+    aiohttp.web.run_app(
+        proxy_app, host=host, port=port, loop=uvloop.new_event_loop(), print=None
+    )
 
 
 if __name__ == "__main__":

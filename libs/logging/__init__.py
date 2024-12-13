@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any
 
 import click
@@ -33,6 +34,9 @@ log_config_template: dict[str, Any] = {
         "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
         "uvicorn.error": {"level": "INFO"},
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
+        "qingkong": {"handlers": ["default"], "level": "INFO", "propagate": False},
+        "qingkong.error": {"level": "INFO"},
+        "qingkong.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
     },
 }
 
@@ -58,3 +62,11 @@ class QingKongAccessFormatter(LoggingAppLabelMixin, AccessFormatter):
     def __init__(self, app_label="Default", *args, **kwargs):
         self.app_label = app_label
         super().__init__(*args, **kwargs)
+
+
+def generate_app_logging_config(app_label):
+    log_config = deepcopy(log_config_template)
+    for formatter in log_config["formatters"].values():
+        formatter["app_label"] = app_label
+
+    return log_config
