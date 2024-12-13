@@ -11,6 +11,8 @@ from tortoise.fields.relational import (
     OneToOneFieldInstance,
     OneToOneNullableRelation,
     OneToOneRelation,
+    BackwardFKRelation,
+    BackwardOneToOneRelation
 )
 from tortoise.models import Model
 
