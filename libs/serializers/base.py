@@ -216,6 +216,18 @@ class SerializerModel(
         return cls.pydantic_model.model_config
 
 
+def get_validators_map(attrs: dict):
+    return dict(
+        filter(
+            lambda x: isinstance(x[1], PydanticDescriptorProxy)
+            and (
+                isinstance(x[1].decorator_info, ModelValidatorDecoratorInfo)
+                or isinstance(x[1].decorator_info, FieldValidatorDecoratorInfo)
+            ),
+            attrs.items(),
+        )
+    )
+
 class SerializerMetaclass(ABCMeta):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
         if raw_fields_map := dict(
@@ -248,16 +260,7 @@ class SerializerMetaclass(ABCMeta):
                 else:
                     raise NotImplementedError()
 
-            validators_map = dict(
-                filter(
-                    lambda x: isinstance(x[1], PydanticDescriptorProxy)
-                    and (
-                        isinstance(x[1].decorator_info, ModelValidatorDecoratorInfo)
-                        or isinstance(x[1].decorator_info, FieldValidatorDecoratorInfo)
-                    ),
-                    attrs.items(),
-                )
-            )
+            validators_map = get_validators_map(attrs)
 
             pconfig = PydanticModel.model_config.copy()
 
