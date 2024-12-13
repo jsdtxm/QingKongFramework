@@ -1,7 +1,7 @@
 import click
 
 from libs.commands.utils import parse_dict
-from libs.misc.gateway import run_proxy
+from libs.misc.gateway import run_gateway
 from libs.misc.serve import serve_app, serve_apps
 
 
@@ -21,5 +21,5 @@ def runserver(app, host, exclude, workers, reload):
 @click.option("--port", default=8000, type=click.INT)
 @click.option("--upstream", callback=parse_dict, multiple=True)
 @click.option("--default-upstream", default="127.0.0.1", type=click.STRING)
-def proxy(host, port, upstream, default_upstream):
-    run_proxy(host, port, upstream, default_upstream)
+def gateway(host, port, upstream, default_upstream):
+    run_gateway(host, port, upstream, default_upstream)

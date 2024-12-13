@@ -327,6 +327,7 @@ def pydantic_model_creator(
             field_pydantic_type = fdesc.get("pydantic_type")
 
             child = fdesc.get("child")
+
             if issubclass(type(child), type):
                 child_type = child
             elif isinstance(child, PydanticModel):

@@ -1,5 +1,6 @@
 import logging
 import logging.config
+import os
 import re
 from collections import Counter
 
@@ -139,7 +140,11 @@ async def log_middleware(app, handler):
     return middleware_handler
 
 
-def run_proxy(
+def aiohttp_print_override(*args, **kwargs):
+    error_logger.info("Application startup complete.")
+
+
+def run_gateway(
     host="127.0.0.1", port=8000, upstream_dict={}, default_upstream="127.0.0.1"
 ):
     apps = init_apps(settings.INSTALLED_APPS)
@@ -168,12 +173,20 @@ def run_proxy(
     proxy_app = aiohttp.web.Application(middlewares=[log_middleware, error_middleware])
 
     proxy_app.add_routes([r.to_aiohttp_route() for r in proxy_rules])
+    error_logger.info(
+        f"Gateway running on {click.style(f"http://{host}:{port}", fg="bright_white")} (Press CTRL+C to quit)"
+    )
+    error_logger.info(f"Started server process [{click.style(os.getpid(), fg="blue")}]")
+    error_logger.info("Waiting for application startup.")
 
-    error_logger.info(f"Gateway running on {click.style(f"http://{host}:{port}", fg="bright_white")} (Press CTRL+C to quit)")
     aiohttp.web.run_app(
-        proxy_app, host=host, port=port, loop=uvloop.new_event_loop(), print=None
+        proxy_app,
+        host=host,
+        port=port,
+        loop=uvloop.new_event_loop(),
+        print=aiohttp_print_override,
     )
 
 
 if __name__ == "__main__":
-    run_proxy()
+    run_gateway()
