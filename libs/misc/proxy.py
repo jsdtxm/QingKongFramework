@@ -2,6 +2,7 @@ import re
 from collections import Counter
 
 import aiohttp
+import aiohttp.client_exceptions
 import aiohttp.web
 import uvloop
 
@@ -89,6 +90,28 @@ def handler_factory(proxy_loc: ProxyLocation):
     return handler
 
 
+async def error_middleware(app, handler):
+    async def middleware_handler(request):
+        try:
+            return await handler(request)
+        except aiohttp.web.HTTPException as ex:
+            return aiohttp.web.json_response({"error": str(ex)}, status=ex.status)
+        except aiohttp.client_exceptions.ClientConnectorError:
+            return aiohttp.web.json_response(
+                {
+                    "error": "Bad Gateway",
+                    "message": "Upstream server is currently unavailable.",
+                },
+                status=502,
+            )
+        except Exception as ex:
+            return aiohttp.web.json_response(
+                {"error": "Internal Server Error", "message": str(ex)}, status=500
+            )
+
+    return middleware_handler
+
+
 def run_proxy(
     host="127.0.0.1", port=8000, upstream_dict={}, default_upstream="127.0.0.1"
 ):
@@ -115,7 +138,7 @@ def run_proxy(
     for p in proxy_rules:
         print(p)
 
-    proxy_app = aiohttp.web.Application()
+    proxy_app = aiohttp.web.Application(middlewares=[error_middleware])
 
     proxy_app.add_routes([r.to_aiohttp_route() for r in proxy_rules])
     aiohttp.web.run_app(proxy_app, host=host, port=port, loop=uvloop.new_event_loop())
