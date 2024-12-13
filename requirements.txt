@@ -38,5 +38,8 @@ cryptography==44.0.0
 # Cache
 async-lru==2.0.4
 
+# Register
+etcd3-py==0.1.6
+
 # Dev
 fastapi-cli==0.0.5
