@@ -8,7 +8,7 @@ from fastapi.applications import AppType
 from fastapi_pagination import add_pagination
 from starlette.middleware import Middleware
 from starlette.types import Lifespan
-from tortoise import Tortoise
+from libs.models.tortoise import Tortoise
 
 from common.settings import settings
 from libs.cache import connections

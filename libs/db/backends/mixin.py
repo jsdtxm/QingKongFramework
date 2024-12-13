@@ -5,7 +5,7 @@ from tortoise.models import Model
 
 class SchemaGeneratorMixin:
     def _get_models_to_create(self, models_to_create: "List[Type[Model]]") -> None:
-        from tortoise import Tortoise
+        from libs.models.tortoise import Tortoise
 
         for app in Tortoise.apps.values():
             for model in app.values():

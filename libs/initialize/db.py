@@ -3,7 +3,7 @@ from importlib import import_module
 from typing import Any
 
 import uvloop
-from tortoise import Tortoise
+from libs.models.tortoise import Tortoise
 
 from libs.apps import Apps
 from libs.utils.module_loading import module_has_submodule, package_try_import

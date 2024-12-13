@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 from pydantic import BaseModel, ConfigDict, Field, computed_field, create_model
 from pydantic._internal._decorators import PydanticDescriptorProxy
 from tortoise.contrib.pydantic.base import PydanticModel
+from tortoise.contrib.pydantic.creator import _MODEL_INDEX
+from tortoise.contrib.pydantic.creator import PydanticMeta as RawPydanticMeta
 from tortoise.contrib.pydantic.creator import (
-    _MODEL_INDEX,
-    PydanticMeta,
     _br_it,
     _cleandoc,
     _pydantic_recursion_protector,
@@ -22,6 +22,10 @@ if TYPE_CHECKING:  # pragma: nocoverage
     from tortoise.models import Model
 
 DEFAULT_VALUE_DICT = {int: 0, float: 0.0, str: ""}
+
+
+class PydanticMeta(RawPydanticMeta):
+    exclude_raw_fields: bool = False
 
 
 def field_map_process(field_map):
@@ -404,7 +408,7 @@ def pydantic_model_creator(
 
     for k, v in extra_fields.items():
         if isinstance(v, BaseModel):
-            properties[k] = (v, Field(**fconfig))
+            properties[k] = (v, Field(**fconfig))  # 不对劲啊这里
 
     # Here we endure that the name is unique, but complete objects are still labeled verbatim
     if not has_submodel:
