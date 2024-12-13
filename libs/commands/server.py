@@ -1,6 +1,7 @@
 import click
 
 from libs.commands.utils import parse_dict
+from libs.misc.ascii_art import print_logo
 from libs.misc.gateway import run_gateway
 from libs.misc.serve import serve_app, serve_apps
 
@@ -11,6 +12,7 @@ from libs.misc.serve import serve_app, serve_apps
 @click.option("--workers", default=1, type=click.INT)
 @click.option("--reload", is_flag=True)
 def runserver(app, host, exclude, workers, reload):
+    print_logo()
     if app == "all":
         serve_apps(host, workers, reload, exclude)
     else:
@@ -22,4 +24,5 @@ def runserver(app, host, exclude, workers, reload):
 @click.option("--upstream", callback=parse_dict, multiple=True)
 @click.option("--default-upstream", default="127.0.0.1", type=click.STRING)
 def gateway(host, port, upstream, default_upstream):
+    print_logo()
     run_gateway(host, port, upstream, default_upstream)

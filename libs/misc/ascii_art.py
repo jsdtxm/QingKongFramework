@@ -16,5 +16,5 @@ def print_logo(need_init=False):
     if need_init:
         init()
 
-    print(Fore.BLUE + qingkong_ascii[:-1])
+    print(Fore.BLUE + qingkong_ascii[1:-1])
     print(Style.RESET_ALL)
