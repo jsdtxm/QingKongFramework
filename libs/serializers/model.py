@@ -6,7 +6,7 @@ from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields import Field
 
 from libs.serializers.creator import pydantic_model_creator
-from libs.serializers.base import get_validators_map
+from libs.serializers.base import get_validators_map, get_serializer_map, get_serializers_map_from_fields
 
 
 class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
@@ -33,6 +33,7 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
             }
 
             validators_map = get_validators_map(attrs)
+            serializers_map = get_serializer_map(attrs) | get_serializers_map_from_fields(extra_fields)
 
             pydantic_model = pydantic_model_creator(
                 meta.model,
@@ -40,7 +41,7 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
                 extra_fields=extra_fields,
                 include=fields,
                 exclude=exclude,
-                validators=validators_map
+                validators=validators_map|serializers_map
             )
 
             return pydantic_model
