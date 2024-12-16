@@ -1,11 +1,13 @@
+import inspect
 import re
 from importlib import import_module
 from typing import Any
 
 import uvloop
-from libs.models.tortoise import Tortoise
 
 from libs.apps import Apps
+from libs.models.base import TortoiseModel
+from libs.models.tortoise import Tortoise
 from libs.utils.module_loading import module_has_submodule, package_try_import
 
 
@@ -24,14 +26,29 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
     connection_routers = []
     for app_config in apps.app_configs.values():
         if models := package_try_import(app_config.module, "models"):
+            flag = False
+            for member_name in dir(models):
+                obj = getattr(models, member_name)
+                if (
+                    not member_name.startswith("__")
+                    and inspect.isclass(obj)
+                    and issubclass(obj, TortoiseModel)
+                    and not getattr(getattr(obj, "Meta", None), "abstract", False)
+                ):
+                    flag = True
+                    break
+
+            if not flag:
+                continue
+
             models_module_path = app_config.name + ".models"
             app_model_config = {
                 "models": [models_module_path],
                 "default_connection": "default",
             }
             if hasattr(models, "Router"):
-                connection_routers.append(models_module_path+".Router")
-            
+                connection_routers.append(models_module_path + ".Router")
+
             tortoise_config["apps"][app_config.label] = app_model_config
 
     for alias, config in databases.items():
@@ -55,7 +72,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
             }
 
         tortoise_config["connections"][alias] = c
-    
+
     tortoise_config["routers"] = connection_routers
 
     return tortoise_config
