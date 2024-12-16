@@ -1,7 +1,8 @@
 from abc import ABCMeta
-from typing import Any, Literal, Optional, Tuple, Type
+from datetime import date, time
+from typing import Any, Literal, Optional, Tuple, Type, Union
 
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field, create_model, field_serializer
 from pydantic._internal._decorators import (
     FieldSerializerDecoratorInfo,
     FieldValidatorDecoratorInfo,
@@ -21,6 +22,7 @@ from pydantic_core import CoreSchema
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields.base import Field as TortoiseField
 
+from libs.serializers.fields import DateTimeField
 from libs.utils.functional import classproperty
 
 
@@ -240,6 +242,13 @@ def get_serializer_map(attrs: dict):
     )
 
 
+def datetime_field_serializer_factory(format: str):
+    def datetime_field_serializer(self, value: Union[time, date], _info):
+        return value.strftime(format)
+
+    return datetime_field_serializer
+
+
 class SerializerMetaclass(ABCMeta):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
         if raw_fields_map := dict(
@@ -250,6 +259,8 @@ class SerializerMetaclass(ABCMeta):
                 attrs.items(),
             )
         ):
+            serializers_map = get_serializer_map(attrs)
+
             fields_map = {}
             for key, field in raw_fields_map.items():
                 if isinstance(field, TortoiseField):
@@ -257,6 +268,14 @@ class SerializerMetaclass(ABCMeta):
 
                     field_default = fdesc.get("default")
                     ptype = fdesc["python_type"]
+
+                    if isinstance(field, DateTimeField) and (
+                        field_format := field.format
+                    ):
+                        if key not in serializers_map:
+                            serializers_map[f"serializer_{key}"] = field_serializer(
+                                key
+                            )(datetime_field_serializer_factory(field_format))
 
                     if field_default is not None or fdesc.get("nullable"):
                         fields_map[key] = (
@@ -279,8 +298,6 @@ class SerializerMetaclass(ABCMeta):
                     raise NotImplementedError()
 
             validators_map = get_validators_map(attrs)
-
-            serializers_map = get_serializer_map(attrs)
 
             pconfig = PydanticModel.model_config.copy()
 
