@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, List
 
-from libs.settings import BaseSettings
+from libs.conf import BaseSettings
 
 
 class Settings(BaseSettings):

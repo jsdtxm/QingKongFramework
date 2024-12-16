@@ -9,14 +9,14 @@ class BaseSettings(PydanticBaseSettings):
     model_config = SettingsConfigDict(env_prefix="QK_")
 
     BASE_DIR: Path
-    SECRET_KEY: str
+    SECRET_KEY: str = "longlivethegreatunityofthepeople"
 
     ALLOWED_HOSTS: List[str] = ["127.0.0.1", "localhost"]
 
     INSTALLED_APPS: List[str]
 
     DATABASES: dict[str, dict[str, Any]]
-    CACHES: dict[str, dict[str, Any]]
+    CACHES: dict[str, dict[str, Any]] = {}
 
     AUTH_USER_MODEL: str | None = None
 
