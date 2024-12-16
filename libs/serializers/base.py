@@ -3,6 +3,7 @@ from typing import Any, Literal, Optional, Tuple, Type
 
 from pydantic import BaseModel, Field, create_model
 from pydantic._internal._decorators import (
+    FieldSerializerDecoratorInfo,
     FieldValidatorDecoratorInfo,
     ModelValidatorDecoratorInfo,
     PydanticDescriptorProxy,
@@ -228,6 +229,17 @@ def get_validators_map(attrs: dict):
         )
     )
 
+
+def get_serializer_map(attrs: dict):
+    return dict(
+        filter(
+            lambda x: isinstance(x[1], PydanticDescriptorProxy)
+            and isinstance(x[1].decorator_info, FieldSerializerDecoratorInfo),
+            attrs.items(),
+        )
+    )
+
+
 class SerializerMetaclass(ABCMeta):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
         if raw_fields_map := dict(
@@ -247,20 +259,28 @@ class SerializerMetaclass(ABCMeta):
                     ptype = fdesc["python_type"]
 
                     if field_default is not None or fdesc.get("nullable"):
-                        fields_map[key] = (Optional[ptype], Field(default=field.default))
+                        fields_map[key] = (
+                            Optional[ptype],
+                            Field(default=field.default),
+                        )
                     else:
                         fields_map[key] = (ptype, Field(default=field.default))
                 elif (
                     isinstance(field, type) and issubclass(field, BaseModel)
                 ) or isinstance(field, BaseModel):
                     if not getattr(field, "required", False):
-                        fields_map[key] = (Optional[field], Field(default=getattr(field, "default", None)))
+                        fields_map[key] = (
+                            Optional[field],
+                            Field(default=getattr(field, "default", None)),
+                        )
                     else:
                         fields_map[key] = (field, Field())
                 else:
                     raise NotImplementedError()
 
             validators_map = get_validators_map(attrs)
+
+            serializers_map = get_serializer_map(attrs)
 
             pconfig = PydanticModel.model_config.copy()
 
@@ -272,7 +292,10 @@ class SerializerMetaclass(ABCMeta):
             pconfig["orig_model"] = None
 
             pydantic_model = create_model(
-                name, model_config=pconfig, __validators__=validators_map, **fields_map
+                name,
+                model_config=pconfig,
+                __validators__=validators_map | serializers_map,
+                **fields_map,
             )
             return type(
                 name, (SerializerModel,), attrs | {"pydantic_model": pydantic_model}
