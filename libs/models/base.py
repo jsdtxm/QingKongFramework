@@ -1,9 +1,9 @@
-from typing import Any, Tuple, Type, Union
+from typing import Any, Optional, Tuple, Type, Union, Self
 
 from tortoise.manager import Manager as TortoiseManager
 from tortoise.models import Model as TortoiseModel
 from tortoise.models import ModelMeta as TortoiseModelMeta
-from tortoise.queryset import QuerySet
+from tortoise.queryset import QuerySet as TortoiseQuerySet, MODEL
 
 from libs import apps
 from libs.apps.config import AppConfig
@@ -16,9 +16,14 @@ class Manager(TortoiseManager):
         return self._model.create(*args, **kwargs)
 
 
+class QuerySet(TortoiseQuerySet[MODEL]):
+    def create(self, *args, **kwargs):
+        return self.model.create(*args, **kwargs)
+
 class BaseMeta:
     manager = Manager()
     external: bool = False
+    ignore_schema: Optional[bool] = None
     app: str = "none"
 
 
@@ -28,6 +33,12 @@ class ModelMetaClass(TortoiseModelMeta):
         if module_name and module_name.endswith(".models"):
             meta_class = attrs.get("Meta", type("Meta", (BaseMeta,), {}))
             abstract = getattr(meta_class, "abstract", False)
+
+            if (
+                getattr(meta_class, "ignore_schema", None) is None
+                and getattr(meta_class, "external", False)
+            ):
+                meta_class.ignore_schema = True
 
             if not abstract:
                 app_config = apps.apps.app_configs[module_name.rsplit(".", 1)[0]]
@@ -48,7 +59,7 @@ class ModelMetaClass(TortoiseModelMeta):
 
 
 class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
-    objects: Union[Manager, QuerySet] = Manager()
+    objects: Union[Manager, QuerySet[Self]] = Manager()
 
     app: AppConfig
 
