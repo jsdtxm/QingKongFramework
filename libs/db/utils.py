@@ -7,9 +7,10 @@ from tortoise.exceptions import ConfigurationError
 
 if TYPE_CHECKING:  # pragma: nocoverage
     from tortoise.backends.base.client import BaseDBAsyncClient
+    from tortoise.backends.base.schema_generator import BaseSchemaGenerator
 
 
-def get_create_schema_sql(self, safe: bool = True) -> str:
+def get_create_schema_sql(self: "BaseSchemaGenerator", safe: bool = True) -> str:
     models_to_create: "List[Type[Model]]" = []
 
     self._get_models_to_create(models_to_create)
@@ -17,7 +18,7 @@ def get_create_schema_sql(self, safe: bool = True) -> str:
     tables_to_create = []
     for model in models_to_create:
         tables_to_create.append(self._get_table_sql(model, safe))
-
+    
     tables_to_create_count = len(tables_to_create)
 
     created_tables: Set[dict] = set()
@@ -36,9 +37,10 @@ def get_create_schema_sql(self, safe: bool = True) -> str:
             raise ConfigurationError("Can't create schema due to cyclic fk references")
         tables_to_create.remove(next_table_for_create)
         created_tables.add(next_table_for_create["table"])
-        ordered_tables_for_create.append(next_table_for_create["table_creation_string"])
+        if (model := next_table_for_create['model']) and not getattr(getattr(model, "_meta", None), "external", False):
+            ordered_tables_for_create.append(next_table_for_create["table_creation_string"])
         m2m_tables_to_create += next_table_for_create["m2m_tables"]
-
+    
     return chain(ordered_tables_for_create + m2m_tables_to_create)
 
 
