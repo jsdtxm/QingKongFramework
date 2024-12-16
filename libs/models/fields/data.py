@@ -82,9 +82,9 @@ class DateField(tortoise_data_fields.DateField):
 
 
 class DateTimeField(tortoise_data_fields.DatetimeField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, auto_now: bool = False, auto_now_add: bool = False, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
-        super().__init__(**kwargs)
+        super().__init__(auto_now, auto_now_add, **kwargs)
 
 
 class TimeDeltaField(tortoise_data_fields.TimeDeltaField):
