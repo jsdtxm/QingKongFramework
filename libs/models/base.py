@@ -67,7 +67,7 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
         super().__init__(**kwargs)
 
     @classmethod
-    def generate_stub(cls) -> None:
+    def generate_query_params(cls) -> None:
         template = "class QueryParams(typing.TypedDict, total=False):\n"
 
         for _, fields in filter(
