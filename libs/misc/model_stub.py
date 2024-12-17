@@ -1,5 +1,6 @@
 import re
 import sys
+from collections import defaultdict
 from itertools import chain
 
 from libs.models.base import BaseModel
@@ -45,12 +46,14 @@ def generate(module_name: str):
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
-    modified_lines = [
-        "from tortoise.queryset import Q, QuerySet, QuerySetSingle\n",
+    pre_import_lines = [
         "import typing\n",
         "import datetime\n",
+        "from tortoise.queryset import Q, QuerySet, QuerySetSingle\n",
         "from tortoise.backends.base.client import BaseDBAsyncClient\n",
     ]
+    need_import = defaultdict(set)
+    modified_lines = []
     for line in lines:
         if m := class_pattern.match(line):
             model_name = m.group(1)
@@ -61,10 +64,14 @@ def generate(module_name: str):
             if not issubclass(model_class, BaseModel):
                 continue
 
+            sub_need_import, query_params = model_class.generate_query_params()
+            for k, v in sub_need_import.items():
+                need_import[k].update(v)
+
             modified_lines.extend(
                 map(
                     lambda x: f"    {x}\n",
-                    model_class.generate_query_params().split("\n"),
+                    query_params.split("\n"),
                 )
             )
             # HACK
@@ -87,5 +94,9 @@ def generate(module_name: str):
         else:
             modified_lines.append(line)
 
+    pre_import_lines.extend(
+        map(lambda x: f"from {x[0]} import {", ".join(x[1])}\n", need_import.items())
+    )
+
     with open(file_path, "w", encoding="utf-8") as file:
-        file.writelines(modified_lines)
+        file.writelines(pre_import_lines + modified_lines)

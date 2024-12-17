@@ -1,6 +1,8 @@
+from collections import defaultdict
 from datetime import datetime
-from typing import Any, Generic, Optional, Self, Sequence, Tuple, Type
+from typing import Any, Generic, Optional, Self, Tuple, Type
 
+from tortoise.fields import relational
 from tortoise.manager import Manager as TortoiseManager
 from tortoise.models import Model as TortoiseModel
 from tortoise.models import ModelMeta as TortoiseModelMeta
@@ -58,44 +60,64 @@ class ModelMetaClass(TortoiseModelMeta):
         return super().__new__(mcs, name, bases, attrs)
 
 
-class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
-    objects: Manager[Self] = Manager()
+def generate_query_params_attrs(cls: "BaseModel", depth=0, max_depth=1):
+    need_import = defaultdict(set)
+    kwargs = []
 
-    app: AppConfig
+    for _, fields in filter(
+        lambda x: x[0]
+        in {"pk_field", "data_fields", "fk_fields", "backward_fk_fields"},
+        cls.describe(serializable=False).items(),
+    ):
+        if not isinstance(fields, list):
+            fields = [
+                fields,
+            ]
+        for field in fields:
+            field_type = field["field_type"]
+            name, ptype = field["name"], field["python_type"]
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-
-    @classmethod
-    def generate_query_params(cls) -> None:
-        template = "class QueryParams(typing.TypedDict, total=False):\n"
-
-        for _, fields in filter(
-            lambda x: x[0] in {"pk_field", "data_fields", "fk_fields"},
-            cls.describe().items(),
-        ):
-            if not isinstance(fields, list):
-                fields = [
-                    fields,
-                ]
-            for field in fields:
-                if field["field_type"] == "ForeignKeyFieldInstance":
+            if (
+                field_type is relational.ForeignKeyFieldInstance
+                or field_type is relational.OneToOneFieldInstance
+                or field_type is relational.BackwardOneToOneRelation
+                or field_type is relational.BackwardFKRelation
+                or field_type is relational.ManyToManyFieldInstance
+            ):
+                if depth > max_depth:
                     continue
 
-                name, ptype_str = field["name"], field["python_type"]
-                ptype = {
-                    "int": int,
-                    "float": float,
-                    "str": str,
-                    "datetime.datetime": datetime,
-                }[ptype_str]
-                kwargs = [
-                    (name, ptype_str),
-                    (f"{name}__in", Sequence[ptype]),
-                    (f"{name}__exact", ptype_str),
-                    (f"{name}__iexact", ptype_str),
-                    (f"{name}__isnull", "bool"),
-                ]
+                need_import[ptype.__module__].add(ptype.__name__)
+
+                sub_need_import, sub_kwargs = generate_query_params_attrs(
+                    ptype, depth + 1, max_depth
+                )
+
+                for k, v in sub_need_import.items():
+                    need_import[k].update(v)
+
+                kwargs.extend([(name, ptype.__name__)])
+                kwargs.extend([(f"{name}__{x[0]}", x[1]) for x in sub_kwargs])
+
+            else:
+                ptype_str = {int: "int", str: "str", datetime: "datetime.datetime"}.get(
+                    ptype, str(ptype)
+                )
+
+                optional = field.get("nullable") or field.get("default") is not None
+
+                kwargs.extend(
+                    [
+                        (
+                            name,
+                            f"typing.Optional[{ptype_str}]" if optional else ptype_str,
+                        ),
+                        (f"{name}__in", f"typing.Sequence[{ptype_str}]"),
+                        (f"{name}__exact", ptype_str),
+                        (f"{name}__iexact", ptype_str),
+                        (f"{name}__isnull", "bool"),
+                    ]
+                )
 
                 if ptype_str in ("int", "float", "datetime.datetime"):
                     kwargs.extend(
@@ -135,10 +157,27 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
                         ]
                     )
 
-                for arg in kwargs:
-                    template += f"    {arg[0]}: {arg[1]}\n"
+    return need_import, kwargs
 
-        return template
+
+class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
+    objects: Manager[Self] = Manager()
+
+    app: AppConfig
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+    @classmethod
+    def generate_query_params(cls) -> None:
+        template = "class QueryParams(typing.TypedDict, total=False):\n"
+
+        need_import, kwargs = generate_query_params_attrs(cls)
+
+        for arg in kwargs:
+            template += f"    {arg[0]}: {arg[1]}\n"
+
+        return need_import, template
 
     class Meta(BaseMeta):
         pass
