@@ -74,7 +74,6 @@ def generate(module_name: str, mode: str):
                     query_params.split("\n"),
                 )
             )
-            # HACK
             indent = " " * 4
             modified_lines.extend(
                 chain(
