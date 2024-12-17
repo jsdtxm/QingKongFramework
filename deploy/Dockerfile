@@ -37,10 +37,13 @@ ENV PYTHONPATH=/app
 COPY --from=builder /usr/local/lib/python3.12/site-packages/asyncmy  /usr/local/lib/python3.12/site-packages/asyncmy
 COPY --from=builder /usr/local/lib/python3.12/site-packages/asyncmy-0.2.9.dist-info  /usr/local/lib/python3.12/site-packages/asyncmy-0.2.9.dist-info
 
+COPY ./deploy/remove_dev_requirements.sh /usr/local/bin/remove-dev-requirements
 COPY ./requirements.txt /app
 
-RUN pip install --no-cache-dir -r requirements.txt && \
-    find /usr/local/lib/python3.12 -type d -name '__pycache__' -exec rm -r {} +
+RUN remove-dev-requirements requirements.txt requirements.txt.clean && \
+    pip install --no-cache-dir -r requirements.txt.clean && \
+    find /usr/local/lib/python3.12 -type d -name '__pycache__' -exec rm -r {} + && \
+    rm requirements.txt.clean
 
 COPY ./libs /app/libs
 COPY ./common /app/common
