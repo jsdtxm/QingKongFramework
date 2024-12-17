@@ -14,18 +14,20 @@ from typing import (
 from uuid import UUID
 
 from pydantic import constr
-from tortoise.fields import Field
+from tortoise.fields.base import Field
 
 from libs.models.fields import data as models_data_fields
 
 if TYPE_CHECKING:  # pragma: nocoverage
     from libs.serializers.base import Serializer
+    from libs.serializers.model import ModelSerializer
 
-T = TypeVar("T")
 DEFAULT_CHAR_LENGTH = 4096
 
+VALUE = TypeVar("VALUE")
 
-class SerializerMixin(Generic[T]):
+
+class SerializerMixin(Generic[VALUE]):
     default_value = None
 
     def describe(self, serializable: bool) -> dict:
@@ -36,10 +38,32 @@ class SerializerMixin(Generic[T]):
 
     if TYPE_CHECKING:
 
-        def __new__(cls, *args: Any, **kwargs: Any) -> T: ...
+        def __new__(cls, *args: Any, **kwargs: Any) -> "Field[VALUE]":
+            return super().__new__(cls)
 
         @overload
-        def __get__(self, instance: "Serializer", owner: Type["Serializer"]) -> T: ...
+        def __get__(
+            self, instance: None, owner: Type["Serializer"]
+        ) -> "Field[VALUE]": ...
+
+        @overload
+        def __get__(
+            self, instance: "Serializer", owner: Type["Serializer"]
+        ) -> VALUE: ...
+
+        @overload
+        def __get__(
+            self, instance: "ModelSerializer", owner: Type["ModelSerializer"]
+        ) -> VALUE: ...
+
+        def __get__(
+            self, instance: Optional["Serializer"], owner: Type["Serializer"]
+        ) -> "Field[VALUE] | VALUE": ...
+
+        @overload
+        def __set__(self, instance: "ModelSerializer", value: VALUE) -> None: ...
+
+        def __set__(self, instance: "Serializer", value: VALUE) -> None: ...
 
 
 # Integer
