@@ -96,7 +96,7 @@ def generate_query_params_attrs(cls: "BaseModel", depth=0, max_depth=1):
                 for k, v in sub_need_import.items():
                     need_import[k].update(v)
 
-                kwargs.extend([(name, ptype.__name__)])
+                kwargs.extend([(name, f'"{ptype.__name__}"')])
                 kwargs.extend([(f"{name}__{x[0]}", x[1]) for x in sub_kwargs])
 
             else:
