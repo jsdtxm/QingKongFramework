@@ -3,6 +3,7 @@ import logging.config
 import os
 import re
 from collections import Counter
+from functools import lru_cache
 
 import aiohttp
 import aiohttp.client_exceptions
@@ -76,6 +77,20 @@ def swagger_proxy_middleware(
     return content
 
 
+@lru_cache
+def check_origin(origin: str | None, referer: str | None):
+    if origin:
+        origin = origin.replace("/", "")
+        if any(map(lambda x: origin.endswith(x), settings.ALLOWED_HOSTS)):
+            return True
+    elif referer:
+        referer = referer.replace("/", "")
+        if any(map(lambda x: origin.endswith(x), settings.ALLOWED_HOSTS)):
+            return True
+
+    return False
+
+
 def handler_factory(proxy_loc: ProxyLocation):
     async def handler(request: aiohttp.web.Request):
         async with aiohttp.ClientSession() as session:
@@ -94,6 +109,14 @@ def handler_factory(proxy_loc: ProxyLocation):
                     if k.lower() != "content-length"
                     and k.lower() != "transfer-encoding"
                 }
+
+                origin = request.headers.get("Origin", "")
+                referer = request.headers.get("Referer", "")
+
+                if check_origin(origin, referer):
+                    headers["Access-Control-Allow-Origin"] = origin or referer
+                    headers["Access-Control-Allow-Credentials"] = "true"
+                    headers["Access-Control-Allow-Headers"] = "Content-Type"
 
                 return aiohttp.web.Response(
                     body=content, status=response.status, headers=headers
