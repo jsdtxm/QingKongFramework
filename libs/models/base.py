@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Generic, Optional, Self, Tuple, Type
+from typing import Any, Generic, Literal, Optional, Self, Tuple, Type
 
 from tortoise.fields import relational
 from tortoise.manager import Manager as TortoiseManager
@@ -60,9 +60,13 @@ class ModelMetaClass(TortoiseModelMeta):
         return super().__new__(mcs, name, bases, attrs)
 
 
-def generate_query_params_attrs(cls: "BaseModel", depth=0, max_depth=1):
+def generate_query_params_attrs(
+    cls: "BaseModel", mode: Literal["full", "lite"] = "lite", depth=0, max_depth=1
+):
     need_import = defaultdict(set)
     kwargs = []
+
+    full = mode == "full"
 
     for _, fields in filter(
         lambda x: x[0]
@@ -90,7 +94,7 @@ def generate_query_params_attrs(cls: "BaseModel", depth=0, max_depth=1):
                 need_import[ptype.__module__].add(ptype.__name__)
 
                 sub_need_import, sub_kwargs = generate_query_params_attrs(
-                    ptype, depth + 1, max_depth
+                    ptype, mode, depth + 1, max_depth
                 )
 
                 for k, v in sub_need_import.items():
@@ -113,11 +117,17 @@ def generate_query_params_attrs(cls: "BaseModel", depth=0, max_depth=1):
                             f"typing.Optional[{ptype_str}]" if optional else ptype_str,
                         ),
                         (f"{name}__in", f"typing.Sequence[{ptype_str}]"),
-                        (f"{name}__exact", ptype_str),
-                        (f"{name}__iexact", ptype_str),
-                        (f"{name}__isnull", "bool"),
                     ]
                 )
+
+                if full:
+                    kwargs.extend(
+                        [
+                            (f"{name}__exact", ptype_str),
+                            (f"{name}__iexact", ptype_str),
+                            (f"{name}__isnull", "bool"),
+                        ]
+                    )
 
                 if ptype_str in ("int", "float", "datetime.datetime"):
                     kwargs.extend(
@@ -126,22 +136,31 @@ def generate_query_params_attrs(cls: "BaseModel", depth=0, max_depth=1):
                             for x in ["gt", "gte", "lt", "lte"]
                         ]
                     )
-                    kwargs.append((f"{name}__range", Tuple[ptype, ptype]))
+                    if full:
+                        kwargs.append((f"{name}__range", Tuple[ptype, ptype]))
                 if ptype_str == "str":
                     kwargs.extend(
                         [
                             (f"{name}__{x}", ptype_str)
                             for x in [
                                 "contains",
-                                "icontains",
                                 "startswith",
-                                "istartswith",
                                 "endswith",
-                                "iendswith",
                             ]
                         ]
                     )
-                if ptype_str == "datetime.datetime":
+                    if full:
+                        kwargs.extend(
+                            [
+                                (f"{name}__{x}", ptype_str)
+                                for x in [
+                                    "icontains",
+                                    "istartswith",
+                                    "iendswith",
+                                ]
+                            ]
+                        )
+                if full and ptype_str == "datetime.datetime":
                     kwargs.extend(
                         [
                             (f"{name}__{x}", "int")
@@ -169,10 +188,10 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
         super().__init__(**kwargs)
 
     @classmethod
-    def generate_query_params(cls) -> None:
+    def generate_query_params(cls, mode: Literal["full", "lite"] = "lite") -> None:
         template = "class QueryParams(typing.TypedDict, total=False):\n"
 
-        need_import, kwargs = generate_query_params_attrs(cls)
+        need_import, kwargs = generate_query_params_attrs(cls, mode)
 
         for arg in kwargs:
             template += f"    {arg[0]}: {arg[1]}\n"

@@ -7,7 +7,7 @@ from libs.models.base import BaseModel
 from libs.utils.module_loading import import_module
 
 
-def generate(module_name: str):
+def generate(module_name: str, mode: str):
     from mypy.stubgen import Options, generate_stubs
 
     module = import_module(module_name)
@@ -64,7 +64,7 @@ def generate(module_name: str):
             if not issubclass(model_class, BaseModel):
                 continue
 
-            sub_need_import, query_params = model_class.generate_query_params()
+            sub_need_import, query_params = model_class.generate_query_params(mode)
             for k, v in sub_need_import.items():
                 need_import[k].update(v)
 
