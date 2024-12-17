@@ -13,6 +13,8 @@ class BaseSettings(PydanticBaseSettings):
 
     ALLOWED_HOSTS: List[str] = ["127.0.0.1", "localhost"]
 
+    ADD_CORS_HEADERS: bool = False
+
     INSTALLED_APPS: List[str]
 
     DATABASES: dict[str, dict[str, Any]]
