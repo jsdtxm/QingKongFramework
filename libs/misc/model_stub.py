@@ -95,7 +95,7 @@ def generate(module_name: str):
             modified_lines.append(line)
 
     pre_import_lines.extend(
-        map(lambda x: f"from {x[0]} import {", ".join(x[1])}\n", need_import.items())
+        map(lambda x: f"from {x[0]} import {", ".join(x[1])}\n", [x for x in need_import.items() if x[0] != module_name])
     )
 
     with open(file_path, "w", encoding="utf-8") as file:
