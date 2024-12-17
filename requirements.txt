@@ -43,3 +43,4 @@ etcd3-py==0.1.6
 
 # Dev
 fastapi-cli==0.0.5
+mypy==1.13.0
