@@ -252,14 +252,13 @@ def datetime_field_serializer_factory(format: str):
 def get_serializers_map_from_fields(fields_map: dict):
     serializers_map = {}
     for key, field in fields_map.items():
-        if isinstance(field, DateTimeField) and (
-                field_format := field.format
-            ):
-                if key not in serializers_map:
-                    serializers_map[f"serializer_{key}"] = field_serializer(
-                        key
-                    )(datetime_field_serializer_factory(field_format))
+        if isinstance(field, DateTimeField) and (field_format := field.format):
+            if key not in serializers_map:
+                serializers_map[f"serializer_{key}"] = field_serializer(key)(
+                    datetime_field_serializer_factory(field_format)
+                )
     return serializers_map
+
 
 class SerializerMetaclass(ABCMeta):
     def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
@@ -271,9 +270,9 @@ class SerializerMetaclass(ABCMeta):
                 attrs.items(),
             )
         ):
-            serializers_map = get_serializer_map(attrs) | get_serializers_map_from_fields(raw_fields_map)
-
-            
+            serializers_map = get_serializer_map(
+                attrs
+            ) | get_serializers_map_from_fields(raw_fields_map)
 
             fields_map = {}
             for key, field in raw_fields_map.items():
@@ -305,7 +304,10 @@ class SerializerMetaclass(ABCMeta):
 
             validators_map = get_validators_map(attrs)
 
-            pconfig = PydanticModel.model_config.copy()
+            if "model_config" in attrs:
+                pconfig = attrs["model_config"]
+            else:
+                pconfig = PydanticModel.model_config.copy()
 
             if "title" not in pconfig:
                 pconfig["title"] = name
