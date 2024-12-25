@@ -20,7 +20,7 @@ class AppConfigMeta(type):
         if "label" not in attrs:
             attrs["label"] = attrs["name"].rpartition(".")[2]
         if "prefix" not in attrs:
-            attrs["prefix"] = attrs["label"]
+            attrs["prefix"] = attrs["label"].replace(".", "_")
 
         return super().__new__(mcs, name, bases, attrs)
 
