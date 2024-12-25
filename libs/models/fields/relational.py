@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, Union, overload
 from tortoise.fields.base import CASCADE, OnDelete
 from tortoise.fields.relational import (
     MODEL,
+    BackwardFKRelation,
+    BackwardOneToOneRelation,
     ForeignKeyFieldInstance,
     ForeignKeyNullableRelation,
     ForeignKeyRelation,
@@ -11,8 +13,7 @@ from tortoise.fields.relational import (
     OneToOneFieldInstance,
     OneToOneNullableRelation,
     OneToOneRelation,
-    BackwardFKRelation,
-    BackwardOneToOneRelation
+    ReverseRelation,
 )
 from tortoise.models import Model
 

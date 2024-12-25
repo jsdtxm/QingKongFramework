@@ -19,9 +19,8 @@ from .data import (
     TimeDeltaField,
     TimeField,
 )
-from .relational import ForeignKeyField
-from .relational import ForeignKeyField as ForeignKey
 from .relational import (
+    ForeignKeyField,
     ForeignKeyFieldInstance,
     ForeignKeyRelation,
     ManyToManyField,
@@ -29,4 +28,7 @@ from .relational import (
     ManyToManyRelation,
     OneToOneField,
     OneToOneFieldInstance,
+    OneToOneRelation,
+    ReverseRelation,
 )
+from .relational import ForeignKeyField as ForeignKey
