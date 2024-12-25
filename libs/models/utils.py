@@ -1,12 +1,27 @@
 from itertools import chain
-from typing import TYPE_CHECKING, List, Optional
-
-if TYPE_CHECKING:
-    from libs.models.base import BaseModel
-
+from typing import List, Optional
+from libs.models.base import BaseModel
+import inspect
+from importlib import import_module
+from libs.apps import Apps
 
 def model_object_to_name(model: "BaseModel"):
     return f"{model.app.label}.{model.__name__}"
+
+
+def model_name_preprocess(model_name: str | BaseModel):
+    if isinstance(model_name, str):
+        if "." not in model_name:
+            package = inspect.stack()[2].frame.f_globals.get("__package__")
+            apps: Apps = import_module("libs.apps").apps
+            app_config = apps.get_app_config(package)
+            
+            return f"{app_config.label}.{model_name}"
+        
+    elif issubclass(model_name, BaseModel):
+        return model_object_to_name(model_name)
+    
+    return model_name
 
 
 def model_to_dict(

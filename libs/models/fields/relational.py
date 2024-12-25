@@ -90,11 +90,9 @@ def OneToOneField(
         The default is True, and that’s almost certainly what you want; setting this to False can be very bad for data integrity.
     """
 
-    if not isinstance(model_name, str) and issubclass(model_name, Model):
-        model_name = utils.model_object_to_name(model_name)
 
     return OneToOneFieldInstance(
-        model_name,
+        utils.model_name_preprocess(model_name),
         related_name,
         on_delete,
         db_constraint=db_constraint,
@@ -187,11 +185,8 @@ def ForeignKeyField(
         The default is True, and that's almost certainly what you want; setting this to False can be very bad for data integrity.
     """
 
-    if not isinstance(model_name, str) and issubclass(model_name, Model):
-        model_name = utils.model_object_to_name(model_name)
-
     return ForeignKeyFieldInstance(
-        model_name,
+        utils.model_name_preprocess(model_name),
         related_name,
         on_delete,
         db_constraint=db_constraint,
@@ -259,11 +254,8 @@ def ManyToManyField(
         The default is True. If you want to allow repeat records, set this to False.
     """
 
-    if not isinstance(model_name, str) and issubclass(model_name, Model):
-        model_name = utils.model_object_to_name(model_name)
-
     return ManyToManyFieldInstance(  # type: ignore
-        model_name,
+        utils.model_name_preprocess(model_name),
         through,
         forward_key,
         backward_key,
