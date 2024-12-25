@@ -28,3 +28,15 @@ class Apps:
                 )
 
             self.app_configs[app_config.name] = app_config
+
+    def get_app_config(self, app_name: str):
+        if app_name in self.app_configs:
+            return self.app_configs[app_name]
+        else:
+            for app_config in self.app_configs.values():
+                if app_config.__module__.rsplit(".", 1)[0] == app_name:
+                    return app_config
+        
+        raise ImproperlyConfigured(
+            "App with label %s could not be found" % app_name
+        )
