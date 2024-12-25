@@ -45,7 +45,13 @@ class ModelMetaClass(TortoiseModelMeta):
             if not abstract:
                 app_config = apps.apps.app_configs[module_name.rsplit(".", 1)[0]]
                 attrs["app"] = app_config
-                meta_class.app = app_config.label
+                meta_class.app = app_config.label   # ?
+                meta_class.app_config = app_config.label
+
+                if getattr(meta_class, "verbose_name", None) is None:
+                    meta_class.verbose_name = name.lower()
+                    if getattr(meta_class, "verbose_name_plural", None) is None:
+                        meta_class.verbose_name_plural = meta_class.verbose_name
 
             table = getattr(meta_class, "table", None)
             if table is None:
