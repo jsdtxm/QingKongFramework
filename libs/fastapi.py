@@ -80,9 +80,9 @@ class FastAPI(RawFastAPI):
         if include_healthz:
             self.include_router(import_string("libs.contrib.healthz.views.router"))
 
-        for router in router_convert(
-            apps.app_configs[package].import_module("urls").urlpatterns
-        ):
-            self.include_router(**router)
+        url_module = apps.app_configs[package].import_module("urls")
+        if url_module and (urlpatterns := getattr(url_module, "urlpatterns", None)):
+            for router in router_convert(urlpatterns):
+                self.include_router(**router)
 
         add_pagination(self)
