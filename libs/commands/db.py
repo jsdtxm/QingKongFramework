@@ -9,6 +9,11 @@ from libs.models.tortoise import Tortoise
 
 
 async def async_migrate(safe, guided):
+    if "libs.contrib.contenttypes" not in settings.INSTALLED_APPS:
+        if "libs.contrib.auth" in settings.INSTALLED_APPS:
+            click.echo("ERROR contrib.auth required contrib.contenttypes")
+            return
+
     init_apps(settings.INSTALLED_APPS)
     await async_init_db(get_tortoise_config(settings.DATABASES))
     await generate_schemas(Tortoise, safe=safe, guided=guided)
