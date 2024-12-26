@@ -31,6 +31,8 @@ class AppConfig(metaclass=AppConfigMeta):
     prefix: str
     port: int
 
+    default_connection: str = "default"
+
     module: types.ModuleType
     models_module: types.ModuleType
 

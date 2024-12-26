@@ -44,7 +44,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
             models_module_path = app_config.name + ".models"
             app_model_config = {
                 "models": [models_module_path],
-                "default_connection": "default",
+                "default_connection": app_config.default_connection,
             }
             if hasattr(models, "Router"):
                 connection_routers.append(models_module_path + ".Router")

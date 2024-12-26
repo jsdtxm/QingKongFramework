@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Awaitable, Callable
+from typing import TYPE_CHECKING, Annotated, Awaitable, Callable
 
 import jwt
 from async_lru import alru_cache
@@ -10,7 +10,10 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from common.settings import settings
-from libs.contrib.auth.models import AbstractUser
+from libs.utils.module_loading import import_string
+
+if TYPE_CHECKING:
+    from libs.contrib.auth.models import AbstractUser
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
@@ -50,8 +53,8 @@ def get_password_hash(password):
 
 
 @alru_cache()
-async def get_user(username: str) -> AbstractUser:
-    user_model: AbstractUser = settings.AUTH_USER_MODEL
+async def get_user(username: str) -> "AbstractUser":
+    user_model: "AbstractUser" = import_string(settings.AUTH_USER_MODEL)
     if user_model is None:
         raise Exception("AUTH_USER_MODEL IS NOT SET")
 
@@ -61,7 +64,7 @@ async def get_user(username: str) -> AbstractUser:
 async def authenticate_user(
     username: str,
     password: str,
-    user_getter: Callable[[str], Awaitable[AbstractUser]] = get_user,
+    user_getter: Callable[[str], Awaitable["AbstractUser"]] = get_user,
     verifier: Callable[[str, str], bool] = verify_password,
 ):
     user = await user_getter(username)
