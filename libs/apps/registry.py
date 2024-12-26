@@ -20,6 +20,7 @@ class Apps:
 
     def populate(self, installed_apps=None):
         self.installed_apps = installed_apps
+        self.app_configs.clear()
         for entry in installed_apps:
             if isinstance(entry, AppConfig):
                 app_config = entry
