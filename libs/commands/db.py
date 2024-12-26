@@ -10,7 +10,7 @@ from libs.initialize.db import async_init_db, get_tortoise_config
 from libs.models.tortoise import Tortoise
 
 
-async def async_migrate(safe, guided):
+async def async_migrate(safe, guided, apps):
     if "libs.contrib.contenttypes" not in settings.INSTALLED_APPS:
         if "libs.contrib.auth" in settings.INSTALLED_APPS:
             click.echo("ERROR contrib.auth required contrib.contenttypes")
@@ -18,7 +18,7 @@ async def async_migrate(safe, guided):
 
     init_apps(settings.INSTALLED_APPS)
     await async_init_db(get_tortoise_config(settings.DATABASES))
-    await generate_schemas(Tortoise, safe=safe, guided=guided)
+    await generate_schemas(Tortoise, safe=safe, guided=guided, apps=apps)
 
     if "libs.contrib.contenttypes" in settings.INSTALLED_APPS:
         from libs.contrib.contenttypes.models import ContentType
@@ -40,5 +40,6 @@ async def async_migrate(safe, guided):
 
 @click.option("--safe", default=True)
 @click.option("--guided", default=True)
-def migrate(safe=True, guided=True):
-    uvloop.run(async_migrate(safe, guided))
+@click.option("--apps", multiple=True)
+def migrate(safe=True, guided=True, apps=[]):
+    uvloop.run(async_migrate(safe, guided, apps))

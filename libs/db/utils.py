@@ -10,15 +10,33 @@ if TYPE_CHECKING:  # pragma: nocoverage
     from tortoise.backends.base.schema_generator import BaseSchemaGenerator
 
 
-def get_create_schema_sql(self: "BaseSchemaGenerator", safe: bool = True) -> str:
+def _get_models_to_create(
+    self: "BaseSchemaGenerator",
+    models_to_create: "List[Type[Model]]",
+    apps: list[str] = None,
+) -> None:
+    from tortoise import Tortoise
+
+    for name, app in Tortoise.apps.items():
+        if apps and name not in apps:
+            continue
+        for model in app.values():
+            if model._meta.db == self.client:
+                model._check()
+                models_to_create.append(model)
+
+
+def get_create_schema_sql(
+    self: "BaseSchemaGenerator", safe: bool = True, apps: list[str] = None
+) -> str:
     models_to_create: "List[Type[Model]]" = []
 
-    self._get_models_to_create(models_to_create)
+    _get_models_to_create(self, models_to_create)
 
     tables_to_create = []
     for model in models_to_create:
         tables_to_create.append(self._get_table_sql(model, safe))
-    
+
     tables_to_create_count = len(tables_to_create)
 
     created_tables: Set[dict] = set()
@@ -37,14 +55,18 @@ def get_create_schema_sql(self: "BaseSchemaGenerator", safe: bool = True) -> str
             raise ConfigurationError("Can't create schema due to cyclic fk references")
         tables_to_create.remove(next_table_for_create)
         created_tables.add(next_table_for_create["table"])
-        if (model := next_table_for_create['model']) and not getattr(getattr(model, "_meta", None), "external", False):
-            ordered_tables_for_create.append(next_table_for_create["table_creation_string"])
+        if (model := next_table_for_create["model"]) and not getattr(
+            getattr(model, "_meta", None), "external", False
+        ):
+            ordered_tables_for_create.append(
+                next_table_for_create["table_creation_string"]
+            )
         m2m_tables_to_create += next_table_for_create["m2m_tables"]
-    
+
     return chain(ordered_tables_for_create + m2m_tables_to_create)
 
 
-def get_schema_sql(client: "BaseDBAsyncClient", safe: bool) -> str:
+def get_schema_sql(client: "BaseDBAsyncClient", safe: bool, apps: list[str]) -> str:
     """
     Generates the SQL schema for the given client.
 
@@ -52,11 +74,11 @@ def get_schema_sql(client: "BaseDBAsyncClient", safe: bool) -> str:
     :param safe: When set to true, creates the table only when it does not already exist.
     """
     generator = client.schema_generator(client)
-    return get_create_schema_sql(generator, safe)
+    return get_create_schema_sql(generator, safe, apps)
 
 
 async def generate_schema_for_client(
-    client: "BaseDBAsyncClient", safe: bool, guided: bool
+    client: "BaseDBAsyncClient", safe: bool, guided: bool, apps: list[str]
 ) -> None:
     """
     Generates and applies the SQL schema directly to the given client.
@@ -65,7 +87,7 @@ async def generate_schema_for_client(
     :param safe: When set to true, creates the table only when it does not already exist.
     """
     generator = client.schema_generator(client)
-    schema_list = get_schema_sql(client, safe)
+    schema_list = get_schema_sql(client, safe, apps)
     for schema in schema_list:
         if not schema:  # pragma: nobranch
             continue
@@ -100,7 +122,9 @@ async def generate_schema_for_client(
             return
 
 
-async def generate_schemas(cls: Tortoise, safe: bool = True, guided=False) -> None:
+async def generate_schemas(
+    cls: Tortoise, safe: bool = True, guided=False, apps: list[str] = None
+) -> None:
     """
     Generate schemas according to models provided to ``.init()`` method.
     Will fail if schemas already exists, so it's not recommended to be used as part
@@ -115,4 +139,4 @@ async def generate_schemas(cls: Tortoise, safe: bool = True, guided=False) -> No
             "You have to call .init() first before generating schemas"
         )
     for connection in connections.all():
-        await generate_schema_for_client(connection, safe, guided)
+        await generate_schema_for_client(connection, safe, guided, apps or [])
