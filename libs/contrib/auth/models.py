@@ -1,3 +1,4 @@
+from common.settings import settings
 from libs import models
 from libs.contrib.contenttypes.models import ContentType
 
@@ -122,6 +123,8 @@ class AbstractUser(models.Model):
         abstract = True
 
 
-class User(AbstractUser):
-    class Meta(AbstractUser.Meta):
-        abstract = False
+if settings.AUTH_USER_MODEL == "libs.contrib.auth.User":
+
+    class User(AbstractUser):
+        class Meta(AbstractUser.Meta):
+            abstract = False
