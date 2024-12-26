@@ -59,7 +59,7 @@ class ModelMetaClass(TortoiseModelMeta):
                 if db_table:
                     meta_class.table = db_table
                 elif not abstract:
-                    meta_class.table = f"{app_config.label}_{name.lower()}"
+                    meta_class.table = f"{app_config.label.replace(".", "_")}_{name.lower()}"
 
             attrs["Meta"] = meta_class
 
