@@ -42,9 +42,9 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         workers=workers,
         reload=reload,
         reload_dirs=[
-            Path(inspect.getfile(inspect.getmodule(app_config))).parent,    # app dir
-            Path(inspect.getfile(inspect.currentframe())).parent.parent,    # libs dir
-            Path(inspect.getfile(inspect.getmodule(settings))).parent,      # common dir
+            Path(inspect.getfile(inspect.getmodule(app_config))).parent,  # app dir
+            Path(inspect.getfile(inspect.currentframe())).parent.parent,  # libs dir
+            Path(inspect.getfile(inspect.getmodule(settings))).parent,  # common dir
         ]
         if reload
         else None,
@@ -71,7 +71,10 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
     apps = init_apps(settings.INSTALLED_APPS)
 
     app_configs = [
-        x for x in apps.app_configs.values() if x.name.split(".")[-1] not in exclude
+        x
+        for x in apps.app_configs.values()
+        if x.name.split(".")[-1] not in exclude
+        and not x.name.startswith("libs.contrib")
     ]
 
     # patch

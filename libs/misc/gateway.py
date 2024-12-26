@@ -173,11 +173,17 @@ def run_gateway(
 ):
     apps = init_apps(settings.INSTALLED_APPS)
 
+    app_configs = [
+        x
+        for x in apps.app_configs.values()
+        if not x.name.startswith("libs.contrib")
+    ]
+
     proxy_rules = [
         ProxyLocation.prefix_proxy(
             v.prefix, f"http://{upstream_dict.get(v.prefix, default_upstream)}:{v.port}"
         )
-        for v in apps.app_configs.values()
+        for v in app_configs
     ]
 
     # Extra proxy
