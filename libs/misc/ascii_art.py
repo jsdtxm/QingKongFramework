@@ -1,6 +1,6 @@
 from colorama import Fore, Style, init
 
-qingkong_ascii = r"""
+ascii_logo = r"""
  ________  ___  ________   ________          ___  __    ________  ________   ________     
 |\   __  \|\  \|\   ___  \|\   ____\        |\  \|\  \ |\   __  \|\   ___  \|\   ____\    
 \ \  \|\  \ \  \ \  \\ \  \ \  \___|        \ \  \/  /|\ \  \|\  \ \  \\ \  \ \  \___|    
@@ -16,5 +16,5 @@ def print_logo(need_init=False):
     if need_init:
         init()
 
-    print(Fore.BLUE + qingkong_ascii[1:-1])
+    print(Fore.BLUE + ascii_logo[1:-1])
     print(Style.RESET_ALL)
