@@ -15,12 +15,35 @@ from libs.apps.config import AppConfig
 
 class Manager(Generic[MODEL], TortoiseManager):
     _model: TortoiseModel
+    _queryset_class: Type["QuerySet"] = TortoiseQuerySet
+
+    def __init__(self, model=None) -> None:
+        self._model = model
+
+    @classmethod
+    def from_queryset(cls, queryset_class, class_name=None):
+        if class_name is None:
+            class_name = "%sFrom%s" % (cls.__name__, queryset_class.__name__)
+        return type(
+            class_name,
+            (cls,),
+            {
+                "_queryset_class": queryset_class,
+            },
+        )
 
     def create(self, *args, **kwargs):
         return self._model.create(*args, **kwargs)
 
     def get_queryset(self) -> TortoiseQuerySet[MODEL]:
-        return TortoiseQuerySet(self._model)
+        return self._queryset_class(self._model)
+
+
+class QuerySet(TortoiseQuerySet):
+    @classmethod
+    def as_manager(cls):
+        manager = Manager.from_queryset(cls)()
+        return manager
 
 
 class BaseMeta:
