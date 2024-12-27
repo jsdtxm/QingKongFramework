@@ -1,21 +1,22 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Optional
+from typing import Annotated, Callable, Optional
 
 import jwt
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security.api_key import APIKeyBase
 from fastapi.security.utils import get_authorization_scheme_param
+from pydantic import BaseModel, Field, field_validator
 from starlette.status import HTTP_401_UNAUTHORIZED
 from typing_extensions import Doc
 
 from common.settings import settings
-from libs.security.api_key import api_key_auth_factory
+from libs.security.api_key import api_key_auth_factory, key_handler
 
 ALGORITHM = "HS256"
 
 
-class BearerTokenHeader(APIKeyBase):
+class GlobalBearerTokenHeader(APIKeyBase):
     def __init__(
         self,
         *,
@@ -74,14 +75,14 @@ class BearerTokenHeader(APIKeyBase):
                 raise HTTPException(
                     status_code=HTTP_401_UNAUTHORIZED,
                     detail="Not authenticated",
-                    headers={"WWW-Authenticate": "Bearer"},
+                    headers={"Authenticate": "Bearer"},
                 )
             else:
                 return None
         return param
 
 
-bearer_token_header = BearerTokenHeader(auto_error=False)
+global_bearer_token_header = GlobalBearerTokenHeader(auto_error=False)
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
@@ -94,7 +95,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-def jwt_validator(request: Request, token: str) -> bool:  # pylint: disable=W0613
+async def jwt_validator(request: Request, token: str) -> bool:  # pylint: disable=W0613
     """jwt_validator"""
 
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
@@ -102,6 +103,36 @@ def jwt_validator(request: Request, token: str) -> bool:  # pylint: disable=W061
     return payload
 
 
+# auth in openapi global
 JwtAuth = Annotated[
-    dict, Depends(api_key_auth_factory(jwt_validator, bearer_token_header))
+    dict, Depends(api_key_auth_factory(jwt_validator, global_bearer_token_header))
 ]
+
+
+class IndividualAPIKey(BaseModel):
+    Authorization: str = Field(default="Bearer ")
+
+    @field_validator("Authorization")
+    @classmethod
+    def valid_token(cls, v):
+        scheme, param = get_authorization_scheme_param(v)
+        if not v or scheme.lower() != "bearer":
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+                headers={"Authenticate": "Bearer"},
+            )
+
+        return param
+
+
+def individual_jwt_auth_factory(inner: Callable[[Request, str], bool]):
+    async def auth_func(
+        request: Request, headers: Annotated[IndividualAPIKey, Header()]
+    ):
+        return await key_handler(request, headers.Authorization, inner)
+
+    return auth_func
+
+
+IndividualJwtAuth = Annotated[dict, Depends(individual_jwt_auth_factory(jwt_validator))]

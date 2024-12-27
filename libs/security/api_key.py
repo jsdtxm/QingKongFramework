@@ -8,10 +8,27 @@ from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 key_auth_header = APIKeyHeader(name="Authorization", auto_error=False)
 
 
-def plain_validator(request: Request, key: str) -> bool:  # pylint: disable=W0613
+async def plain_validator(request: Request, key: str) -> bool:  # pylint: disable=W0613
     """plain_validator"""
 
     return key == "let_me_in"
+
+
+async def key_handler(request, key, inner):
+    if not key:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"Authenticate": "Bearer"},
+        )
+    try:
+        return await inner(request, key)
+    except HTTPException as e:
+        raise e
+    except Exception:
+        raise HTTPException(
+            status_code=HTTP_403_FORBIDDEN, detail="Invalid API key provided."
+        )
 
 
 def api_key_auth_factory(
@@ -21,20 +38,7 @@ def api_key_auth_factory(
     dependency = dependency or key_auth_header
 
     async def auth_func(request: Request, key: str = Security(dependency)):
-        if not key:
-            raise HTTPException(
-                status_code=HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-                headers={"Authenticate": "Bearer"},
-            )
-        try:
-            return inner(request, key)
-        except HTTPException as e:
-            raise e
-        except Exception:
-            raise HTTPException(
-                status_code=HTTP_403_FORBIDDEN, detail="Invalid API key provided."
-            )
+        return await key_handler(request, key, inner)
 
     return auth_func
 
