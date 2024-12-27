@@ -4,11 +4,11 @@ from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
 from typing import Callable, Optional, Sequence
 
 from fastapi import FastAPI as RawFastAPI
+from fastapi import WebSocket as WebSocket  # type: ignore
 from fastapi.applications import AppType
 from fastapi_pagination import add_pagination
 from starlette.middleware import Middleware
 from starlette.types import Lifespan
-from libs.models.tortoise import Tortoise
 
 from common.settings import settings
 from libs.cache import connections
@@ -16,6 +16,7 @@ from libs.initialize.apps import init_apps
 from libs.initialize.cache import init_cache
 from libs.initialize.db import async_init_db, get_tortoise_config, init_models
 from libs.middleware.trustedhost import TrustedHostMiddleware
+from libs.models.tortoise import Tortoise
 from libs.router import router_convert
 from libs.utils.module_loading import import_string
 from libs.utils.typing import copy_method_signature
