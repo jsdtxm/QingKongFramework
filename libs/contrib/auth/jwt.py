@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import TYPE_CHECKING, Annotated, Awaitable, Callable
 
 import jwt
@@ -12,10 +12,11 @@ from pydantic import BaseModel
 from common.settings import settings
 from libs.utils.module_loading import import_string
 
+from libs.security.jwt import ALGORITHM, create_access_token
+
 if TYPE_CHECKING:
     from libs.contrib.auth.models import AbstractUser
 
-ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
 
@@ -73,17 +74,6 @@ async def authenticate_user(
     if not verifier(password, user.password):
         return False
     return user
-
-
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
