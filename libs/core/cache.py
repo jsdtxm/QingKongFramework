@@ -1,0 +1,1 @@
+from libs.cache import caches as cache  # type: ignore # django
