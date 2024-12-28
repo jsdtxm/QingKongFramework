@@ -1,3 +1,4 @@
+from .check import check
 from .create import startapp
 from .db import async_migrate, migrate
 from .group import Group

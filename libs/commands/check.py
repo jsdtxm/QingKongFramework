@@ -1,13 +1,13 @@
 import asyncio
-import code
 
 from common.settings import settings
+from libs.contrib.healthz.utils import check_db_and_cache
 from libs.initialize.apps import init_apps
 from libs.initialize.cache import init_cache
 from libs.initialize.db import async_init_db, get_tortoise_config
 
 
-def shell():
+def check():
     loop = asyncio.get_event_loop()
 
     init_apps(settings.INSTALLED_APPS)
@@ -15,4 +15,4 @@ def shell():
 
     init_cache()
 
-    code.interact(local=locals())
+    loop.run_until_complete(check_db_and_cache())
