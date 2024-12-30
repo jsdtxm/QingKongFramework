@@ -1,7 +1,8 @@
 from abc import ABCMeta
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Any, Literal, Optional, Tuple, Type, Union
 
+import pytz
 from pydantic import BaseModel, Field, create_model, field_serializer
 from pydantic._internal._decorators import (
     FieldSerializerDecoratorInfo,
@@ -243,7 +244,13 @@ def get_serializer_map(attrs: dict):
 
 
 def datetime_field_serializer_factory(format: str):
-    def datetime_field_serializer(self, value: Union[time, date], _info):
+    def datetime_field_serializer(self, value: Union[time, date, datetime], _info):
+        if value is None:
+            return value
+
+        if isinstance(value, datetime):
+            tz = pytz.timezone("Asia/Shanghai")
+            value = value.astimezone(tz)
         return value.strftime(format) if value else value
 
     return datetime_field_serializer
