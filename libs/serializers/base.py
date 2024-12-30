@@ -244,7 +244,7 @@ def get_serializer_map(attrs: dict):
 
 def datetime_field_serializer_factory(format: str):
     def datetime_field_serializer(self, value: Union[time, date], _info):
-        return value.strftime(format)
+        return value.strftime(format) if value else value
 
     return datetime_field_serializer
 
