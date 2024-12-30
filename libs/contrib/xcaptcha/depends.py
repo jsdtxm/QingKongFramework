@@ -1,13 +1,19 @@
+import asyncio
 from typing import Callable, Optional, Type
 
 from starlette.requests import Request
 from starlette.responses import Response
 
+from libs.contrib.limiter.depends import RateLimiter
 from libs.contrib.xcaptcha import XCaptchaLimiter
 from libs.contrib.xcaptcha.client import XCaptchaClient
 from libs.contrib.xcaptcha.encrypt import encrypt_ts_key
-from libs.contrib.xcaptcha.exceptions import CaptchaRequired, Ratelimited, ThrottledException
-from libs.contrib.limiter.depends import RateLimiter
+from libs.contrib.xcaptcha.exceptions import (
+    CaptchaRequired,
+    Ratelimited,
+    ThrottledException,
+)
+
 
 class IntelligenceLimiter(RateLimiter):
     def __init__(
@@ -24,6 +30,9 @@ class IntelligenceLimiter(RateLimiter):
 
         self.limiter = limiter
         self.client = XCaptchaClient.from_config()
+
+    def __del__(self):
+        asyncio.new_event_loop().run_until_complete(self.client.close())
 
     async def _check(self, key) -> Optional[ThrottledException]:
         try:
@@ -48,9 +57,8 @@ class IntelligenceLimiter(RateLimiter):
             print(f"Unknown Error {e}")
 
         return None
-    
+
     async def __call__(self, request: Request, response: Response):
-        
         route_index, dep_index = self.get_dep_index(request)
 
         # moved here because constructor run before app startup

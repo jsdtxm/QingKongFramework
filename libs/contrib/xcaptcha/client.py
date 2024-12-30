@@ -10,6 +10,9 @@ class XCaptchaClient:
         if headers is not None:
             self.session.headers.update(headers)
 
+    async def close(self):
+        await self.session.close()
+
     @classmethod
     def from_config(cls):
         return cls(settings.XCAPTCHA_URL, {"X-API-Key": settings.XCAPTCHA_API_KEY})
