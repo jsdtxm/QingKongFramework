@@ -47,6 +47,9 @@ class Manager(Generic[MODEL], TortoiseManager):
 
     def get_queryset(self) -> TortoiseQuerySet[MODEL]:
         return self._queryset_class(self._model)
+    
+    if TYPE_CHECKING:
+        def all(self) -> "TortoiseQuerySet[MODEL]": ...
 
 
 class QuerySet(TortoiseQuerySet[MODEL]):
