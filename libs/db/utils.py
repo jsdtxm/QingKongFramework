@@ -139,4 +139,5 @@ async def generate_schemas(
             "You have to call .init() first before generating schemas"
         )
     for connection in connections.all():
+        print(f"{connection.user}@{connection.host}:{connection.port}", connection.database)
         await generate_schema_for_client(connection, safe, guided, apps or [])
