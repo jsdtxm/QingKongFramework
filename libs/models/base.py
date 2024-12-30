@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Generic, Literal, Optional, Self, Tuple, Type
+from typing import Any, Generic, Literal, Optional, Self, Tuple, Type, Union
 
 from tortoise.fields import relational
 from tortoise.manager import Manager as TortoiseManager
@@ -39,7 +39,7 @@ class Manager(Generic[MODEL], TortoiseManager):
         return self._queryset_class(self._model)
 
 
-class QuerySet(TortoiseQuerySet):
+class QuerySet(TortoiseQuerySet[MODEL]):
     @classmethod
     def as_manager(cls):
         manager = Manager.from_queryset(cls)()
@@ -68,7 +68,7 @@ class ModelMetaClass(TortoiseModelMeta):
             if not abstract:
                 app_config = apps.apps.app_configs[module_name.rsplit(".", 1)[0]]
                 attrs["app"] = app_config
-                meta_class.app = app_config.label   # ?
+                meta_class.app = app_config.label  # ?
                 meta_class.app_config = app_config.label
 
                 if getattr(meta_class, "verbose_name", None) is None:
@@ -82,7 +82,9 @@ class ModelMetaClass(TortoiseModelMeta):
                 if db_table:
                     meta_class.table = db_table
                 elif not abstract:
-                    meta_class.table = f"{app_config.label.replace(".", "_")}_{name.lower()}"
+                    meta_class.table = (
+                        f"{app_config.label.replace(".", "_")}_{name.lower()}"
+                    )
 
             attrs["Meta"] = meta_class
 
@@ -209,7 +211,7 @@ def generate_query_params_attrs(
 
 
 class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
-    objects: Manager[Self] = Manager()
+    objects: Union[Manager[Self], QuerySet[Self]] = Manager()
 
     app: AppConfig
 
