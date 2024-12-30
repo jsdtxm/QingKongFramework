@@ -51,7 +51,10 @@ def complete(module_name: str):
 
         elif model_name and (m := incomplete_pattern.match(line)):
             field_name = m.group(1)
-            desc = model_desc_dict[model_name][field_name]
+            try:
+                desc = model_desc_dict[model_name][field_name]
+            except Exception:
+                continue
             field_type = desc["field_type"]
             if (
                 field_type is relational.ForeignKeyFieldInstance

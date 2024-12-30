@@ -18,7 +18,13 @@ def stubgen(mode="lite"):
     apps = init_apps(settings.INSTALLED_APPS)
     init_models()
 
-    for app_config in apps.app_configs.values():
+    app_configs = [
+        x
+        for x in apps.app_configs.values()
+        if not x.name.startswith("libs.contrib")
+    ]
+
+    for app_config in app_configs:
         if models := package_try_import(app_config.module, "models"):
             model_stub.generate(models.__name__, mode)
             complete(models.__name__)
