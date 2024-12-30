@@ -5,7 +5,9 @@ from tortoise import Model, Tortoise
 from tortoise.connection import connections
 from tortoise.exceptions import ConfigurationError
 
-if TYPE_CHECKING:  # pragma: nocoverage
+from libs.db.backends.sqlite import SqliteClient
+
+if TYPE_CHECKING:
     from tortoise.backends.base.client import BaseDBAsyncClient
     from tortoise.backends.base.schema_generator import BaseSchemaGenerator
 
@@ -139,5 +141,11 @@ async def generate_schemas(
             "You have to call .init() first before generating schemas"
         )
     for connection in connections.all():
-        print(f"{connection.user}@{connection.host}:{connection.port}", connection.database)
+        if isinstance(connection, SqliteClient):
+            print(connection.filename)
+        else:
+            print(
+                f"{connection.user}@{connection.host}:{connection.port}",
+                connection.database,
+            )
         await generate_schema_for_client(connection, safe, guided, apps or [])
