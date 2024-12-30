@@ -1,6 +1,16 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Generic, Literal, Optional, Self, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Literal,
+    Optional,
+    Self,
+    Tuple,
+    Type,
+    Union,
+)
 
 from tortoise.fields import relational
 from tortoise.manager import Manager as TortoiseManager
@@ -44,6 +54,10 @@ class QuerySet(TortoiseQuerySet[MODEL]):
     def as_manager(cls):
         manager = Manager.from_queryset(cls)()
         return manager
+
+    if TYPE_CHECKING:
+
+        def create(self, *args, **kwargs): ...
 
 
 class BaseMeta:
