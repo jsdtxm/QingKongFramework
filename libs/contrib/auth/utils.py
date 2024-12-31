@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 from libs.exceptions import ImproperlyConfigured
 from libs.utils.module_loading import import_string
@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from libs.contrib.auth.models import AbstractUser
 
 
-def get_user_model() -> "AbstractUser":
+def get_user_model() -> Type["AbstractUser"]:
     """
     Return the User model that is active in this project.
     """
