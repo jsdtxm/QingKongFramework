@@ -1,6 +1,12 @@
+from typing import Self, Union
+
+from tortoise.queryset import MODEL
+
 from common.settings import settings
 from libs import models
 from libs.contrib.contenttypes.models import ContentType
+from libs.django.hashers import make_password
+from libs.models import Manager, QuerySet
 
 
 class Permission(models.Model):
@@ -79,15 +85,25 @@ class Group(models.Model):
         return self.name
 
 
+class UserManager(Manager[MODEL]):
+    async def create_user(self, username, email=None, password=None, **extra_fields):
+        return await self._model.create(
+            username=username,
+            email=email,
+            password=make_password(password),
+            **extra_fields,
+        )
+
+
 class AbstractUser(models.Model):
     username = models.CharField(max_length=150, unique=True)
     password = models.CharField(max_length=128)
 
-    email = models.EmailField(blank=True)
+    email = models.EmailField(null=True)
 
     is_active = models.BooleanField(default=True)
 
-    last_login = models.DateTimeField("last login", blank=True, null=True)
+    last_login = models.DateTimeField("last login", null=True)
 
     is_superuser = models.BooleanField(
         "superuser status",
@@ -119,12 +135,20 @@ class AbstractUser(models.Model):
         through="qingkong_auth_user_permissions",
     )
 
+    objects: Union[Manager[Self], QuerySet[Self]]
+
+    def __str__(self):
+        return f"<User: {self.username}>"
+
     class Meta:
         abstract = True
+        manager = UserManager()
 
 
 if settings.AUTH_USER_MODEL == "libs.contrib.auth.models.User":
 
     class User(AbstractUser):
+        objects = UserManager()
+
         class Meta(AbstractUser.Meta):
             abstract = False
