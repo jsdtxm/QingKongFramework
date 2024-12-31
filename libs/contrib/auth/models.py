@@ -123,7 +123,7 @@ class AbstractUser(models.Model):
         abstract = True
 
 
-if settings.AUTH_USER_MODEL == "libs.contrib.auth.User":
+if settings.AUTH_USER_MODEL == "libs.contrib.auth.models.User":
 
     class User(AbstractUser):
         class Meta(AbstractUser.Meta):

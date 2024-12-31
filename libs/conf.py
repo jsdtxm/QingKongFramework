@@ -35,4 +35,4 @@ class BaseSettings(PydanticBaseSettings):
 
     ETCD_URL: str = "etcd://root:wskj123456@etcd:2379"
 
-    AUTH_USER_MODEL: str = "libs.contrib.auth.User"
+    AUTH_USER_MODEL: str = "libs.contrib.auth.models.User"
