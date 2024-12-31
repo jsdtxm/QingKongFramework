@@ -135,7 +135,7 @@ class AbstractUser(models.Model):
         through="qingkong_auth_user_permissions",
     )
 
-    objects: Union[Manager[Self], QuerySet[Self]]
+    objects: Union[UserManager[Self], QuerySet[Self]]
 
     def __str__(self):
         return f"<User: {self.username}>"
