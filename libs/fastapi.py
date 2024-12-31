@@ -5,6 +5,7 @@ from typing import Callable, Optional, Sequence
 
 from fastapi import FastAPI as RawFastAPI
 from fastapi import WebSocket as WebSocket  # type: ignore
+from fastapi import BackgroundTasks as BackgroundTasks  # type: ignore
 from fastapi.applications import AppType
 from fastapi_pagination import add_pagination
 from starlette.middleware import Middleware
