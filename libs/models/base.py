@@ -42,7 +42,7 @@ class Manager(Generic[MODEL], TortoiseManager):
             },
         )
 
-    def create(self, *args, **kwargs):
+    def create(self, *args, **kwargs) -> MODEL:
         return self._model.create(*args, **kwargs)
 
     def get_queryset(self) -> TortoiseQuerySet[MODEL]:
@@ -60,7 +60,7 @@ class QuerySet(TortoiseQuerySet[MODEL]):
 
     if TYPE_CHECKING:
 
-        def create(self, *args, **kwargs): ...
+        def create(self, *args, **kwargs) -> MODEL: ...
 
 
 class BaseMeta:
