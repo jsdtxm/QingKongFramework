@@ -1,5 +1,6 @@
 import numbers
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as python_timezone
 
 
 def maybe_timedelta(delta: int) -> timedelta:
@@ -7,3 +8,13 @@ def maybe_timedelta(delta: int) -> timedelta:
     if isinstance(delta, numbers.Real):
         return timedelta(seconds=delta)
     return delta
+
+
+class TimeZone:
+    @staticmethod
+    def now():
+        """utc"""
+        return datetime.now(python_timezone.utc)
+
+
+timezone = TimeZone()
