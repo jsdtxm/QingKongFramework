@@ -11,6 +11,20 @@ from libs.models.tortoise import Tortoise
 from libs.utils.module_loading import module_has_submodule, package_try_import
 
 
+def models_is_empty(models):
+    for member_name in dir(models):
+        obj = getattr(models, member_name)
+        if (
+            not member_name.startswith("__")
+            and inspect.isclass(obj)
+            and issubclass(obj, TortoiseModel)
+            and not getattr(getattr(obj, "Meta", None), "abstract", False)
+        ):
+            return False
+
+    return True
+
+
 def get_tortoise_config(databases: dict[str, dict[str, Any]]):
     """
     Convert django database config to tortoise orm config
@@ -26,19 +40,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
     connection_routers = []
     for app_config in apps.app_configs.values():
         if models := package_try_import(app_config.module, "models"):
-            flag = False
-            for member_name in dir(models):
-                obj = getattr(models, member_name)
-                if (
-                    not member_name.startswith("__")
-                    and inspect.isclass(obj)
-                    and issubclass(obj, TortoiseModel)
-                    and not getattr(getattr(obj, "Meta", None), "abstract", False)
-                ):
-                    flag = True
-                    break
-
-            if not flag:
+            if models_is_empty(models):
                 continue
 
             models_module_path = app_config.name + ".models"
@@ -86,7 +88,9 @@ def init_models():
     apps: Apps = import_module("libs.apps").apps
 
     for app_config in apps.app_configs.values():
-        if module_has_submodule(app_config.module, "models"):
+        if models := module_has_submodule(app_config.module, "models"):
+            if models_is_empty(models):
+                continue
             Tortoise.init_models([f"{app_config.name}.models"], app_config.label)
 
 
