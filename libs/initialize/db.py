@@ -8,7 +8,7 @@ import uvloop
 from libs.apps import Apps
 from libs.models.base import TortoiseModel
 from libs.models.tortoise import Tortoise
-from libs.utils.module_loading import module_has_submodule, package_try_import
+from libs.utils.module_loading import package_try_import
 
 
 def models_is_empty(models):
@@ -88,7 +88,7 @@ def init_models():
     apps: Apps = import_module("libs.apps").apps
 
     for app_config in apps.app_configs.values():
-        if models := module_has_submodule(app_config.module, "models"):
+        if models := package_try_import(app_config.module, "models"):
             if models_is_empty(models):
                 continue
             Tortoise.init_models([f"{app_config.name}.models"], app_config.label)
