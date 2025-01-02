@@ -245,14 +245,19 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
 
     @classmethod
     def generate_query_params(cls, mode: Literal["full", "lite"] = "lite") -> None:
-        template = "class QueryParams(typing.TypedDict, total=False):\n"
 
         need_import, kwargs = generate_query_params_attrs(cls, mode)
 
-        for arg in kwargs:
-            template += f"    {arg[0]}: {arg[1]}\n"
+        create_params_code = "class CreateParams(typing.TypedDict, total=False):\n"
+        query_params_code = "class QueryParams(CreateParams, total=False):\n"
 
-        return need_import, template
+        for arg in kwargs:
+            if "__" not in arg[0]:
+                create_params_code += f"    {arg[0]}: {arg[1]}\n"
+            else:
+                query_params_code += f"    {arg[0]}: {arg[1]}\n"
+
+        return need_import, create_params_code + "\n"+ query_params_code
 
     class Meta(BaseMeta):
         pass

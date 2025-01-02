@@ -83,6 +83,7 @@ def generate(module_name: str, mode: str):
                     map(
                         lambda x: f"{indent}@classmethod\n{indent}{x}\n{indent*2}...\n\n",
                         [
+                            """def create(cls, **kwargs: typing.Unpack[CreateParams]) -> typing.Self: # type: ignore""",
                             """def filter(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
                             """def exclude(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
                             """def get(cls, *args: Q, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> QuerySetSingle[typing.Self]: # type: ignore""",
