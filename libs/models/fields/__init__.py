@@ -18,6 +18,7 @@ from .data import (
     TextField,
     TimeDeltaField,
     TimeField,
+    PositiveIntegerField
 )
 from .relational import (
     ForeignKeyField,
