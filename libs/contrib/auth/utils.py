@@ -1,13 +1,11 @@
-from typing import TYPE_CHECKING, Type
+from typing import Type
 
+from libs.contrib.auth.typing import UserProtocol
 from libs.exceptions import ImproperlyConfigured
 from libs.utils.module_loading import import_string
 
-if TYPE_CHECKING:
-    from libs.contrib.auth.models import AbstractUser
 
-
-def get_user_model() -> Type["AbstractUser"]:
+def get_user_model() -> Type[UserProtocol]:
     """
     Return the User model that is active in this project.
     """

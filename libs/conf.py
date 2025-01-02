@@ -36,3 +36,5 @@ class BaseSettings(PydanticBaseSettings):
     ETCD_URL: str = "etcd://root:wskj123456@etcd:2379"
 
     AUTH_USER_MODEL: str = "libs.contrib.auth.models.User"
+
+    ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7

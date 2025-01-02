@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Callable
+from typing import Annotated, Any, Awaitable, Callable, Optional
 
 from fastapi import Depends, HTTPException, Request, Security
 from fastapi.security.api_key import APIKeyHeader
@@ -32,7 +32,8 @@ async def key_handler(request, key, inner):
 
 
 def api_key_auth_factory(
-    inner: Callable[[Request, str], bool] = None, dependency: SecurityBase = None
+    inner: Optional[Callable[[Request, str], Awaitable[Any]]] = None,
+    dependency: Optional[SecurityBase] = None,
 ):
     inner = inner or plain_validator
     dependency = dependency or key_auth_header
