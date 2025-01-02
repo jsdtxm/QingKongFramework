@@ -103,6 +103,29 @@ def OneToOneField(
 
 @overload
 def ForeignKeyField(
+    model_name: Type[MODEL],
+    related_name: Union[Optional[str], Literal[False]] = None,
+    on_delete: OnDelete = CASCADE,
+    db_constraint: bool = True,
+    null: Literal[False] = False,
+    **kwargs: Any,
+) -> "ForeignKeyRelation[MODEL]": ...
+
+
+@overload
+def ForeignKeyField(
+    model_name: Type[MODEL],
+    related_name: Union[Optional[str], Literal[False]] = None,
+    on_delete: OnDelete = CASCADE,
+    db_constraint: bool = True,
+    *,
+    null: Literal[True],
+    **kwargs: Any,
+) -> "ForeignKeyNullableRelation[MODEL]": ...
+
+
+@overload
+def ForeignKeyField(
     model_name: Union[str, Type[Model]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
