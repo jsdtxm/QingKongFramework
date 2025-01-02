@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Callable, Optional
+from typing import Annotated, Any, Callable, Optional
 
 import jwt
 from fastapi import Depends, Header, HTTPException, Request
@@ -95,10 +95,10 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-async def jwt_validator(request: Request, token: str) -> bool:  # pylint: disable=W0613
+async def jwt_validator(request: Request, token: str) -> Any:  # pylint: disable=W0613
     """jwt_validator"""
 
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM], verify=True)
 
     return payload
 
