@@ -55,6 +55,7 @@ def complete(module_name: str):
             try:
                 desc = model_desc_dict[model_name][field_name]
             except Exception:
+                tmp_part.append(line)
                 continue
             field_type = desc["field_type"]
             if (
@@ -64,6 +65,10 @@ def complete(module_name: str):
                 or field_type is relational.BackwardFKRelation
                 or field_type is relational.ManyToManyFieldInstance
             ):
+                ptype = field["python_type"].__name__
+                if field["nullable"] is True:
+                    ptype = f"typing.Optional[{ptype}]"
+                tmp_part.append(line.replace("Incomplete", ptype))
                 continue
 
             ptype = desc["python_type"]
