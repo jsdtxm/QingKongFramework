@@ -1,12 +1,12 @@
 import re
 from collections import defaultdict
-from datetime import datetime
 from itertools import chain
 
 from tortoise.fields import relational
 
 from libs.models.base import BaseModel
 from libs.utils.module_loading import import_module
+from libs.utils.typing import type_to_str
 
 
 def complete(module_name: str):
@@ -32,6 +32,7 @@ def complete(module_name: str):
             model_class = getattr(module, model_name)
 
             if not issubclass(model_class, BaseModel):
+                tmp_part.append(line)
                 continue
 
             for _, fields in filter(
@@ -67,9 +68,7 @@ def complete(module_name: str):
 
             ptype = desc["python_type"]
 
-            ptype_str = {int: "int", str: "str", datetime: "datetime.datetime"}.get(
-                ptype, str(ptype)
-            )
+            ptype_str = type_to_str(ptype)
 
             optional = desc.get("nullable") or desc.get("default") is not None
 

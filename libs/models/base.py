@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -21,6 +20,7 @@ from tortoise.queryset import QuerySet as TortoiseQuerySet
 
 from libs import apps
 from libs.apps.config import AppConfig
+from libs.utils.typing import type_to_str
 
 
 class Manager(Generic[MODEL], TortoiseManager):
@@ -47,8 +47,9 @@ class Manager(Generic[MODEL], TortoiseManager):
 
     def get_queryset(self) -> TortoiseQuerySet[MODEL]:
         return self._queryset_class(self._model)
-    
+
     if TYPE_CHECKING:
+
         def all(self) -> "TortoiseQuerySet[MODEL]": ...
 
 
@@ -116,7 +117,7 @@ def generate_query_params_attrs(
 
     full = mode == "full"
 
-    for _, fields in filter(
+    for kkk, fields in filter(
         lambda x: x[0]
         in {"pk_field", "data_fields", "fk_fields", "backward_fk_fields"},
         cls.describe(serializable=False).items(),
@@ -152,21 +153,19 @@ def generate_query_params_attrs(
                 kwargs.extend([(f"{name}__{x[0]}", x[1]) for x in sub_kwargs])
 
             else:
-                ptype_str = {int: "int", str: "str", datetime: "datetime.datetime"}.get(
-                    ptype, str(ptype)
-                )
+                ptype_str = type_to_str(ptype)
 
                 optional = field.get("nullable") or field.get("default") is not None
 
-                kwargs.extend(
-                    [
-                        (
-                            name,
-                            f"typing.Optional[{ptype_str}]" if optional else ptype_str,
-                        ),
-                        (f"{name}__in", f"typing.Sequence[{ptype_str}]"),
-                    ]
+                kwargs.append(
+                    (
+                        name,
+                        f"typing.Optional[{ptype_str}]" if optional else ptype_str,
+                    ),
                 )
+
+                if full or ptype_str not in {"datetime.datetime", "float"}:
+                    kwargs.append((f"{name}__in", f"typing.Sequence[{ptype_str}]"))
 
                 if full:
                     kwargs.extend(
@@ -178,25 +177,34 @@ def generate_query_params_attrs(
                     )
 
                 if ptype_str in ("int", "float", "datetime.datetime"):
-                    kwargs.extend(
-                        [
-                            (f"{name}__{x}", ptype_str)
-                            for x in ["gt", "gte", "lt", "lte"]
-                        ]
-                    )
+                    if (
+                        full
+                        or name
+                        not in {
+                            "id",
+                        }
+                        and not name.endswith("_id")
+                    ):
+                        kwargs.extend(
+                            [
+                                (f"{name}__{x}", ptype_str)
+                                for x in ["gt", "gte", "lt", "lte"]
+                            ]
+                        )
                     if full:
                         kwargs.append((f"{name}__range", Tuple[ptype, ptype]))
                 if ptype_str == "str":
-                    kwargs.extend(
-                        [
-                            (f"{name}__{x}", ptype_str)
-                            for x in [
-                                "contains",
-                                "startswith",
-                                "endswith",
+                    if full or name not in {"uuid"}:
+                        kwargs.extend(
+                            [
+                                (f"{name}__{x}", ptype_str)
+                                for x in [
+                                    "contains",
+                                    "startswith",
+                                    "endswith",
+                                ]
                             ]
-                        ]
-                    )
+                        )
                     if full:
                         kwargs.extend(
                             [
