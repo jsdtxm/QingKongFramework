@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Any, Callable, Optional
+from typing import Annotated, Any, Callable, Optional, Awaitable
 
 import jwt
 from fastapi import Depends, Header, HTTPException, Request
@@ -126,7 +126,7 @@ class IndividualAPIKey(BaseModel):
         return param
 
 
-def individual_jwt_auth_factory(inner: Callable[[Request, str], bool]):
+def individual_jwt_auth_factory(inner: Callable[[Request, str], Awaitable]):
     async def auth_func(
         request: Request, headers: Annotated[IndividualAPIKey, Header()]
     ):
