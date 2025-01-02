@@ -14,3 +14,6 @@ class UserProtocol(Protocol):
 
     @classmethod
     def get(cls, **kwargs) -> Self: ...
+
+    @classmethod
+    async def create_user(self, username, email=None, password=None, **extra_fields) -> Self:...
