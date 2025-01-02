@@ -137,13 +137,6 @@ def get_hashers_by_algorithm():
     return {hasher.algorithm: hasher for hasher in get_hashers()}
 
 
-# @receiver(setting_changed)
-# def reset_hashers(*, setting, **kwargs):
-#     if setting == "PASSWORD_HASHERS":
-#         get_hashers.cache_clear()
-#         get_hashers_by_algorithm.cache_clear()
-
-
 def get_hasher(algorithm="default"):
     """
     Return an instance of a loaded password hasher.

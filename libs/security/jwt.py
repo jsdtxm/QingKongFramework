@@ -1,17 +1,20 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Any, Callable, Optional, Awaitable
+from typing import Annotated, Any, Awaitable, Callable, Optional
 
 import jwt
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security.api_key import APIKeyBase
 from fastapi.security.utils import get_authorization_scheme_param
+from jwt.exceptions import InvalidTokenError  # noqa
 from pydantic import BaseModel, Field, field_validator
 from starlette.status import HTTP_401_UNAUTHORIZED
 from typing_extensions import Doc
 
 from common.settings import settings
 from libs.security.api_key import api_key_auth_factory, key_handler
+
+decode = jwt.decode
 
 ALGORITHM = "HS256"
 
@@ -85,7 +88,7 @@ class GlobalBearerTokenHeader(APIKeyBase):
 global_bearer_token_header = GlobalBearerTokenHeader(auto_error=False)
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_token(data: dict, expires_delta: timedelta | None = None):
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
 
     to_encode = data.copy()
@@ -98,7 +101,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 async def jwt_validator(request: Request, token: str) -> Any:  # pylint: disable=W0613
     """jwt_validator"""
 
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM], verify=True)
+    payload = jwt.decode(
+        token, settings.SECRET_KEY, algorithms=[ALGORITHM], verify=True
+    )
 
     return payload
 

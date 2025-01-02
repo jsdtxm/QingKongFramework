@@ -37,4 +37,5 @@ class BaseSettings(PydanticBaseSettings):
 
     AUTH_USER_MODEL: str = "libs.contrib.auth.models.User"
 
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+    ACCESS_TOKEN_LIFETIME: int = 60 * 60
+    REFRESH_TOKEN_LIFETIME: int = 60 * 60 * 24 * 7

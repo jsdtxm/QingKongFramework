@@ -4,6 +4,7 @@ from typing import Optional, Protocol, Self
 class UserProtocol(Protocol):
     id: int
     username: str
+    password: str
 
     is_active: bool
 
