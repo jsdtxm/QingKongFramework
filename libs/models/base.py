@@ -247,8 +247,12 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
+    # Allow generic typing checking for generic views.
+    def __class_getitem__(cls, *args, **kwargs):
+        return cls
+
     @classmethod
-    def generate_query_params(cls, mode: Literal["full", "lite"] = "lite") -> None:
+    def generate_query_params(cls, mode: Literal["full", "lite"] = "lite"):
 
         need_import, kwargs = generate_query_params_attrs(cls, mode)
 
