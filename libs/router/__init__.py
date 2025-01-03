@@ -103,26 +103,17 @@ def router_convert(urlpatterns: List[ApiPath]):
             if url.path.endswith("/"):
                 url.path = url.path[:-1]
 
-            router = APIRouter()
-            for method in url.endpoint.view_class.implemented_methods():
-                router.add_api_route(
-                    "/",
-                    url.endpoint.get_typed_view(method),
-                    name=url.name,
-                    methods=[
-                        method,
-                    ],
-                    response_model=url.response_model,
-                    response_class=url.response_class,
-                    include_in_schema=True if method != "options" else False,
-                )
+            router = url.endpoint.as_router(
+                url.name, url.response_model, url.response_class
+            )
+
             router_list.append(RouterWrapper(router, url.path))
         else:
             if not url.path.startswith("/"):
                 url.path = "/" + url.path
             if url.path.endswith("/"):
                 url.path = url.path[:-1]
-                
+
             root.add_api_route(
                 url.path,
                 url.endpoint,

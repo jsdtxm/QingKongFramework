@@ -2,6 +2,7 @@ import logging
 from functools import update_wrapper
 from typing import Any, Dict, Self
 
+from fastapi.routing import APIRouter
 from starlette.requests import Request
 
 from libs.requests import DjangoStyleRequest
@@ -29,6 +30,23 @@ class ViewWrapper:
             return await self.view_method(request)
 
         return view_wrapper
+
+    def as_router(self, name=None, response_model=None, response_class=None):
+        router = APIRouter()
+        for method in self.view_class.implemented_methods():
+            router.add_api_route(
+                "/",
+                self.get_typed_view(method),
+                name=name,
+                methods=[
+                    method,
+                ],
+                response_model=response_model,
+                response_class=response_class,
+                include_in_schema=True if method != "options" else False,
+            )
+
+        return router
 
     def get_typed_view(self, method: str):
         wrapper = self.view
