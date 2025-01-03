@@ -8,6 +8,7 @@ from libs.db.utils import generate_schemas
 from libs.initialize.apps import init_apps
 from libs.initialize.db import async_init_db, get_tortoise_config
 from libs.models.tortoise import Tortoise
+from libs.tools.reverse_generation import table_to_django_model
 
 
 async def async_migrate(safe, guided, apps):
@@ -43,3 +44,28 @@ async def async_migrate(safe, guided, apps):
 @click.option("--apps", multiple=True)
 def migrate(safe=True, guided=True, apps=[]):
     uvloop.run(async_migrate(safe, guided, apps))
+
+
+async def print_result(func, *args, **kwargs):
+    print(await func(*args, **kwargs))
+
+
+@click.argument("table")
+@click.option("--connection", default="default")
+@click.option("--db", default=None)
+def reverse_generation(connection, db, table):
+    db_config = settings.DATABASES[connection]
+
+    uvloop.run(
+        print_result(
+            table_to_django_model,
+            {
+                "host": db_config["HOST"],
+                "port": db_config["PORT"],
+                "user": db_config["USER"],
+                "password": db_config["PASSWORD"],
+                "db": db or db_config["NAME"],
+            },
+            table,
+        )
+    )
