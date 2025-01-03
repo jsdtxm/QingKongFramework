@@ -4,6 +4,8 @@ from itertools import chain
 from typing import List, Optional, Union
 
 from libs.apps import Apps
+from libs.exceptions import Http404
+from libs.models.exceptions import DoesNotExist
 from libs.models.model import Model
 
 
@@ -52,3 +54,12 @@ def model_to_dict(
             continue
         data[f] = getattr(instance, f)
     return data
+
+
+def get_object_or_404(model_class, *args, **kwargs):
+    try:
+        return model_class.get(*args, **kwargs)
+    except DoesNotExist:
+        raise Http404(
+            "No %s matches the given query." % model_class.__name__
+        )

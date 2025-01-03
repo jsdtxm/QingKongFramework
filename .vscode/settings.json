@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "aiohttp",
+        "classonlymethod",
         "fastapi",
         "healthz",
         "pydantic",
