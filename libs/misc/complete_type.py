@@ -68,13 +68,17 @@ def complete(module_name: str):
                 ptype = field["python_type"].__name__
                 if field["nullable"] is True:
                     ptype = f"typing.Optional[{ptype}]"
+                
+                if ptype == "User":
+                    ptype = 'typing.Union["User", "UserProtocol"]'
+
                 tmp_part.append(line.replace("Incomplete", ptype))
                 continue
 
             ptype = desc["python_type"]
 
             ptype_str = type_to_str(ptype)
-
+            
             optional = desc.get("nullable") or desc.get("default") is not None
 
             line_type_str = f"typing.Optional[{ptype_str}]" if optional else ptype_str

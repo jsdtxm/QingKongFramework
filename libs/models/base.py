@@ -149,7 +149,11 @@ def generate_query_params_attrs(
                 for k, v in sub_need_import.items():
                     need_import[k].update(v)
 
-                kwargs.extend([(name, f'"{ptype.__name__}"')])
+                if ptype.__name__ == "User":
+                    kwargs.extend([(name, 'typing.Union["User", "UserProtocol"]')])
+                else:
+                    kwargs.extend([(name, f'"{ptype.__name__}"')])
+
                 kwargs.extend([(f"{name}__{x[0]}", x[1]) for x in sub_kwargs])
 
             else:

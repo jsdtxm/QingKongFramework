@@ -51,6 +51,7 @@ def generate(module_name: str, mode: str):
         "import datetime\n",
         "from tortoise.queryset import Q, QuerySet, QuerySetSingle\n",
         "from tortoise.backends.base.client import BaseDBAsyncClient\n",
+        "from libs.contrib.auth.typing import UserProtocol\n",
     ]
     need_import = defaultdict(set)
     modified_lines = []
