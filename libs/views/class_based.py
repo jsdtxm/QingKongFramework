@@ -1,6 +1,7 @@
 import logging
+from copy import copy
 from functools import update_wrapper
-from typing import Any, Dict, Self
+from typing import Any, Dict, Self, Type
 
 from fastapi.routing import APIRouter
 from starlette.requests import Request
@@ -13,21 +14,20 @@ logger = logging.getLogger("qingkong.request")
 
 
 class ViewWrapper:
-    def __init__(self, view, view_class: "View", initkwargs: Dict[str, Any]):
+    def __init__(self, view, view_class: Type["View"], initkwargs: Dict[str, Any]):
         self.view_method = view
         self.view_class = view_class
         self.initkwargs = initkwargs
 
     @staticmethod
     def django_request_adapter(request: Request):
-        pass
+        request = copy(request)
+        request.__class__ = DjangoStyleRequest
+        return request
 
-    @property
     def view(self):
         async def view_wrapper(request: Request):
-            # HACK
-            request.__class__ = DjangoStyleRequest
-            return await self.view_method(request)
+            return await self.view_method(self.django_request_adapter(request))
 
         return view_wrapper
 
@@ -36,7 +36,7 @@ class ViewWrapper:
         for method in self.view_class.implemented_methods():
             router.add_api_route(
                 "/",
-                self.get_typed_view(method),
+                self.get_typed_view(self.view(), method),
                 name=name,
                 methods=[
                     method,
@@ -48,12 +48,10 @@ class ViewWrapper:
 
         return router
 
-    def get_typed_view(self, method: str):
-        wrapper = self.view
+    def get_typed_view(self, view, method: str):
+        view.__name__ = f"{self.view_class.__name__}_{method}"
 
-        wrapper.__name__ = f"{self.view_class.__name__}_{method}"
-
-        return wrapper
+        return view
 
 
 class View:
@@ -61,6 +59,8 @@ class View:
     Intentionally simple parent class for all views. Only implements
     dispatch-by-method and simple sanity checking.
     """
+
+    wrapper_class = ViewWrapper
 
     # TODO support Auth
 
@@ -85,7 +85,7 @@ class View:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    @classonlymethod
+    @classonlymethod  # type: ignore
     def as_view(cls, **initkwargs):
         """Main entry point for a request-response process."""
         for key in initkwargs:
@@ -102,12 +102,12 @@ class View:
                 )
 
         def view(request: Request, *args, **kwargs):
-            self: Self = cls(**initkwargs)
+            self: Self = cls(**initkwargs)  # type: ignore
             self.setup(request, *args, **kwargs)
             if not hasattr(self, "request"):
                 raise AttributeError(
                     "%s instance has no 'request' attribute. Did you override "
-                    "setup() and forget to call super()?" % cls.__name__
+                    "setup() and forget to call super()?" % cls.__name__  # type: ignore
                 )
             return self.dispatch(request, *args, **kwargs)
 
@@ -121,7 +121,7 @@ class View:
         # like csrf_exempt from dispatch
         update_wrapper(view, cls.dispatch, assigned=())
 
-        return ViewWrapper(view, cls, initkwargs)
+        return cls.wrapper_class(view, cls, initkwargs)
         # return view
 
     def setup(self, request: Request, *args, **kwargs):
@@ -144,11 +144,11 @@ class View:
             handler = self.http_method_not_allowed
         return handler(request, *args, **kwargs)
 
-    def http_method_not_allowed(self, request: Request, *args, **kwargs):
+    async def http_method_not_allowed(self, request: Request, *args, **kwargs):
         logger.warning(
             "Method Not Allowed (%s): %s",
             request.method,
-            request.path,
+            request.url,
             extra={"status_code": 405, "request": request},
         )
         return HttpResponseNotAllowed(self._allowed_methods())
