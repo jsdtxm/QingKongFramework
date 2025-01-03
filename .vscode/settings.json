@@ -8,6 +8,8 @@
         "qingkong",
         "starlette",
         "uvicorn",
-        "uvloop"
+        "uvloop",
+        "viewset",
+        "viewsets"
     ]
 }

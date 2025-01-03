@@ -3,3 +3,10 @@ def to_camel_case(snake_str):
     components = snake_str.split("_")
     # 使用str.title()方法将每个单词的首字母转为大写，然后用join()方法连接起来
     return "".join(x.capitalize() for x in components)
+
+
+def pretty_name(name):
+    """Convert 'first_name' to 'First name'."""
+    if not name:
+        return ""
+    return name.replace("_", " ").capitalize()

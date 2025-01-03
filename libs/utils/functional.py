@@ -1,3 +1,5 @@
+from libs.utils.typing import copy_method_signature
+
 class cached_property:
     """
     Decorator that converts a method with a single self argument into a
@@ -50,6 +52,7 @@ class classproperty:
     
 
 class classonlymethod(classmethod):
+    @copy_method_signature(classmethod.__get__)
     def __get__(self, instance, cls=None):
         if instance is not None:
             raise AttributeError("This method is available only on the class, not on instances.")
