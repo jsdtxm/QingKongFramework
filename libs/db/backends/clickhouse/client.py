@@ -15,13 +15,14 @@ from typing import (
 try:
     import asyncmy as mysql
     from asyncmy import errors
-    from asyncmy.charset import charset_by_name
 except ImportError:
-    import aiomysql as mysql
-    from pymysql.charset import charset_by_name
-    from pymysql import err as errors
+    try:
+        import asynch as mysql
+        from asynch import errors
+    except ImportError:
+        import aiomysql as mysql
+        from pymysql import err as errors
 
-from pypika import MySQLQuery
 from tortoise.backends.base.client import (
     BaseDBAsyncClient,
     BaseTransactionWrapper,
@@ -39,8 +40,8 @@ from tortoise.exceptions import (
     TransactionManagementError,
 )
 
-from libs.db.backends.clickhouse.query import ClickHouseQuery
 from libs.db.backends.clickhouse.executor import ClickHouseExecutor
+from libs.db.backends.clickhouse.query import ClickHouseQuery
 from libs.db.backends.clickhouse.schema_generator import ClickHouseSchemaGenerator
 
 T = TypeVar("T")
@@ -106,8 +107,6 @@ class ClickHouseClient(BaseDBAsyncClient):
         self._connection = None
 
     async def create_connection(self, with_db: bool) -> None:
-        if charset_by_name(self.charset) is None:
-            raise DBConnectionError(f"Unknown charset {self.charset}")
         self._template = {
             "host": self.host,
             "port": self.port,
@@ -120,9 +119,14 @@ class ClickHouseClient(BaseDBAsyncClient):
             **self.extra,
         }
         try:
-            self._pool = await mysql.create_pool(
-                password=self.password, **self._template
-            )
+            if mysql.__name__ == "asynch":
+                self._pool = await mysql.pool._create_pool(
+                    password=self.password, **self._template
+                )
+            else:
+                self._pool = await mysql.create_pool(
+                    password=self.password, **self._template
+                )
 
             # if isinstance(self._pool, mysql.Pool):
             #     async with self.acquire_connection() as connection:
@@ -200,15 +204,23 @@ class ClickHouseClient(BaseDBAsyncClient):
     async def execute_query(
         self, query: str, values: Optional[list] = None
     ) -> Tuple[int, List[dict]]:
-        async with self.acquire_connection() as connection:
-            self.log.debug("%s: %s", query, values)
-            async with connection.cursor() as cursor:
-                await cursor.execute(query, values)
-                rows = await cursor.fetchall()
-                if rows:
-                    fields = [f.name for f in cursor._result.fields]
-                    return cursor.rowcount, [dict(zip(fields, row)) for row in rows]
-                return cursor.rowcount, []
+        if mysql.__name__ == "asynch":
+            async with self.acquire_connection() as connection:
+                self.log.debug("%s: %s", query, values)
+                async with connection.cursor(cursor=mysql.DictCursor) as cursor:
+                    await cursor.execute(query, values)
+                    rows = await cursor.fetchall()
+                    return len(rows), rows
+        else:
+            async with self.acquire_connection() as connection:
+                self.log.debug("%s: %s", query, values)
+                async with connection.cursor() as cursor:
+                    await cursor.execute(query, values)
+                    rows = await cursor.fetchall()
+                    if rows:
+                        fields = [f.name for f in cursor._result.fields]
+                        return cursor.rowcount, [dict(zip(fields, row)) for row in rows]
+                    return cursor.rowcount, []
 
     async def execute_query_dict(
         self, query: str, values: Optional[list] = None
