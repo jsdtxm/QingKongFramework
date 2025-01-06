@@ -1,7 +1,10 @@
 from copy import deepcopy
 from typing import Tuple, Type, Union, cast
 
+from pypika import Table
+from pypika.terms import Field as PikaField
 from tortoise import Tortoise as RawTortoise
+from tortoise.connection import connections
 from tortoise.exceptions import ConfigurationError
 from tortoise.filters import get_m2m_filters
 from tortoise.models import Model
@@ -16,6 +19,31 @@ from libs.models.fields.relational import (
 
 
 class Tortoise(RawTortoise):
+    @classmethod
+    def _build_initial_querysets(cls) -> None:
+        for app in cls.apps.values():
+            for model in app.values():
+                model._meta.finalise_model()
+                model._meta.basetable = Table(
+                    name=model._meta.db_table, schema=model._meta.schema
+                )
+                model._meta.basequery = model._meta.db.query_class.from_(
+                    model._meta.basetable
+                )
+                if connections._get_db_info(model._meta.default_connection)['engine'].endswith(
+                    "clickhouse"
+                ):
+                    model._meta.basequery_all_fields = model._meta.basequery.select(
+                        *[
+                            PikaField(x, alias=x, table=model._meta.basetable)
+                            for x in model._meta.db_fields
+                        ]
+                    )
+                else:
+                    model._meta.basequery_all_fields = model._meta.basequery.select(
+                        *model._meta.db_fields
+                    )
+
     @classmethod
     def _init_relations(cls) -> None:
         def get_related_model(
