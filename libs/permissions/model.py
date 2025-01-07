@@ -1,7 +1,8 @@
+from typing import TYPE_CHECKING, Type
+
 from libs import exceptions
 from libs.exceptions import Http404
-from libs.permissions.base import SAFE_METHODS, BasePermission
-from typing import TYPE_CHECKING, Type
+from libs.permissions.base import BasePermission
 
 if TYPE_CHECKING:
     from libs import models
@@ -60,7 +61,7 @@ class ModelPermissions(BasePermission):
                 view.__class__.__name__
             )
             return queryset
-        return view.queryset    # type: ignore
+        return view.queryset  # type: ignore
 
     async def has_permission(self, request, view):
         if not request.user or (
@@ -76,7 +77,7 @@ class ModelPermissions(BasePermission):
         queryset = self._queryset(view)
         perms = self.get_required_permissions(request.method, queryset.model)
 
-        return await request.user.has_perms(perms)
+        return await request.user.has_perms(perms, queryset.model)
 
 
 class ModelPermissionsOrAnonReadOnly(ModelPermissions):
@@ -87,3 +88,31 @@ class ModelPermissionsOrAnonReadOnly(ModelPermissions):
 
     authenticated_users_only = False
 
+
+class ObjectPermissions(ModelPermissions):
+    """
+    The request is authenticated using Django's object-level permissions.
+    It requires an object-permissions-enabled backend, such as Django Guardian.
+
+    It ensures that the user is authenticated, and has the appropriate
+    `add`/`change`/`delete` permissions on the object using .has_perms.
+
+    This permission can only be applied against view classes that
+    provide a `.queryset` attribute.
+    """
+
+    def get_required_object_permissions(self, method, model_cls):
+        return super().get_required_permissions(method, model_cls)
+
+    async def has_object_permission(self, request, view, obj):
+        # authentication checks have already executed via has_permission
+        queryset = self._queryset(view)
+        model_cls = queryset.model
+        user = request.user
+
+        perms = self.get_required_object_permissions(request.method, model_cls)
+
+        if not await user.has_perms(perms, obj):
+            raise Http404
+
+        return True
