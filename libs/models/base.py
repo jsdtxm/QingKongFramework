@@ -22,6 +22,9 @@ from libs import apps
 from libs.apps.config import AppConfig
 from libs.utils.typing import type_to_str
 
+if TYPE_CHECKING:
+    from libs.models.info import MetaInfo
+
 
 class Manager(Generic[MODEL], TortoiseManager):
     _model: TortoiseModel
@@ -86,8 +89,8 @@ class ModelMetaClass(TortoiseModelMeta):
             if not abstract:
                 app_config = apps.apps.app_configs[module_name.rsplit(".", 1)[0]]
                 attrs["app"] = app_config
-                meta_class.app = app_config.label  # ?
-                meta_class.app_config = app_config.label
+                meta_class.app = app_config.label
+                meta_class.app_config = app_config
 
                 if getattr(meta_class, "verbose_name", None) is None:
                     meta_class.verbose_name = name.lower()
@@ -244,6 +247,8 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
 
     app: AppConfig
 
+    _meta: "MetaInfo"
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
@@ -253,7 +258,6 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
 
     @classmethod
     def generate_query_params(cls, mode: Literal["full", "lite"] = "lite"):
-
         need_import, kwargs = generate_query_params_attrs(cls, mode)
 
         create_params_code = "class CreateParams(typing.TypedDict, total=False):\n"
@@ -265,7 +269,7 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
             else:
                 query_params_code += f"    {arg[0]}: {arg[1]}\n"
 
-        return need_import, create_params_code + "\n"+ query_params_code
+        return need_import, create_params_code + "\n" + query_params_code
 
     class Meta(BaseMeta):
         pass
