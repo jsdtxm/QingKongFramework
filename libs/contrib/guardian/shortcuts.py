@@ -1,18 +1,25 @@
 from libs.contrib.auth.models import Group
 from libs.contrib.auth.typing import UserProtocol
 from libs.contrib.contenttypes.models import ContentType
-from libs.contrib.guardian.models import GroupObjectPermission, UserObjectPermission
-from libs.models import BaseModel, Q, Subquery
+from libs.models import Model, Q, Subquery
+from libs.utils.module_loading import import_string
 
 
 async def get_objects_for_user(
     user: UserProtocol,
     perm: str,
-    klass: BaseModel = None,
+    klass: Model,
     use_groups=True,
     with_superuser=True,
     accept_model_perms=True,
 ):
+    GroupObjectPermission = import_string(
+        "libs.contrib.guardian.models.GroupObjectPermission"
+    )
+    UserObjectPermission = import_string(
+        "libs.contrib.guardian.models.UserObjectPermission"
+    )
+
     queryset = klass.objects.all()
 
     # First check if user is superuser and if so, return queryset immediately
@@ -51,9 +58,13 @@ async def get_objects_for_user(
 async def get_objects_for_group(
     group: Group,
     perm: str,
-    klass: BaseModel = None,
+    klass: Model,
     accept_model_perms=True,
 ):
+    GroupObjectPermission = import_string(
+        "libs.contrib.guardian.models.GroupObjectPermission"
+    )
+
     queryset = klass.objects.all()
 
     ctype = await ContentType.from_model(klass)
