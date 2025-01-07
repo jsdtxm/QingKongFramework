@@ -10,13 +10,14 @@ from libs.initialize.db import async_init_db, get_tortoise_config
 from libs.models.tortoise import Tortoise
 from libs.tools.reverse_generation import table_to_django_model
 
-
 INTERNAL_CONTENTTYPES_APP_LABEL = "libs.contrib.contenttypes"
 INTERNAL_AUTH_APP_LABEL = "libs.contrib.auth"
+INTERNAL_GUARDIAN_APP_LABEL = "libs.contrib.guardian"
 
 
 async def async_migrate(safe, guided, apps):
     auth_app_enabled = INTERNAL_AUTH_APP_LABEL in settings.INSTALLED_APPS
+    guardian_app_enabled = INTERNAL_GUARDIAN_APP_LABEL in settings.INSTALLED_APPS
     content_type_app_enabled = (
         INTERNAL_CONTENTTYPES_APP_LABEL in settings.INSTALLED_APPS
     )
@@ -24,6 +25,12 @@ async def async_migrate(safe, guided, apps):
     if auth_app_enabled and not content_type_app_enabled:
         click.echo(
             f"ERROR {INTERNAL_AUTH_APP_LABEL} required {INTERNAL_CONTENTTYPES_APP_LABEL}"
+        )
+        return
+    
+    if guardian_app_enabled and not auth_app_enabled:
+        click.echo(
+            f"ERROR {INTERNAL_GUARDIAN_APP_LABEL} required {INTERNAL_AUTH_APP_LABEL}"
         )
         return
 
@@ -35,14 +42,14 @@ async def async_migrate(safe, guided, apps):
         from libs.contrib.contenttypes.models import ContentType
 
     if auth_app_enabled:
-        from libs.contrib.auth.models import Permission, DefaultPerms
+        from libs.contrib.auth.models import DefaultPerms, Permission
 
     if content_type_app_enabled:
         for x in chain.from_iterable(
             sub_dict.values() for sub_dict in Tortoise.apps.values()
         ):
             content_type, _ = await ContentType.get_or_create(
-                app_label=x.app.label, model=x.__name__
+                app_label=x._meta.app_config.label, model=x.__name__
             )
 
             if auth_app_enabled:
