@@ -29,7 +29,7 @@ class UserProtocol(Protocol):
     async def has_perm(
         self,
         perm: str,
-        obj: Optional[Union[models.Model, Type[models.Model]]] = None,
+        obj: Optional[Union["models.Model", Type["models.Model"]]] = None,
     ) -> bool: ...
 
     async def has_perms(
