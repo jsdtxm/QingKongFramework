@@ -46,7 +46,7 @@ async def get_anonymous_user():
 
 
 @alru_cache()
-async def get_user(username: str) -> "UserProtocol":
+async def get_user(username: str) -> Optional["UserProtocol"]:
     user_model: "UserProtocol" = import_string(settings.AUTH_USER_MODEL)
     if user_model is None:
         raise Exception("AUTH_USER_MODEL IS NOT SET")
@@ -64,19 +64,21 @@ def verify_password(plain_password, hashed_password):
 async def authenticate_user(
     username: str,
     password: str,
-    user_getter: Callable[[str], Awaitable["UserProtocol"]] = get_user,
+    user_getter: Callable[[str], Awaitable[Optional["UserProtocol"]]] = get_user,
     verifier: Callable[[str, str], bool] = verify_password,
-) -> UserProtocol:
+) -> Optional[UserProtocol]:
     user = await user_getter(username)
     if not user:
-        return False
+        return None
     if not verifier(password, user.password):
-        return False
+        return None
     return user
 
 
 def get_current_user_factory(
-    token_type: Optional[TokenTypeEnum] = None, raw: bool = False
+    token_type: Optional[TokenTypeEnum] = None,
+    raw: bool = False,
+    raise_exception: bool = True,
 ):
     async def get_current_user(
         token: Annotated[str, Depends(global_bearer_token_header)],
@@ -87,22 +89,34 @@ def get_current_user_factory(
             headers={"WWW-Authenticate": "Bearer"},
         )
         try:
-            payload: dict = jwt.decode(
+            payload: dict[str, str] = jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[ALGORITHM]
             )
-            username: str = payload.get("username")
+            username = payload.get("username")
             if username is None:
-                raise credentials_exception
+                if raise_exception:
+                    raise credentials_exception
+                else:
+                    return None
         except InvalidTokenError:
-            raise credentials_exception
+            if raise_exception:
+                raise credentials_exception
+            else:
+                return None
 
         if token_type is not None and payload.get("type") != token_type.value:
-            raise credentials_exception
+            if raise_exception:
+                raise credentials_exception
+            else:
+                return None
 
         user = await get_user(username=username)
 
         if user is None or user.is_active is False:
-            raise credentials_exception
+            if raise_exception:
+                raise credentials_exception
+            else:
+                return None
 
         if raw:
             return (payload, user)
@@ -114,6 +128,10 @@ def get_current_user_factory(
 
 CurrentUser = Annotated[
     UserProtocol, Depends(get_current_user_factory(TokenTypeEnum.ACCESS))
+]
+OptionalCurrentUser = Annotated[
+    Optional[UserProtocol],
+    Depends(get_current_user_factory(TokenTypeEnum.ACCESS, raise_exception=False)),
 ]
 RefreshTokenUser = Annotated[
     UserProtocol, Depends(get_current_user_factory(TokenTypeEnum.REFRESH))

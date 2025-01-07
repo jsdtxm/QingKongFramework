@@ -1,11 +1,13 @@
 import logging
 from copy import copy
 from functools import update_wrapper
-from typing import Any, Dict, Self, Type
+from typing import Any, Dict, Optional, Self, Type
 
 from fastapi.routing import APIRouter
 from starlette.requests import Request
 
+from libs.contrib.auth.typing import UserProtocol
+from libs.contrib.auth.utils import OptionalCurrentUser
 from libs.requests import DjangoStyleRequest
 from libs.responses import HttpResponse, HttpResponseNotAllowed
 from libs.utils.functional import classonlymethod
@@ -20,14 +22,15 @@ class ViewWrapper:
         self.initkwargs = initkwargs
 
     @staticmethod
-    def django_request_adapter(request: Request):
-        request = copy(request)
-        request.__class__ = DjangoStyleRequest
+    def django_request_adapter(request: Request, user: Optional[UserProtocol]):
+        new_request: DjangoStyleRequest = copy(request)  # type: ignore
+        new_request.__class__ = DjangoStyleRequest
+        new_request._user = user
         return request
 
     def view(self):
-        async def view_wrapper(request: Request):
-            return await self.view_method(self.django_request_adapter(request))
+        async def view_wrapper(request: Request, user: OptionalCurrentUser):
+            return await self.view_method(self.django_request_adapter(request, user))
 
         return view_wrapper
 

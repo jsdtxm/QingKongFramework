@@ -8,6 +8,8 @@ if TYPE_CHECKING:
 class DjangoStyleRequest(Request):
     """keep no additional data"""
 
+    _user: Optional[UserProtocol] = None
+
     @property
     def GET(self):
         return self.query_params
@@ -18,4 +20,4 @@ class DjangoStyleRequest(Request):
 
     @property
     def user(self) -> Optional[UserProtocol]:
-        return None
+        return self._user
