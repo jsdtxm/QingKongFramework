@@ -1,6 +1,6 @@
 from abc import ABCMeta
 from datetime import date, datetime, time
-from typing import Any, Literal, Optional, Tuple, Type, Union
+from typing import Any, Literal, Optional, Self, Tuple, Type, Union
 
 import pytz
 from pydantic import BaseModel, Field, create_model, field_serializer
@@ -51,6 +51,12 @@ MISSING_ERROR_MESSAGE = (
     "ValidationError raised by `{class_name}`, but error key `{key}` does "
     "not exist in the `error_messages` dictionary."
 )
+
+
+class BaseSerializer:
+    @property
+    def data(self) -> Self:
+        return self
 
 
 class OverrideMixin:
@@ -140,6 +146,10 @@ class SerializerModel(
         self._context = kwargs.pop("context", {})
         kwargs.pop("many", None)
         super().__init__(**kwargs)
+
+    @property
+    def data(self):
+        return self
 
     def __str__(self):
         return object.__str__(self)
@@ -336,7 +346,7 @@ class SerializerMetaclass(ABCMeta):
         return super().__new__(mcs, name, bases, attrs)
 
 
-class Serializer(metaclass=SerializerMetaclass):
+class Serializer(BaseSerializer, metaclass=SerializerMetaclass):
     pydantic_model: BaseModel
 
     def __init__(self, *args, required=False, default=None, **kwargs):
