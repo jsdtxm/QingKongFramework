@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 class Manager(Generic[MODEL], TortoiseManager):
-    _model: TortoiseModel
+    _model: "BaseModel"
     _queryset_class: Type["QuerySet"] = TortoiseQuerySet
 
     def __init__(self, model=None) -> None:
@@ -45,9 +45,12 @@ class Manager(Generic[MODEL], TortoiseManager):
             },
         )
 
-    def create(self, *args, **kwargs) -> MODEL:
-        return self._model.create(*args, **kwargs)
+    async def create(self, *args, **kwargs):
+        return await self._model.create(*args, **kwargs)
 
+    async def get_or_create(self, *args, **kwargs):
+        return await self._model.get_or_create(*args, **kwargs)
+    
     def get_queryset(self) -> TortoiseQuerySet[MODEL]:
         return self._queryset_class(self._model)
 
