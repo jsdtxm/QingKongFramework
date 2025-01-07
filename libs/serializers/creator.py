@@ -21,6 +21,10 @@ from libs.serializers.fields import ListSerializer
 if TYPE_CHECKING:  # pragma: nocoverage
     from tortoise.models import Model
 
+
+# Patch
+PydanticModel.data = lambda self: self  # type: ignore
+
 DEFAULT_VALUE_DICT = {int: 0, float: 0.0, str: ""}
 
 
@@ -45,6 +49,7 @@ def pydantic_model_creator(
     include: Tuple[str, ...] = (),
     computed: Tuple[str, ...] = (),
     optional: Tuple[str, ...] = (),
+    depth: int = 0,
     allow_cycles: Optional[bool] = None,
     sort_alphabetically: Optional[bool] = None,
     _stack: tuple = (),
@@ -217,7 +222,9 @@ def pydantic_model_creator(
                 "backward_o2o_fields",
             )
 
-        field_map_update(included_fields)
+        if depth > 0:
+            field_map_update(included_fields)
+
         # Add possible computed fields
         field_map.update(
             {

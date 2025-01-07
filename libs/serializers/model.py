@@ -14,7 +14,7 @@ from libs.serializers.base import (
 from libs.serializers.creator import pydantic_model_creator
 
 
-class ModelSerializerMetaclass(BaseSerializer, _model_construction.ModelMetaclass):
+class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
     # TODO
     # read_only_fields = ['account_name']
     # extra_kwargs = {'password': {'write_only': True}}
@@ -30,6 +30,9 @@ class ModelSerializerMetaclass(BaseSerializer, _model_construction.ModelMetaclas
         if meta := attrs.get("Meta", None):
             fields = getattr(meta, "fields", ())
             exclude = getattr(meta, "exclude", ())
+
+            if fields == "__all__":
+                fields = ()
 
             extra_fields = {
                 name: value
@@ -49,6 +52,7 @@ class ModelSerializerMetaclass(BaseSerializer, _model_construction.ModelMetaclas
                 include=fields,
                 exclude=exclude,
                 validators=validators_map | serializers_map,
+                depth=getattr(meta, "depth", 0)
             )
 
             return pydantic_model
@@ -56,7 +60,9 @@ class ModelSerializerMetaclass(BaseSerializer, _model_construction.ModelMetaclas
         return super().__new__(mcs, name, bases, attrs)
 
 
-class ModelSerializer(PydanticModel, metaclass=ModelSerializerMetaclass):
+class ModelSerializer(
+    BaseSerializer, PydanticModel, metaclass=ModelSerializerMetaclass
+):
     """
     ModelSerializer
     ```python

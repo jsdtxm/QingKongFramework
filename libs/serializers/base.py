@@ -1,6 +1,6 @@
 from abc import ABCMeta
 from datetime import date, datetime, time
-from typing import Any, Literal, Optional, Self, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Self, Tuple, Type, Union
 
 import pytz
 from pydantic import BaseModel, Field, create_model, field_serializer
@@ -24,7 +24,8 @@ from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields.base import Field as TortoiseField
 
 from libs.serializers.fields import DateTimeField
-from libs.utils.functional import classproperty
+from libs.utils.functional import classproperty, copy_method_signature
+from tortoise.queryset import QuerySet as TortoiseQuerySet
 
 
 class EmptyModelMetaclass(ModelMetaclass):
@@ -54,9 +55,25 @@ MISSING_ERROR_MESSAGE = (
 
 
 class BaseSerializer:
-    @property
-    def data(self) -> Self:
-        return self
+    if TYPE_CHECKING:
+
+        @property
+        def data(self) -> Self:
+            return self
+
+        @copy_method_signature(BaseModel.model_dump)
+        def model_dump(self, *args, **kwargs): ...
+
+        @copy_method_signature(BaseModel.model_dump_json)
+        def model_dump_json(self, *args, **kwargs): ...
+
+        @classmethod
+        async def from_queryset(cls,  queryset: "TortoiseQuerySet") -> List[Self]: ...
+
+        @copy_method_signature(PydanticModel.model_validate)
+        def model_validate(
+            cls,
+        ) -> Self: ...
 
 
 class OverrideMixin:
