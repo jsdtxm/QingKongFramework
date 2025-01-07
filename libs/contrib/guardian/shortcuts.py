@@ -1,9 +1,7 @@
-from itertools import chain
-
 from libs.contrib.auth.typing import UserProtocol
 from libs.contrib.contenttypes.models import ContentType
 from libs.contrib.guardian.models import GroupObjectPermission, UserObjectPermission
-from libs.models import BaseModel
+from libs.models import BaseModel, Q, Subquery
 
 
 async def get_objects_for_user(
@@ -25,7 +23,7 @@ async def get_objects_for_user(
     if accept_model_perms:
         # TODO group has perm
         if await user.has_perm(perm, klass):
-            return queryset
+            return await queryset
 
     # Now we should extract list of pk values for which we would filter
     # queryset
@@ -35,6 +33,8 @@ async def get_objects_for_user(
         permission__perm=perm,
     )
 
+    q = Q(id__in=Subquery(user_obj_perms_queryset.values("object_id")))
+
     if use_groups:
         groups_obj_perms_queryset = GroupObjectPermission.objects.filter(
             group__user_set=user,
@@ -42,15 +42,6 @@ async def get_objects_for_user(
             permission__perm=perm,
         )
 
-        user_obj_perms = user_obj_perms_queryset.values_list("object_id", flat=True)
-        groups_obj_perms = groups_obj_perms_queryset.values_list("object_id", flat=True)
+        q |= Q(id__in=Subquery(groups_obj_perms_queryset.values("object_id")))
 
-        pk_set = set(chain(user_obj_perms, groups_obj_perms))
-        # TODO 或许应该使用join？
-        queryset = queryset.filter(pk__in=pk_set)
-    else:
-        user_obj_perms = user_obj_perms_queryset.values_list("object_id", flat=True)
-        pk_set = set(user_obj_perms)
-        queryset = queryset.filter(pk__in=pk_set)
-
-    return queryset
+    return await queryset.filter(q)
