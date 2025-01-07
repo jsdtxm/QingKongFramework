@@ -1,27 +1,41 @@
 from collections import namedtuple
 from functools import update_wrapper
 from inspect import getmembers
-from typing import Generic, Iterable, List, Self, Tuple, Union
+from typing import (
+    Generic,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Self,
+    Tuple,
+    Type,
+    Union,
+    overload,
+)
+import re
 
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 from starlette.requests import Request
 from tortoise.queryset import MODEL
+from tortoise.queryset import QuerySet as TortoiseQuerySet
 
-from libs import exceptions
+from libs import exceptions, serializers
 from libs.contrib.auth.utils import OptionalCurrentUser
-from libs.models import Manager, QuerySet, get_object_or_404
-from libs.utils.functional import classonlymethod
+from libs.models import Manager, Model, get_object_or_404
+from libs.permissions.base import BasePermission
+from libs.requests import DjangoStyleRequest
+from libs.responses import JSONResponse
+from libs.utils.functional import classonlymethod, copy_method_signature
+from libs.utils.module_loading import import_string
 from libs.views import mixins
 from libs.views.class_based import View, ViewWrapper
 from libs.views.decorators import ActionMethodMapper
 
 DEFAULTS = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
-    ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "libs.permissions.AllowAny",
     ],
 }
 
@@ -34,6 +48,9 @@ REST_ACTION_METHOD_MAPPING = {
 }
 
 ViewSetRouteItem = namedtuple("ViewSetRouteItem", ["action", "url", "methods"])
+
+
+BRACE_REGEX = re.compile(r"\{([a-zA-Z0-9_]+)\}")
 
 
 class GenericViewSetWrapper(ViewWrapper):
@@ -59,20 +76,34 @@ class GenericViewSetWrapper(ViewWrapper):
 
         return routers
 
-    def view(self, action: str):  # type: ignore
-        async def view_wrapper(request: Request, user: OptionalCurrentUser):
-            return await self.view_method(
-                action, self.django_request_adapter(request, user)
-            )
+    def view(self, route: ViewSetRouteItem):  # type: ignore
+        matches = re.findall(BRACE_REGEX, route.url)
 
-        return view_wrapper
+        extra_params = ", ".join([f"{match}: int" for match in matches])
+        extra_params_send = ", ".join([f"{match}={match}" for match in matches])
+
+        function_definition = f"""def view_wrapper_factory(route, self):
+    async def view_wrapper(request: Request, user: OptionalCurrentUser, {extra_params}):
+        return await self.view_method(
+            route.action, self.django_request_adapter(request, user), {extra_params_send} 
+        )
+    return view_wrapper"""
+
+        local_env = {}
+        exec(
+            function_definition,
+            {"Request": Request, "OptionalCurrentUser": OptionalCurrentUser},
+            local_env,
+        )
+
+        return local_env["view_wrapper_factory"](route, self)
 
     def as_router(self, name=None, response_model=None, response_class=None):
         router = APIRouter()
         for route_item in self.get_routers(self.view_class):
             router.add_api_route(
                 route_item.url,
-                self.get_typed_view(self.view(route_item.action), route_item.action),
+                self.get_typed_view(self.view(route_item), route_item.action),
                 name=name,
                 methods=route_item.methods,
                 response_model=response_model,
@@ -97,18 +128,22 @@ def _check_attr_name(name, func):
     return name, func
 
 
-class APIView(View):
-    permission_classes = DEFAULTS["DEFAULT_PERMISSION_CLASSES"]
+def load_classes(classes_string_list: list[str]) -> list[Type[BasePermission]]:
+    return [import_string(permission) for permission in classes_string_list]
 
-    def permission_denied(self, request, message=None, code=None):
+
+class APIView(View):
+    permission_classes = load_classes(DEFAULTS["DEFAULT_PERMISSION_CLASSES"])
+
+    def permission_denied(self, request: DjangoStyleRequest, message=None, code=None):
         """
         If request is not permitted, determine what kind of exception to raise.
         """
-        if request.authenticators and not request.successful_authenticator:
+        if request.user is None:
             raise exceptions.NotAuthenticated()
         raise exceptions.PermissionDenied(detail=message, code=code)
 
-    def get_permissions(self):
+    def get_permissions(self) -> list[BasePermission]:
         """
         Instantiates and returns the list of permissions that this view requires.
         """
@@ -141,6 +176,17 @@ class APIView(View):
                 )
 
 
+class ListSerializerWrapper:
+    data: List[BaseModel]
+
+    @copy_method_signature(BaseModel.model_dump)
+    def model_dump(self, *args, **kwargs):
+        return [x.model_dump(*args, **kwargs) for x in self.data]
+
+    def __init__(self, data):
+        self.data = data
+
+
 class GenericAPIView(Generic[MODEL], APIView):
     """
     Base class for all other generic views.
@@ -152,8 +198,8 @@ class GenericAPIView(Generic[MODEL], APIView):
     # `get_queryset()` instead of accessing the `queryset` property directly,
     # as `queryset` will get evaluated only once, and those results are cached
     # for all subsequent requests.
-    queryset: Union[QuerySet[MODEL], Manager[MODEL], MODEL]
-    serializer_class = None
+    queryset: Union[TortoiseQuerySet[MODEL], Manager[MODEL], MODEL]
+    serializer_class: Optional[Type[serializers.BaseSerializer]] = None
 
     # If you want to use object lookups other than pk, set 'lookup_field'.
     # For more complex lookup requirements override `get_object()`.
@@ -165,6 +211,7 @@ class GenericAPIView(Generic[MODEL], APIView):
 
     # The style to use for queryset pagination.
     # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
+    pagination_class = None
 
     # Allow generic typing checking for generic views.
     def __class_getitem__(cls, *args, **kwargs):
@@ -191,12 +238,13 @@ class GenericAPIView(Generic[MODEL], APIView):
         )
 
         queryset = self.queryset
-        if isinstance(queryset, QuerySet):
-            # Ensure queryset is re-evaluated on each request.
+        if isinstance(queryset, type) and issubclass(queryset, Model):
+            queryset = queryset.objects.all()
+        elif isinstance(queryset, TortoiseQuerySet):
             queryset = queryset.all()
         return queryset
 
-    def get_object(self):
+    async def get_object(self):
         """
         Returns the object the view is displaying.
 
@@ -217,23 +265,14 @@ class GenericAPIView(Generic[MODEL], APIView):
         )
 
         filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
-        obj = get_object_or_404(queryset, **filter_kwargs)
+        obj = await get_object_or_404(queryset, **filter_kwargs)
 
         # May raise a permission denied
         self.check_object_permissions(self.request, obj)
 
         return obj
 
-    def get_serializer(self, *args, **kwargs):
-        """
-        Return the serializer instance that should be used for validating and
-        deserializing input, and for serializing output.
-        """
-        serializer_class = self.get_serializer_class()
-        kwargs.setdefault("context", self.get_serializer_context())
-        return serializer_class(*args, **kwargs)
-
-    def get_serializer_class(self):
+    def get_serializer_class(self) -> Type[serializers.BaseSerializer]:
         """
         Return the class to use for the serializer.
         Defaults to using `self.serializer_class`.
@@ -254,7 +293,39 @@ class GenericAPIView(Generic[MODEL], APIView):
         """
         Extra context provided to the serializer class.
         """
-        return {"request": self.request, "format": self.format_kwarg, "view": self}
+        return {"request": self.request, "view": self}
+
+    @overload
+    async def get_serializer(
+        self, data, many: Optional[bool] = False, **kwargs
+    ) -> serializers.BaseSerializer: ...
+
+    @overload
+    async def get_serializer(
+        self, data, many: Literal[True] = True, **kwargs
+    ) -> ListSerializerWrapper: ...
+
+    @overload
+    async def get_serializer(
+        self, data, many: Literal[False] = False, **kwargs
+    ) -> serializers.BaseSerializer: ...
+
+    async def get_serializer(
+        self, data, many: Optional[bool] = False, **kwargs
+    ) -> ListSerializerWrapper | serializers.BaseSerializer:
+        """
+        Return the serializer instance that should be used for validating and
+        deserializing input, and for serializing output.
+        """
+        serializer_class = self.get_serializer_class()
+        if isinstance(data, TortoiseQuerySet):
+            return ListSerializerWrapper(await serializer_class.from_queryset(data))
+        elif isinstance(data, list):
+            return ListSerializerWrapper(
+                [serializer_class.model_validate(x) for x in data]
+            )
+        
+        return serializer_class.model_validate(data)
 
     def filter_queryset(self, queryset):
         """
@@ -285,16 +356,19 @@ class GenericAPIView(Generic[MODEL], APIView):
         """
         Return a single page of results, or `None` if pagination is disabled.
         """
-        if self.paginator is None:
-            return None
-        return self.paginator.paginate_queryset(queryset, self.request, view=self)
+        # if self.paginator is None:
+        #     return None
+        # return self.paginator.paginate_queryset(queryset, self.request, view=self)
+        return None
 
     def get_paginated_response(self, data):
         """
         Return a paginated style `Response` object for the given output data.
         """
-        assert self.paginator is not None
-        return self.paginator.get_paginated_response(data)
+        # assert self.paginator is not None
+        # return self.paginator.get_paginated_response(data)
+
+        return JSONResponse(data)
 
 
 class GenericViewSet(GenericAPIView):
