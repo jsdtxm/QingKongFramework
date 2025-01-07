@@ -39,3 +39,5 @@ class BaseSettings(PydanticBaseSettings):
 
     ACCESS_TOKEN_LIFETIME: int = 60 * 60
     REFRESH_TOKEN_LIFETIME: int = 60 * 60 * 24 * 7
+
+    AUTH_PERMISSION_BACKEND: str = "libs.contrib.auth.backends.permission.ModelPermissionBackend"

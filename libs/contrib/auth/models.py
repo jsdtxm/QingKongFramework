@@ -1,5 +1,4 @@
-import asyncio
-from typing import Iterable, Optional, Self, Type, Union
+from typing import TYPE_CHECKING, Iterable, Optional, Self, Type, Union
 
 from tortoise.queryset import MODEL
 
@@ -9,6 +8,11 @@ from libs.contrib.auth.utils import ANONYMOUS_USERNAME
 from libs.contrib.contenttypes.models import ContentType
 from libs.django.hashers import make_password
 from libs.models import Manager, QuerySet
+from libs.utils.module_loading import import_string
+
+if TYPE_CHECKING:
+    from libs.contrib.auth.backends.permission import ModelPermissionBackend
+
 
 DefaultPerms = ["add", "change", "delete", "view"]
 
@@ -55,7 +59,17 @@ class Permission(models.Model):
         return "%s | %s" % (self.content_type, self.perm)
 
 
-class Group(models.Model):
+class LoadPermissionBackendMixin:
+    permission_backend: Type["ModelPermissionBackend"] = None
+
+    @classmethod
+    def get_permission_backend(cls):
+        if cls.permission_backend is None:
+            cls.permission_backend = import_string(settings.AUTH_PERMISSION_BACKEND)
+        return cls.permission_backend
+
+
+class Group(models.Model, LoadPermissionBackendMixin):
     """
     Groups are a generic way of categorizing users to apply permissions, or
     some other label, to those users. A user can belong to any number of
@@ -78,6 +92,7 @@ class Group(models.Model):
         Permission,
         verbose_name="permissions",
         blank=True,
+        related_name="group_set",
         through="qingkong_auth_group_permissions",
     )
 
@@ -93,52 +108,17 @@ class Group(models.Model):
         perm: str,
         obj: Optional[Union[models.Model, Type[models.Model]]] = None,
     ) -> bool:
-        """
-        Return True if the user has the specified permission. Query all
-        available auth backends, but return immediately if any backend returns
-        True. Thus, a user who has permission from a single auth backend is
-        assumed to have permission in general. If an object is provided, check
-        permissions for that object.
-        """
-        perm_qs = self.permissions.filter(perm=perm)
-
-        if obj is not None:
-            if isinstance(obj, models.Model):
-                obj = obj.__class__
-
-            perm_qs = perm_qs.filter(
-                content_type__app_label=obj._meta.app, content_type__model=obj.__name__
-            )
-
-        return await perm_qs.exists()
+        return await self.get_permission_backend().has_perm(self, perm, obj)
 
     async def has_perms(
         self,
         perm_list: Iterable[str],
         obj: Optional[Union[models.Model, Type[models.Model]]] = None,
     ):
-        """
-        Return True if the user has each of the specified permissions. If
-        object is passed, check if the user has all required perms for it.
-        """
-        if not isinstance(perm_list, Iterable) or isinstance(perm_list, str):
-            raise ValueError("perm_list must be an iterable of permissions.")
-
-        perms = await asyncio.gather(*[self.has_perm(perm, obj) for perm in perm_list])
-
-        return all(perms)
+        return await self.get_permission_backend().has_perms(self, perm_list, obj)
 
     async def has_module_perms(self, app_label: str) -> bool:
-        """
-        Return True if the user has any permissions in the given app label.
-        Use similar logic as has_perm(), above.
-        """
-
-        perm_qs = self.permissions.filter(
-            content_type__app_label=app_label
-        )
-
-        return await perm_qs.exists()
+        return await self.get_permission_backend().has_module_perms(self, app_label)
 
 
 class UserManager(Manager[MODEL]):
@@ -151,7 +131,7 @@ class UserManager(Manager[MODEL]):
         )
 
 
-class AbstractUser(models.Model):
+class AbstractUser(models.Model, LoadPermissionBackendMixin):
     username = models.CharField(max_length=150, unique=True)
     password = models.CharField(max_length=128)
 
@@ -220,33 +200,14 @@ class AbstractUser(models.Model):
         if self.is_active and self.is_superuser:
             return True
 
-        perm_qs = Permission.objects.filter(user_set=self, perm=perm)
-
-        if obj is not None:
-            if isinstance(obj, models.Model):
-                obj = obj.__class__
-
-            perm_qs = perm_qs.filter(
-                content_type__app_label=obj._meta.app, content_type__model=obj.__name__
-            )
-
-        return await perm_qs.exists()
+        return await self.get_permission_backend().has_perm(self, perm, obj)
 
     async def has_perms(
         self,
         perm_list: Iterable[str],
         obj: Optional[Union[models.Model, Type[models.Model]]] = None,
     ):
-        """
-        Return True if the user has each of the specified permissions. If
-        object is passed, check if the user has all required perms for it.
-        """
-        if not isinstance(perm_list, Iterable) or isinstance(perm_list, str):
-            raise ValueError("perm_list must be an iterable of permissions.")
-
-        perms = await asyncio.gather(*[self.has_perm(perm, obj) for perm in perm_list])
-
-        return all(perms)
+        return await self.get_permission_backend().has_perms(self, perm_list)
 
     async def has_module_perms(self, app_label: str) -> bool:
         """
@@ -257,11 +218,7 @@ class AbstractUser(models.Model):
         if self.is_active and self.is_superuser:
             return True
 
-        perm_qs = Permission.objects.filter(
-            user_set=self, content_type__app_label=app_label
-        )
-
-        return await perm_qs.exists()
+        return await self.get_permission_backend().has_module_perms(self, app_label)
 
     class Meta:
         abstract = True
