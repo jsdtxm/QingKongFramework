@@ -250,7 +250,8 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
 
     app: AppConfig
 
-    _meta: "MetaInfo"
+    if TYPE_CHECKING:
+        _meta: "MetaInfo"
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)

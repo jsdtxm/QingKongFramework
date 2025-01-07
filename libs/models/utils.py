@@ -56,9 +56,9 @@ def model_to_dict(
     return data
 
 
-def get_object_or_404(model_class, *args, **kwargs):
+async def get_object_or_404(model_class, *args, **kwargs):
     try:
-        return model_class.get(*args, **kwargs)
+        return await model_class.get(*args, **kwargs)
     except DoesNotExist:
         raise Http404(
             "No %s matches the given query." % model_class.__name__
