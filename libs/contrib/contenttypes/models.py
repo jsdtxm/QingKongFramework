@@ -13,9 +13,14 @@ class ContentType(models.Model):
         unique_together = [["app_label", "model"]]
 
     @classmethod
-    async def from_model(cls, model_cls: models.Model) -> Self:
+    async def from_model(cls, model: models.Model) -> Self:
+        if isinstance(model, type):
+            return await cls.objects.get(
+                app_label=model._meta.app_config.label, model=model.__name__
+            )
+
         return await cls.objects.get(
-            app_label=model_cls._meta.app_config.label, model=model_cls.__name__
+            app_label=model._meta.app_config.label, model=model.__class__.__name__
         )
 
     def __str__(self):
