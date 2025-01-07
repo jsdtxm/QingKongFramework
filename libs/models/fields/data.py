@@ -31,6 +31,21 @@ class PositiveIntegerField(tortoise_data_fields.IntField):
         }
 
 
+class PositiveSmallIntegerField(tortoise_data_fields.SmallIntField):
+    SQL_TYPE = "SMALLINT UNSIGNED"
+
+    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+        self.verbose_name = verbose_name
+        super().__init__(**kwargs)
+
+    @property
+    def constraints(self) -> dict:
+        return {
+            "ge": 0,
+            "le": 65535,
+        }
+
+
 class BigIntegerField(tortoise_data_fields.BigIntField):
     def __init__(self, verbose_name=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name

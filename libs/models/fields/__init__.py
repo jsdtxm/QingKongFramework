@@ -1,6 +1,7 @@
 from tortoise.fields.base import CASCADE, NO_ACTION, RESTRICT, SET_DEFAULT, SET_NULL
 
 from .data import (
+    AutoField,
     BigAutoField,
     BigIntegerField,
     BinaryField,
@@ -13,12 +14,14 @@ from .data import (
     FloatField,
     IntegerField,
     JSONField,
+    PositiveIntegerField,
+    PositiveSmallIntegerField,
     SmallAutoField,
     SmallIntegerField,
     TextField,
     TimeDeltaField,
     TimeField,
-    PositiveIntegerField
+    UUIDField,
 )
 from .relational import (
     ForeignKeyField,
