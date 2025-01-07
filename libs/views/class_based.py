@@ -1,5 +1,4 @@
 import logging
-from copy import copy
 from functools import update_wrapper
 from typing import Any, Dict, Optional, Self, Type
 
@@ -23,10 +22,8 @@ class ViewWrapper:
 
     @staticmethod
     def django_request_adapter(request: Request, user: Optional[UserProtocol]):
-        new_request: DjangoStyleRequest = copy(request)  # type: ignore
-        new_request.__class__ = DjangoStyleRequest
-        new_request._user = user
-        return request
+        new_request = DjangoStyleRequest(request, user=user)
+        return new_request
 
     def view(self):
         async def view_wrapper(request: Request, user: OptionalCurrentUser):

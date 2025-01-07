@@ -5,19 +5,19 @@ if TYPE_CHECKING:
     from libs.contrib.auth.typing import UserProtocol
 
 
-class DjangoStyleRequest(Request):
+class DjangoStyleRequest:
     """keep no additional data"""
+    
+    def __init__(self, request: Request, user: Optional["UserProtocol"]=None):
+        self.request = request
+        self.user = user
 
-    _user: Optional["UserProtocol"] = None
+        self._data = Empty
 
     @property
     def GET(self):
-        return self.query_params
+        return self.request.query_params
 
     @property
     def POST(self):
         return self.form()
-
-    @property
-    def user(self) -> Optional["UserProtocol"]:
-        return self._user
