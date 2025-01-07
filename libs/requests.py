@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 class DjangoStyleRequest(Request):
     """keep no additional data"""
 
-    _user: Optional[UserProtocol] = None
+    _user: Optional["UserProtocol"] = None
 
     @property
     def GET(self):
@@ -19,5 +19,5 @@ class DjangoStyleRequest(Request):
         return self.form()
 
     @property
-    def user(self) -> Optional[UserProtocol]:
+    def user(self) -> Optional["UserProtocol"]:
         return self._user
