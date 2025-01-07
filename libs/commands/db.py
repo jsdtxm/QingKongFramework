@@ -11,30 +11,48 @@ from libs.models.tortoise import Tortoise
 from libs.tools.reverse_generation import table_to_django_model
 
 
+INTERNAL_CONTENTTYPES_APP_LABEL = "libs.contrib.contenttypes"
+INTERNAL_AUTH_APP_LABEL = "libs.contrib.auth"
+
+
 async def async_migrate(safe, guided, apps):
-    if "libs.contrib.contenttypes" not in settings.INSTALLED_APPS:
-        if "libs.contrib.auth" in settings.INSTALLED_APPS:
-            click.echo("ERROR contrib.auth required contrib.contenttypes")
-            return
+    auth_app_enabled = INTERNAL_AUTH_APP_LABEL in settings.INSTALLED_APPS
+    content_type_app_enabled = (
+        INTERNAL_CONTENTTYPES_APP_LABEL in settings.INSTALLED_APPS
+    )
+
+    if auth_app_enabled and not content_type_app_enabled:
+        click.echo(
+            f"ERROR {INTERNAL_AUTH_APP_LABEL} required {INTERNAL_CONTENTTYPES_APP_LABEL}"
+        )
+        return
 
     init_apps(settings.INSTALLED_APPS)
     await async_init_db(get_tortoise_config(settings.DATABASES))
     await generate_schemas(Tortoise, safe=safe, guided=guided, apps=apps)
 
-    if "libs.contrib.contenttypes" in settings.INSTALLED_APPS:
+    if content_type_app_enabled:
         from libs.contrib.contenttypes.models import ContentType
 
-        await ContentType.get_or_create(
-            app_label=ContentType.app.label, model=ContentType.__name__
-        )
+    if auth_app_enabled:
+        from libs.contrib.auth.models import Permission, DefaultPerms
 
+    if content_type_app_enabled:
         for x in chain.from_iterable(
             sub_dict.values() for sub_dict in Tortoise.apps.values()
         ):
-            if x is ContentType:
-                continue
+            content_type, _ = await ContentType.get_or_create(
+                app_label=x.app.label, model=x.__name__
+            )
 
-            await ContentType.get_or_create(app_label=x.app.label, model=x.__name__)
+            if auth_app_enabled:
+                await Permission.bulk_create(
+                    [
+                        Permission(content_type=content_type, perm=p)
+                        for p in DefaultPerms
+                    ],
+                    ignore_conflicts=True,
+                )
 
     await Tortoise.close_connections()
 

@@ -33,22 +33,22 @@ class Permission(models.Model):
     The permissions listed above are automatically created for each model.
     """
 
-    name = models.CharField("name", max_length=255)
+    description = models.CharField("description", max_length=512, null=True)
     content_type = models.ForeignKey(
         ContentType,
         models.CASCADE,
         verbose_name="content type",
     )
-    codename = models.CharField("codename", max_length=100)
+    perm = models.CharField("perm", max_length=128)
 
     class Meta:
         verbose_name = "permission"
         verbose_name_plural = "permissions"
-        unique_together = [["content_type", "codename"]]
-        ordering = ["content_type__app_label", "content_type__model", "codename"]
+        unique_together = [["content_type", "perm"]]
+        ordering = ["content_type__app_label", "content_type__model", "perm"]
 
     def __str__(self):
-        return "%s | %s" % (self.content_type, self.name)
+        return "%s | %s" % (self.content_type, self.perm)
 
 
 class Group(models.Model):
