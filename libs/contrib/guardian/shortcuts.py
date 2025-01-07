@@ -1,3 +1,4 @@
+from libs.contrib.auth.models import Group
 from libs.contrib.auth.typing import UserProtocol
 from libs.contrib.contenttypes.models import ContentType
 from libs.contrib.guardian.models import GroupObjectPermission, UserObjectPermission
@@ -16,14 +17,14 @@ async def get_objects_for_user(
 
     # First check if user is superuser and if so, return queryset immediately
     if with_superuser and user.is_superuser:
-        return await queryset
+        return queryset
 
     ctype = await ContentType.from_model(klass)
 
     if accept_model_perms:
         # TODO group has perm
         if await user.has_perm(perm, klass):
-            return await queryset
+            return queryset
 
     # Now we should extract list of pk values for which we would filter
     # queryset
@@ -44,4 +45,32 @@ async def get_objects_for_user(
 
         q |= Q(id__in=Subquery(groups_obj_perms_queryset.values("object_id")))
 
-    return await queryset.filter(q)
+    return queryset.filter(q)
+
+
+async def get_objects_for_group(
+    group: Group,
+    perm: str,
+    klass: BaseModel = None,
+    accept_model_perms=True,
+):
+    queryset = klass.objects.all()
+
+    ctype = await ContentType.from_model(klass)
+
+    if accept_model_perms:
+        # TODO group has perm
+        if await group.has_perm(perm, klass):
+            return queryset
+
+    # Now we should extract list of pk values for which we would filter
+    # queryset
+    group_obj_perms_queryset = GroupObjectPermission.objects.filter(
+        group=group,
+        content_type=ctype,
+        permission__perm=perm,
+    )
+
+    q = Q(id__in=Subquery(group_obj_perms_queryset.values("object_id")))
+
+    return queryset.filter(q)
