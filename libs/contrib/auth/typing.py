@@ -23,6 +23,15 @@ class UserProtocol(Protocol):
     @property
     def is_authenticated(self) -> bool: ...
 
+    @property
+    def is_anonymous(self) -> bool: ...
+
+    async def has_perm(
+        self,
+        perm: str,
+        obj: Optional[Union[models.Model, Type[models.Model]]] = None,
+    ) -> bool: ...
+
     async def has_perms(
         self,
         perm_list: Iterable[str],

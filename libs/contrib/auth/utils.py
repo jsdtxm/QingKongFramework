@@ -13,6 +13,8 @@ from libs.exceptions import ImproperlyConfigured
 from libs.security.jwt import ALGORITHM, global_bearer_token_header
 from libs.utils.module_loading import import_string
 
+ANONYMOUS_USERNAME = "anonymous"
+
 
 class TokenTypeEnum(Enum):
     ACCESS = "access"
@@ -37,6 +39,10 @@ def get_user_model() -> Type[UserProtocol]:
             "AUTH_USER_MODEL refers to model '%s' that has not been installed"
             % settings.AUTH_USER_MODEL
         )
+
+
+async def get_anonymous_user():
+    return await get_user_model().get(username=ANONYMOUS_USERNAME)
 
 
 @alru_cache()

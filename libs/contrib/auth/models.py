@@ -1,18 +1,16 @@
 import asyncio
-from typing import AnyStr, Iterable, Literal, Optional, Self, Type, Union
+from typing import Iterable, Optional, Self, Type, Union
 
 from tortoise.queryset import MODEL
 
 from common.settings import settings
 from libs import models
+from libs.contrib.auth.utils import ANONYMOUS_USERNAME
 from libs.contrib.contenttypes.models import ContentType
 from libs.django.hashers import make_password
 from libs.models import Manager, QuerySet
 
-ANONYMOUS_USERNAME = "anonymous"
-
 DefaultPerms = ["add", "change", "delete", "view"]
-DefaultPermsType = Literal["add", "change", "delete", "view"]
 
 
 class Permission(models.Model):
@@ -146,12 +144,17 @@ class AbstractUser(models.Model):
     def __str__(self):
         return f"<User: {self.username}>"
 
+    @property
     def is_authenticated(self):
         return self.username != ANONYMOUS_USERNAME
 
+    @property
+    def is_anonymous(self):
+        return self.username == ANONYMOUS_USERNAME
+
     async def has_perm(
         self,
-        perm: Union[DefaultPermsType, AnyStr],
+        perm: str,
         obj: Optional[Union[models.Model, Type[models.Model]]] = None,
     ) -> bool:
         """
