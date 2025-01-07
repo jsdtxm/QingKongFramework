@@ -34,7 +34,7 @@ async def _createsuperuser():
         repeat_password = getpass.getpass("Repeat Password: ")
 
     user = await User.objects.create_user(
-        username=username, email=email, password=password
+        username=username, email=email, password=password, is_superuser=True
     )
 
     print(f"User {user.username} created successfully")
