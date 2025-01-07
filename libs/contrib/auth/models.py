@@ -1,18 +1,15 @@
-from typing import TYPE_CHECKING, Iterable, Optional, Self, Type, Union
+from typing import Iterable, Optional, Self, Type, Union
 
 from tortoise.queryset import MODEL
 
 from common.settings import settings
 from libs import models
+from libs.contrib.auth.backends.base import BasePermissionBackend
 from libs.contrib.auth.utils import ANONYMOUS_USERNAME
 from libs.contrib.contenttypes.models import ContentType
 from libs.django.hashers import make_password
 from libs.models import Manager, QuerySet
 from libs.utils.module_loading import import_string
-
-if TYPE_CHECKING:
-    from libs.contrib.auth.backends.permission import ModelPermissionBackend
-
 
 DefaultPerms = ["add", "change", "delete", "view"]
 
@@ -60,7 +57,7 @@ class Permission(models.Model):
 
 
 class LoadPermissionBackendMixin:
-    permission_backend: Type["ModelPermissionBackend"] = None
+    permission_backend: Optional[Type["BasePermissionBackend"]] = None
 
     @classmethod
     def get_permission_backend(cls):

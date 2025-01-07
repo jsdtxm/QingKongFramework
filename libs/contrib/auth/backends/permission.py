@@ -1,16 +1,13 @@
-from typing import Iterable, Optional, Protocol, Type, Union
+from typing import Iterable, Optional, Type, Union
 
 from libs import models
+from libs.contrib.auth.backends.base import BasePermissionBackend, PrincipalProtocol
 from libs.contrib.auth.models import AbstractUser, Permission
 from libs.contrib.contenttypes.models import ContentType
 from libs.models import Count
 
 
-class PrincipalProtocol(Protocol):
-    permissions: models.ManyToManyRelation
-
-
-class ModelPermissionBackend:
+class ModelPermissionBackend(BasePermissionBackend):
     @classmethod
     async def has_perm(
         cls,
@@ -44,7 +41,7 @@ class ModelPermissionBackend:
         principal: PrincipalProtocol,
         perm_list: Iterable[str],
         obj: Optional[Union[models.Model, Type[models.Model]]] = None,
-    ):
+    ) -> bool:
         if not isinstance(perm_list, Iterable) or isinstance(perm_list, str):
             raise ValueError("perm_list must be an iterable of permissions.")
 
