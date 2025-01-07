@@ -1,6 +1,8 @@
 import http
 
 from starlette.exceptions import HTTPException
+from typing import Optional
+from starlette import status
 
 
 class ImproperlyConfigured(Exception):
@@ -9,20 +11,38 @@ class ImproperlyConfigured(Exception):
     pass
 
 
-class PermissionDenied(Exception):
-    """The user did not have permission to do that"""
+class HttpCodeException(HTTPException):
+    status_code = 500
 
-    pass
-
-
-class Http404(HTTPException):
     def __init__(
         self,
         detail: str | None = None,
         headers: dict[str, str] | None = None,
+        code: Optional[int] = None,
     ) -> None:
+        self.status_code = code or self.status_code
         if detail is None:
-            detail = http.HTTPStatus(404).phrase
-        self.status_code = 404
+            detail = http.HTTPStatus(self.status_code).phrase
         self.detail = detail
         self.headers = headers
+
+
+class NotAuthenticated(HttpCodeException):
+    """The user did not have permission to do that"""
+
+    status_code = status.HTTP_401_UNAUTHORIZED
+
+
+class PermissionDenied(HttpCodeException):
+    """The user did not have permission to do that"""
+
+    status_code = status.HTTP_403_FORBIDDEN
+
+
+class Http404(HttpCodeException):
+    status_code = status.HTTP_404_NOT_FOUND
+
+
+class MethodNotAllowed(HttpCodeException):
+    status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+    
