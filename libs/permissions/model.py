@@ -47,7 +47,7 @@ class ModelPermissions(BasePermission):
 
         return [perm for perm in self.perms_map[method]]
 
-    def _queryset(self, view: View) -> QuerySet:
+    def _queryset(self, view: "View") -> "QuerySet":
         assert (
             hasattr(view, "get_queryset") or getattr(view, "queryset", None) is not None
         ), (
