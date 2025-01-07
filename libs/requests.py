@@ -1,4 +1,8 @@
 from fastapi.requests import Request as Request  # noqa
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from libs.contrib.auth.typing import UserProtocol
 
 
 class DjangoStyleRequest(Request):
@@ -11,3 +15,7 @@ class DjangoStyleRequest(Request):
     @property
     def POST(self):
         return self.form()
+
+    @property
+    def user(self) -> Optional[UserProtocol]:
+        return None
