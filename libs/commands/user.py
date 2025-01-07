@@ -31,6 +31,9 @@ async def _createsuperuser():
 
     while password != repeat_password:
         password = getpass.getpass("Password: ")
+        if len(password) < 8:
+            print("Password must be at least 8 characters long")
+            continue
         repeat_password = getpass.getpass("Repeat Password: ")
 
     user = await User.objects.create_user(
