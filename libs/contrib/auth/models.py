@@ -88,6 +88,58 @@ class Group(models.Model):
     def __str__(self):
         return self.name
 
+    async def has_perm(
+        self,
+        perm: str,
+        obj: Optional[Union[models.Model, Type[models.Model]]] = None,
+    ) -> bool:
+        """
+        Return True if the user has the specified permission. Query all
+        available auth backends, but return immediately if any backend returns
+        True. Thus, a user who has permission from a single auth backend is
+        assumed to have permission in general. If an object is provided, check
+        permissions for that object.
+        """
+        perm_qs = self.permissions.filter(perm=perm)
+
+        if obj is not None:
+            if isinstance(obj, models.Model):
+                obj = obj.__class__
+
+            perm_qs = perm_qs.filter(
+                content_type__app_label=obj._meta.app, content_type__model=obj.__name__
+            )
+
+        return await perm_qs.exists()
+
+    async def has_perms(
+        self,
+        perm_list: Iterable[str],
+        obj: Optional[Union[models.Model, Type[models.Model]]] = None,
+    ):
+        """
+        Return True if the user has each of the specified permissions. If
+        object is passed, check if the user has all required perms for it.
+        """
+        if not isinstance(perm_list, Iterable) or isinstance(perm_list, str):
+            raise ValueError("perm_list must be an iterable of permissions.")
+
+        perms = await asyncio.gather(*[self.has_perm(perm, obj) for perm in perm_list])
+
+        return all(perms)
+
+    async def has_module_perms(self, app_label: str) -> bool:
+        """
+        Return True if the user has any permissions in the given app label.
+        Use similar logic as has_perm(), above.
+        """
+
+        perm_qs = self.permissions.filter(
+            content_type__app_label=app_label
+        )
+
+        return await perm_qs.exists()
+
 
 class UserManager(Manager[MODEL]):
     async def create_user(self, username, email=None, password=None, **extra_fields):
