@@ -8,9 +8,20 @@ from starlette.responses import StreamingResponse as StreamingResponse  # noqa
 import json
 import typing
 from libs.utils.json import JSONEncoder
+from starlette.background import BackgroundTask
 
 
-class JsonDumpsMixin:
+class JSONResponse(StarletteJSONResponse):
+    def __init__(
+        self,
+        content: typing.Any = None,
+        status_code: int = 200,
+        headers: typing.Mapping[str, str] | None = None,
+        media_type: str | None = None,
+        background: BackgroundTask | None = None,
+    ) -> None:
+        super().__init__(content, status_code, headers, media_type, background)
+
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
             content,
@@ -22,11 +33,7 @@ class JsonDumpsMixin:
         ).encode("utf-8")
 
 
-class JSONResponse(JsonDumpsMixin, StarletteJSONResponse):
-    pass
-
-
-class JsonResponse(JsonDumpsMixin, StarletteJSONResponse):
+class JsonResponse(JSONResponse):
     pass
 
 
