@@ -20,12 +20,14 @@ def _get_models_to_create(
     from tortoise import Tortoise
 
     for name, app in Tortoise.apps.items():
-        if apps and name not in apps:
+        if apps and (name not in apps):
             continue
         for model in app.values():
             if model._meta.db == self.client:
                 model._check()
                 models_to_create.append(model)
+    
+    return models_to_create
 
 
 def get_create_schema_sql(
@@ -33,7 +35,7 @@ def get_create_schema_sql(
 ) -> str:
     models_to_create: "List[Type[Model]]" = []
 
-    _get_models_to_create(self, models_to_create)
+    models_to_create = _get_models_to_create(self, models_to_create, apps)
 
     tables_to_create = []
     for model in models_to_create:

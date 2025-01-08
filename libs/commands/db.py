@@ -38,6 +38,11 @@ async def async_migrate(safe, guided, apps):
     await async_init_db(get_tortoise_config(settings.DATABASES))
     await generate_schemas(Tortoise, safe=safe, guided=guided, apps=apps)
 
+    if len(apps) > 0:
+        await Tortoise.close_connections()
+        
+        return
+
     if content_type_app_enabled:
         from libs.contrib.contenttypes.models import ContentType
 
