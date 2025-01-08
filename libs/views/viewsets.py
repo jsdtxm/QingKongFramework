@@ -85,7 +85,7 @@ class GenericViewSetWrapper(ViewWrapper):
         function_definition = f"""def view_wrapper_factory(route, self):
     async def view_wrapper(request: Request, user: OptionalCurrentUser, {extra_params}):
         return await self.view_method(
-            route.action, self.django_request_adapter(request, user), {extra_params_send} 
+            route.action, await self.django_request_adapter(request, user), {extra_params_send} 
         )
     return view_wrapper"""
 
