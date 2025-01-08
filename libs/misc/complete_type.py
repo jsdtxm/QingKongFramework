@@ -79,7 +79,7 @@ def complete(module_name: str):
 
             ptype_str = type_to_str(ptype)
             
-            optional = desc.get("nullable") or desc.get("default") is not None
+            optional = desc.get("nullable")
 
             line_type_str = f"typing.Optional[{ptype_str}]" if optional else ptype_str
 

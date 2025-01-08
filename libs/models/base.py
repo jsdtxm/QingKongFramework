@@ -2,21 +2,29 @@ from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
+    Generator,
     Generic,
+    List,
     Literal,
     Optional,
     Self,
+    Set,
     Tuple,
     Type,
     Union,
 )
-
+from types import SimpleNamespace
+from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.expressions import Q
 from tortoise.fields import relational
+from tortoise.filters import FilterInfoDict
 from tortoise.manager import Manager as TortoiseManager
 from tortoise.models import Model as TortoiseModel
 from tortoise.models import ModelMeta as TortoiseModelMeta
 from tortoise.queryset import MODEL
 from tortoise.queryset import QuerySet as TortoiseQuerySet
+from tortoise.queryset import ValuesListQuery as TortoiseValuesListQuery
 
 from libs import apps
 from libs.apps.config import AppConfig
@@ -26,9 +34,118 @@ if TYPE_CHECKING:
     from libs.models.info import MetaInfo
 
 
+class ValuesListQuery(TortoiseValuesListQuery):
+    def __init__(
+        self,
+        model: Type[MODEL],
+        db: BaseDBAsyncClient,
+        q_objects: List[Q],
+        single: bool,
+        raise_does_not_exist: bool,
+        fields_for_select_list: Union[Tuple[str, ...], List[str]],
+        limit: Optional[int],
+        offset: Optional[int],
+        distinct: bool,
+        orderings: List[Tuple[str, str]],
+        flat: bool,
+        named: bool,
+        annotations: Dict[str, Any],
+        custom_filters: Dict[str, FilterInfoDict],
+        group_bys: Tuple[str, ...],
+        force_indexes: Set[str],
+        use_indexes: Set[str],
+    ) -> None:
+        super().__init__(
+            model,
+            db,
+            q_objects,
+            single,
+            raise_does_not_exist,
+            single,
+            fields_for_select_list,
+            limit,
+            offset,
+            distinct,
+            orderings,
+            flat,
+            annotations,
+            custom_filters,
+            group_bys,
+            force_indexes,
+            use_indexes,
+        )
+        self.named = named
+
+    def __await__(self) -> Generator[Any, None, Union[List[Any], Tuple[Any, ...]]]:
+        if self._db is None:
+            self._db = self._choose_db()  # type: ignore
+        self._make_query()
+        data = self._execute().__await__()  # pylint: disable=E1101
+
+        if self.named:
+            return SimpleNamespace(**dict(zip(self.fields_for_select_list, data)))
+
+        return data
+
+
+class QuerySet(TortoiseQuerySet[MODEL]):
+    @classmethod
+    def as_manager(cls):
+        manager = Manager.from_queryset(cls)()
+        return manager
+
+    def values_list(
+        self, *fields_: str, flat: bool = False, named: bool = False
+    ) -> "ValuesListQuery[Literal[False]]":
+        """
+        Make QuerySet returns list of tuples for given args instead of objects.
+
+        If call after `.get()`, `.get_or_none()` or `.first()` return tuples for given args instead of object.
+
+        If ```flat=True`` and only one arg is passed can return flat list or just scalar.
+
+        If no arguments are passed it will default to a tuple containing all fields
+        in order of declaration.
+        """
+        # HACK change response class
+        fields_for_select_list = fields_ or [
+            field
+            for field in self.model._meta.fields_map
+            if field in self.model._meta.db_fields
+        ] + list(self._annotations.keys())
+        return ValuesListQuery(
+            db=self._db,
+            model=self.model,
+            q_objects=self._q_objects,
+            single=self._single,
+            raise_does_not_exist=self._raise_does_not_exist,
+            flat=flat,
+            named=named,
+            fields_for_select_list=fields_for_select_list,
+            distinct=self._distinct,
+            limit=self._limit,
+            offset=self._offset,
+            orderings=self._orderings,
+            annotations=self._annotations,
+            custom_filters=self._custom_filters,
+            group_bys=self._group_bys,
+            force_indexes=self._force_indexes,
+            use_indexes=self._use_indexes,
+        )
+
+    if TYPE_CHECKING:
+
+        def create(self, *args, **kwargs) -> MODEL: ...
+
+        def filter(self, *args: Q, **kwargs: Any) -> "Self[MODEL]": ...
+
+        def exclude(self, *args: Q, **kwargs: Any) -> "Self[MODEL]": ...
+
+        def order_by(self, *orderings: str) -> "Self[MODEL]": ...
+
 class Manager(Generic[MODEL], TortoiseManager):
     _model: "BaseModel"
-    _queryset_class: Type["QuerySet"] = TortoiseQuerySet
+    _queryset_class: Type["QuerySet"] = QuerySet
 
     def __init__(self, model=None) -> None:
         self._model = model
@@ -50,24 +167,16 @@ class Manager(Generic[MODEL], TortoiseManager):
 
     async def get_or_create(self, *args, **kwargs):
         return await self._model.get_or_create(*args, **kwargs)
-    
-    def get_queryset(self) -> TortoiseQuerySet[MODEL]:
+
+    def get_queryset(self) -> QuerySet[MODEL]:
         return self._queryset_class(self._model)
 
     if TYPE_CHECKING:
 
-        def all(self) -> "TortoiseQuerySet[MODEL]": ...
+        def all(self) -> "QuerySet[MODEL]": ...
 
-
-class QuerySet(TortoiseQuerySet[MODEL]):
-    @classmethod
-    def as_manager(cls):
-        manager = Manager.from_queryset(cls)()
-        return manager
-
-    if TYPE_CHECKING:
-
-        def create(self, *args, **kwargs) -> MODEL: ...
+        @classmethod
+        def filter(cls, *args: Q, **kwargs: Any) -> QuerySet[Self]: ...
 
 
 class BaseMeta:
@@ -252,6 +361,9 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
 
     if TYPE_CHECKING:
         _meta: "MetaInfo"
+
+        @classmethod
+        def filter(cls, *args: Q, **kwargs: Any) -> QuerySet[Self]: ...
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
