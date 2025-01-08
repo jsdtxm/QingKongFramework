@@ -1,18 +1,18 @@
 from base64 import b32encode
 from hashlib import sha3_224
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, create_model
 from pydantic._internal._decorators import PydanticDescriptorProxy
 from tortoise.contrib.pydantic.base import PydanticModel
-from tortoise.contrib.pydantic.creator import _MODEL_INDEX
-from tortoise.contrib.pydantic.creator import PydanticMeta as RawPydanticMeta
 from tortoise.contrib.pydantic.creator import (
+    _MODEL_INDEX,
     _br_it,
     _cleandoc,
     _pydantic_recursion_protector,
     get_annotations,
 )
+from tortoise.contrib.pydantic.creator import PydanticMeta as RawPydanticMeta
 from tortoise.fields import Field as TortoiseField
 from tortoise.fields import IntField, JSONField, TextField, relational
 
@@ -26,6 +26,8 @@ if TYPE_CHECKING:  # pragma: nocoverage
 PydanticModel.data = lambda self: self  # type: ignore
 
 DEFAULT_VALUE_DICT = {int: 0, float: 0.0, str: ""}
+
+PdModel = TypeVar('PdModel', bound=PydanticModel)
 
 
 class PydanticMeta(RawPydanticMeta):
@@ -50,6 +52,7 @@ def pydantic_model_creator(
     computed: Tuple[str, ...] = (),
     optional: Tuple[str, ...] = (),
     depth: int = 0,
+    bases: type[PdModel] | tuple[type[PdModel], ...] | None = None,
     allow_cycles: Optional[bool] = None,
     sort_alphabetically: Optional[bool] = None,
     _stack: tuple = (),
@@ -432,7 +435,7 @@ def pydantic_model_creator(
     properties["model_config"] = pconfig
     model = create_model(
         _name,
-        __base__=PydanticModel,
+        __base__=bases or PydanticModel,
         __module__=module,
         __validators__=validators,
         **properties,
