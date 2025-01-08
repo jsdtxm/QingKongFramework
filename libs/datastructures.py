@@ -34,3 +34,21 @@ class FileFormData(ImmutableMultiDict[str, UploadFile]):
         for key, value in self.multi_items():
             if isinstance(value, UploadFile):
                 await value.close()
+
+
+class StringFormData(ImmutableMultiDict[str, str]):
+    """
+    An immutable multidict, containing both file uploads and text input.
+    """
+
+    def __init__(
+        self,
+        *args: FormData
+        | typing.Mapping[str, str]
+        | list[tuple[str, str]],
+        **kwargs: str,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+
+    async def close(self) -> None:
+        pass
