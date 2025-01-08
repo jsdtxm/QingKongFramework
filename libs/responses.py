@@ -1,3 +1,7 @@
+import json
+import typing
+
+from starlette.background import BackgroundTask
 from starlette.responses import FileResponse as FileResponse  # noqa
 from starlette.responses import HTMLResponse as HTMLResponse  # noqa
 from starlette.responses import JSONResponse as StarletteJSONResponse  # noqa
@@ -5,10 +9,8 @@ from starlette.responses import PlainTextResponse as PlainTextResponse  # noqa
 from starlette.responses import RedirectResponse as RedirectResponse  # noqa
 from starlette.responses import Response as Response  # noqa
 from starlette.responses import StreamingResponse as StreamingResponse  # noqa
-import json
-import typing
+
 from libs.utils.json import JSONEncoder
-from starlette.background import BackgroundTask
 
 
 class JSONResponse(StarletteJSONResponse):
@@ -38,7 +40,24 @@ class JsonResponse(JSONResponse):
 
 
 class HttpResponse(Response):
-    pass
+    def __init__(
+        self,
+        content: typing.Any = None,
+        status_code: int = 200,
+        headers: typing.Mapping[str, str] | None = None,
+        content_type: str | None = None,
+        background: BackgroundTask | None = None,
+        charset: str = "urf-8",
+    ) -> None:
+        self.charset = charset
+        
+        super().__init__(content, status_code, headers, content_type, background)
+
+    def __getitem__(self, key):
+        return self.headers[key]
+
+    def __setitem__(self, key, value):
+        self.headers[key] = value
 
 
 class HttpResponseNotAllowed(HttpResponse):
