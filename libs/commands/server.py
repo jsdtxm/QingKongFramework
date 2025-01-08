@@ -23,6 +23,7 @@ def runserver(app, host, exclude, workers, reload):
 @click.option("--port", default=8000, type=click.INT)
 @click.option("--upstream", callback=parse_dict, multiple=True)
 @click.option("--default-upstream", default="127.0.0.1", type=click.STRING)
-def gateway(host, port, upstream, default_upstream):
+@click.option("--add-slashes", is_flag=True, type=click.BOOL)
+def gateway(host, port, upstream, default_upstream, add_slashes):
     print_logo()
-    run_gateway(host, port, upstream, default_upstream)
+    run_gateway(host, port, upstream, default_upstream, add_slashes)

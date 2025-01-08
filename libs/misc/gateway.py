@@ -27,12 +27,14 @@ class ProxyLocation:
     target: str
     rewrite: tuple[str, str]
 
-    def __init__(self, path, target, rewrite):
+    def __init__(self, path, target, rewrite, add_slashes=False):
         self.path = path
         self.target = target
         self.rewrite = rewrite
 
         self.prefix = re.search(r"^/(\S+)/\{", path).groups(1)[0]
+
+        self.add_slashes = add_slashes
 
     def __repr__(self):
         return (
@@ -43,18 +45,23 @@ class ProxyLocation:
         return f"ProxyLocation {click.style(f"{self.prefix}/*", fg="bright_blue")} -> {click.style(self.target, fg="bright_cyan")}; Rewrite: {click.style(self.rewrite, fg="magenta")}"
 
     @classmethod
-    def prefix_proxy(cls, prefix, target):
+    def prefix_proxy(cls, prefix, target, add_slashes=False):
         return cls(
             r"/" + prefix + r"/{path:.*}",
             target,
             (r"^/" + prefix + r"/(.*)$", r"/$1"),
+            add_slashes=add_slashes,
         )
 
     def rewrite_path(self, path):
         return re.sub(self.rewrite[0], re.sub(r"\$(\d)", r"\\1", self.rewrite[1]), path)
 
     def construct_target_url(self, path):
-        return self.target + self.rewrite_path(path)
+        new_path = self.rewrite_path(path)
+        if self.add_slashes and not new_path.endswith("/"):
+            new_path = new_path + "/"
+
+        return self.target + new_path
 
     def to_aiohttp_route(self):
         return aiohttp.web.route("*", self.path, handler_factory(self))
@@ -189,7 +196,11 @@ def aiohttp_print_override(*args, **kwargs):
 
 
 def run_gateway(
-    host="127.0.0.1", port=8000, upstream_dict={}, default_upstream="127.0.0.1"
+    host="127.0.0.1",
+    port=8000,
+    upstream_dict={},
+    default_upstream="127.0.0.1",
+    add_slashes=False,
 ):
     apps = init_apps(settings.INSTALLED_APPS)
 
@@ -199,14 +210,19 @@ def run_gateway(
 
     proxy_rules = [
         ProxyLocation.prefix_proxy(
-            v.prefix, f"http://{upstream_dict.get(v.prefix, default_upstream)}:{v.port}"
+            v.prefix,
+            f"http://{upstream_dict.get(v.prefix, default_upstream)}:{v.port}",
+            add_slashes=add_slashes,
         )
         for v in app_configs
     ]
 
     # Extra proxy
     proxy_rules.extend(
-        [ProxyLocation.prefix_proxy(p[0], p[1]) for p in settings.EXTRA_PROXY]
+        [
+            ProxyLocation.prefix_proxy(p[0], p[1], add_slashes=add_slashes)
+            for p in settings.EXTRA_PROXY
+        ]
     )
 
     prefix_counter = Counter([rule.prefix for rule in proxy_rules])
