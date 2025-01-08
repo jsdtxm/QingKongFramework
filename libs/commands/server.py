@@ -24,6 +24,7 @@ def runserver(app, host, exclude, workers, reload):
 @click.option("--upstream", callback=parse_dict, multiple=True)
 @click.option("--default-upstream", default="127.0.0.1", type=click.STRING)
 @click.option("--add-slashes", is_flag=True, type=click.BOOL)
-def gateway(host, port, upstream, default_upstream, add_slashes):
+@click.option("--fastapi-redirect", is_flag=True, type=click.BOOL)
+def gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirect):
     print_logo()
-    run_gateway(host, port, upstream, default_upstream, add_slashes)
+    run_gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirect)

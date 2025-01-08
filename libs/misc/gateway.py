@@ -27,7 +27,9 @@ class ProxyLocation:
     target: str
     rewrite: tuple[str, str]
 
-    def __init__(self, path, target, rewrite, add_slashes=False):
+    def __init__(
+        self, path, target, rewrite, add_slashes=False, fastapi_redirect=False
+    ):
         self.path = path
         self.target = target
         self.rewrite = rewrite
@@ -35,6 +37,7 @@ class ProxyLocation:
         self.prefix = re.search(r"^/(\S+)/\{", path).groups(1)[0]
 
         self.add_slashes = add_slashes
+        self.fastapi_redirect = fastapi_redirect
 
     def __repr__(self):
         return (
@@ -45,12 +48,13 @@ class ProxyLocation:
         return f"ProxyLocation {click.style(f"{self.prefix}/*", fg="bright_blue")} -> {click.style(self.target, fg="bright_cyan")}; Rewrite: {click.style(self.rewrite, fg="magenta")}"
 
     @classmethod
-    def prefix_proxy(cls, prefix, target, add_slashes=False):
+    def prefix_proxy(cls, prefix, target, add_slashes=False, fastapi_redirect=False):
         return cls(
             r"/" + prefix + r"/{path:.*}",
             target,
             (r"^/" + prefix + r"/(.*)$", r"/$1"),
             add_slashes=add_slashes,
+            fastapi_redirect=fastapi_redirect,
         )
 
     def rewrite_path(self, path):
@@ -111,9 +115,10 @@ def create_new_headers(headers):
 def handler_factory(proxy_loc: ProxyLocation):
     async def handler(request: aiohttp.web.Request):
         async with aiohttp.ClientSession() as session:
+            request_url = proxy_loc.construct_target_url(request.path_qs)
             async with session.request(
                 method=request.method,
-                url=proxy_loc.construct_target_url(request.path_qs),
+                url=request_url,
                 headers=request.headers,
                 allow_redirects=False,
                 data=await request.read(),
@@ -123,15 +128,34 @@ def handler_factory(proxy_loc: ProxyLocation):
                 if response.status == 307:
                     if location := response.headers.get("Location"):
                         parsed_url = urlparse(location)
-                        parsed_url = parsed_url._replace(
-                            path=f"/{proxy_loc.prefix}" + parsed_url.path
-                        )
-                        headers = create_new_headers(response.headers)
-                        headers["Location"] = parsed_url.geturl()
 
-                        return aiohttp.web.Response(
-                            body=content, status=response.status, headers=headers
-                        )
+                        if proxy_loc.fastapi_redirect:
+                            parsed_request_url = urlparse(request_url)
+                            response = await session.request(
+                                method=request.method,
+                                url=parsed_request_url._replace(
+                                    path=parsed_url.path,
+                                    query=parsed_url.query,
+                                    fragment=parsed_url.fragment,
+                                    params=parsed_url.params,
+                                ).geturl(),
+                                headers=request.headers,
+                                allow_redirects=False,
+                                data=await request.read(),
+                            )
+
+                            content = await response.read()
+                        else:
+                            parsed_url = parsed_url._replace(
+                                path=f"/{proxy_loc.prefix}" + parsed_url.path
+                            )
+
+                            headers = create_new_headers(response.headers)
+                            headers["Location"] = parsed_url.geturl()
+
+                            return aiohttp.web.Response(
+                                body=content, status=response.status, headers=headers
+                            )
 
                 content = swagger_proxy_middleware(proxy_loc, request, content)
 
@@ -201,6 +225,7 @@ def run_gateway(
     upstream_dict={},
     default_upstream="127.0.0.1",
     add_slashes=False,
+    fastapi_redirect=False,
 ):
     apps = init_apps(settings.INSTALLED_APPS)
 
@@ -213,6 +238,7 @@ def run_gateway(
             v.prefix,
             f"http://{upstream_dict.get(v.prefix, default_upstream)}:{v.port}",
             add_slashes=add_slashes,
+            fastapi_redirect=fastapi_redirect,
         )
         for v in app_configs
     ]
@@ -220,7 +246,12 @@ def run_gateway(
     # Extra proxy
     proxy_rules.extend(
         [
-            ProxyLocation.prefix_proxy(p[0], p[1], add_slashes=add_slashes)
+            ProxyLocation.prefix_proxy(
+                p[0],
+                p[1],
+                add_slashes=add_slashes,
+                fastapi_redirect=fastapi_redirect,
+            )
             for p in settings.EXTRA_PROXY
         ]
     )
