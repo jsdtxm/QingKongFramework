@@ -34,6 +34,9 @@ if TYPE_CHECKING:
     from libs.models.info import MetaInfo
 
 
+async def values_list_to_named(fields_for_select_list, data):
+    return [SimpleNamespace(**dict(zip(fields_for_select_list, x))) for x in await data]
+
 class ValuesListQuery(TortoiseValuesListQuery):
     def __init__(
         self,
@@ -61,7 +64,6 @@ class ValuesListQuery(TortoiseValuesListQuery):
             q_objects,
             single,
             raise_does_not_exist,
-            single,
             fields_for_select_list,
             limit,
             offset,
@@ -80,12 +82,12 @@ class ValuesListQuery(TortoiseValuesListQuery):
         if self._db is None:
             self._db = self._choose_db()  # type: ignore
         self._make_query()
-        data = self._execute().__await__()  # pylint: disable=E1101
+        data = self._execute()  # pylint: disable=E1101
 
         if self.named:
-            return SimpleNamespace(**dict(zip(self.fields_for_select_list, data)))
+            return values_list_to_named(self.fields_for_select_list, data).__await__()
 
-        return data
+        return data.__await__()
 
 
 class QuerySet(TortoiseQuerySet[MODEL]):
