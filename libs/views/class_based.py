@@ -1,6 +1,6 @@
 import logging
 from functools import update_wrapper
-from typing import Any, Dict, Optional, Self, Type
+from typing import Any, Dict, Optional, Self, Type, TypeVar
 
 from fastapi.routing import APIRouter
 from starlette.requests import Request
@@ -13,6 +13,8 @@ from libs.utils.functional import classonlymethod
 
 logger = logging.getLogger("qingkong.request")
 
+RequestType = TypeVar("RequestType", bound=DjangoStyleRequest)
+
 
 class ViewWrapper:
     def __init__(self, view, view_class: Type["View"], initkwargs: Dict[str, Any]):
@@ -20,14 +22,20 @@ class ViewWrapper:
         self.view_class = view_class
         self.initkwargs = initkwargs
 
-    @staticmethod
-    def django_request_adapter(request: Request, user: Optional[UserProtocol]):
-        new_request = DjangoStyleRequest(request, user=user)
+    async def django_request_adapter(
+        self, request: Request, user: Optional[UserProtocol]
+    ):
+        new_request = self.view_class.request_class(request, user=user)
+        await self.view_class.post_request_process(new_request)
         return new_request
 
     def view(self):
-        async def view_wrapper(request: Request, user: OptionalCurrentUser):
-            return await self.view_method(self.django_request_adapter(request, user))
+        async def view_wrapper(
+            request: Request, user: self.view_class.authentication_class
+        ):
+            return await self.view_method(
+                await self.django_request_adapter(request, user)
+            )
 
         return view_wrapper
 
@@ -62,6 +70,9 @@ class View:
 
     wrapper_class = ViewWrapper
 
+    authentication_class: Any = OptionalCurrentUser
+    request_class = DjangoStyleRequest
+
     # TODO support Auth
 
     http_method_names = [
@@ -85,6 +96,10 @@ class View:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+    @classmethod
+    async def post_request_process(self, request: RequestType):
+        pass
+
     @classonlymethod  # type: ignore
     def as_view(cls, **initkwargs):
         """Main entry point for a request-response process."""
@@ -101,7 +116,7 @@ class View:
                     "attributes of the class." % (cls.__name__, key)
                 )
 
-        def view(request: Request, *args, **kwargs):
+        def view(request: DjangoStyleRequest, *args, **kwargs):
             self: Self = cls(**initkwargs)  # type: ignore
             self.setup(request, *args, **kwargs)
             if not hasattr(self, "request"):
@@ -124,7 +139,7 @@ class View:
         return cls.wrapper_class(view, cls, initkwargs)
         # return view
 
-    def setup(self, request: Request, *args, **kwargs):
+    def setup(self, request: DjangoStyleRequest, *args, **kwargs):
         """Initialize attributes shared by all view methods."""
         if hasattr(self, "get") and not hasattr(self, "head"):
             self.head = self.get
@@ -132,7 +147,7 @@ class View:
         self.args = args
         self.kwargs = kwargs
 
-    def dispatch(self, request: Request, *args, **kwargs):
+    def dispatch(self, request: DjangoStyleRequest, *args, **kwargs):
         # Try to dispatch to the right method; if a method doesn't exist,
         # defer to the error handler. Also defer to the error handler if the
         # request method isn't on the approved list.
@@ -144,7 +159,9 @@ class View:
             handler = self.http_method_not_allowed
         return handler(request, *args, **kwargs)
 
-    async def http_method_not_allowed(self, request: Request, *args, **kwargs):
+    async def http_method_not_allowed(
+        self, request: DjangoStyleRequest, *args, **kwargs
+    ):
         logger.warning(
             "Method Not Allowed (%s): %s",
             request.method,
@@ -153,7 +170,7 @@ class View:
         )
         return HttpResponseNotAllowed(self._allowed_methods())
 
-    async def options(self, request: Request, *args, **kwargs):
+    async def options(self, request: DjangoStyleRequest, *args, **kwargs):
         """Handle responding to requests for the OPTIONS HTTP verb."""
         response = HttpResponse()
         response.headers["Allow"] = ", ".join(self._allowed_methods())
