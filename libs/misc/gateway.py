@@ -4,6 +4,7 @@ import os
 import re
 from collections import Counter
 from functools import lru_cache
+from urllib.parse import urlparse
 
 import aiohttp
 import aiohttp.client_exceptions
@@ -91,6 +92,15 @@ def check_origin(origin: str | None, referer: str | None):
     return False
 
 
+def create_new_headers(headers):
+    new_headers = {
+        k: v
+        for k, v in headers.items()
+        if k.lower() != "content-length" and k.lower() != "transfer-encoding"
+    }
+    return new_headers
+
+
 def handler_factory(proxy_loc: ProxyLocation):
     async def handler(request: aiohttp.web.Request):
         async with aiohttp.ClientSession() as session:
@@ -98,17 +108,27 @@ def handler_factory(proxy_loc: ProxyLocation):
                 method=request.method,
                 url=proxy_loc.construct_target_url(request.path_qs),
                 headers=request.headers,
+                allow_redirects=False,
                 data=await request.read(),
             ) as response:
                 content = await response.read()
+
+                if response.status == 307:
+                    if location := response.headers.get("Location"):
+                        parsed_url = urlparse(location)
+                        parsed_url = parsed_url._replace(
+                            path=f"/{proxy_loc.prefix}" + parsed_url.path
+                        )
+                        headers = create_new_headers(response.headers)
+                        headers["Location"] = parsed_url.geturl()
+
+                        return aiohttp.web.Response(
+                            body=content, status=response.status, headers=headers
+                        )
+
                 content = swagger_proxy_middleware(proxy_loc, request, content)
 
-                headers = {
-                    k: v
-                    for k, v in response.headers.items()
-                    if k.lower() != "content-length"
-                    and k.lower() != "transfer-encoding"
-                }
+                headers = create_new_headers(response.headers)
 
                 if settings.ADD_CORS_HEADERS:
                     origin = request.headers.get("Origin", "")
@@ -174,9 +194,7 @@ def run_gateway(
     apps = init_apps(settings.INSTALLED_APPS)
 
     app_configs = [
-        x
-        for x in apps.app_configs.values()
-        if not x.name.startswith("libs.contrib")
+        x for x in apps.app_configs.values() if not x.name.startswith("libs.contrib")
     ]
 
     proxy_rules = [
