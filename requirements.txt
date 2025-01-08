@@ -3,6 +3,7 @@
 # BASE djangorestframework==3.15.2
 
 fastapi==0.115.4
+fastapi-cli==0.0.5
 
 fastapi-pagination==0.12.31
 
@@ -44,6 +45,5 @@ async-lru==2.0.4
 etcd3-py==0.1.6
 
 # Dev
-fastapi-cli==0.0.5
 mypy==1.13.0
 types-pytz==2024.2.0.20241221

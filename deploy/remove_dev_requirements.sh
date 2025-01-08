@@ -1,30 +1,21 @@
 #!/bin/sh
 
-if [ -z "$1" ]; then
-    echo "Usage: $0 filename"
+# 检查是否提供了两个参数
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <source_file> <destination_file>"
     exit 1
 fi
 
-filename=$1
-tempfile=$2
+SOURCE_FILE=$1
+DESTINATION_FILE=$2
 
-if [ ! -f "$filename" ]; then
-    echo "File not found: $filename"
+# 检查源文件是否存在
+if [ ! -f "$SOURCE_FILE" ]; then
+    echo "Source file does not exist."
     exit 1
 fi
 
-> "$tempfile"
+# 使用 awk 来处理文件，当遇到以 "# Dev" 开头的行时停止打印
+awk ' /^# Dev/ {exit} {print}' "$SOURCE_FILE" > "$DESTINATION_FILE"
 
-in_comment_block=false
-while read -r line; do
-    if [ "$in_comment_block" = false ] && [ "$line" = "# Dev"* ]; then
-        in_comment_block=true
-        echo "$line" >> "$tempfile"
-    elif [ "$in_comment_block" = true ]; then
-        echo "# $line" >> "$tempfile"
-    else
-        echo "$line" >> "$tempfile"
-    fi
-done < "$filename"
-
-echo "Processed content saved to: $tempfile"
+echo "Processed content has been saved to $DESTINATION_FILE"
