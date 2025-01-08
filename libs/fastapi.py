@@ -56,6 +56,7 @@ class FastAPI(RawFastAPI):
         self,
         lifespan: Optional[Lifespan[AppType]] = None,
         include_healthz: bool = True,
+        redirect_slashes=True,
         middleware: Sequence[Middleware] = [],
         **kwargs,
     ):
@@ -76,6 +77,7 @@ class FastAPI(RawFastAPI):
         super().__init__(
             lifespan=lifespan_wrapper(lifespan or default_lifespan),
             middleware=middleware,
+            redirect_slashes=redirect_slashes,
             **kwargs,
         )
 
