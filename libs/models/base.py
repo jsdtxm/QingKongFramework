@@ -233,15 +233,44 @@ class ModelMetaClass(TortoiseModelMeta):
         return super().__new__(mcs, name, bases, attrs)
 
 
+def field_filter(stubgen_meta: "BaseModel.StubGenMeta", fields):
+    include, exclude = (
+        getattr(stubgen_meta, "include", None),
+        getattr(stubgen_meta, "exclude", None),
+    )
+
+    if include is None and exclude is None:
+        return [x["name"] for x in fields]
+
+    if include == "__all__":
+        return [x["name"] for x in fields]
+
+    if exclude == "__all__":
+        return []
+
+    filtered_fields = []
+    for field in fields:
+        if include and field["name"] not in include:
+            continue
+        if exclude and field["name"] in exclude:
+            continue
+
+        filtered_fields.append(field["name"])
+
+    return filtered_fields
+
+
 def generate_query_params_attrs(
     cls: "BaseModel", mode: Literal["full", "lite"] = "lite", depth=0, max_depth=1
 ):
+    from libs.models.fields import data as data_fields
+
     need_import = defaultdict(set)
     kwargs = []
 
-    full = mode == "full"
+    global_full = mode == "full"
 
-    for kkk, fields in filter(
+    for _, fields in filter(
         lambda x: x[0]
         in {"pk_field", "data_fields", "fk_fields", "backward_fk_fields"},
         cls.describe(serializable=False).items(),
@@ -250,9 +279,14 @@ def generate_query_params_attrs(
             fields = [
                 fields,
             ]
+
+        query_extend_fileds = field_filter(cls.StubGenMeta, fields)
+
         for field in fields:
             field_type = field["field_type"]
             name, ptype = field["name"], field["python_type"]
+
+            field_full = name in getattr(cls.StubGenMeta, "full", [])
 
             if (
                 field_type is relational.ForeignKeyFieldInstance
@@ -261,7 +295,10 @@ def generate_query_params_attrs(
                 or field_type is relational.BackwardFKRelation
                 or field_type is relational.ManyToManyFieldInstance
             ):
-                if depth > max_depth:
+                if depth >= max_depth:
+                    continue
+
+                if name not in query_extend_fileds:
                     continue
 
                 need_import[ptype.__module__].add(ptype.__name__)
@@ -292,10 +329,19 @@ def generate_query_params_attrs(
                     ),
                 )
 
-                if full or ptype_str not in {"datetime.datetime", "float"}:
+                if name not in query_extend_fileds:
+                    continue
+
+                if (global_full or field_full) or (
+                    ptype_str not in {"datetime.datetime", "float"}
+                    and field_type
+                    not in [
+                        data_fields.TextField,
+                    ]
+                ):
                     kwargs.append((f"{name}__in", f"typing.Sequence[{ptype_str}]"))
 
-                if full:
+                if global_full or field_full:
                     kwargs.extend(
                         [
                             (f"{name}__exact", ptype_str),
@@ -306,7 +352,7 @@ def generate_query_params_attrs(
 
                 if ptype_str in ("int", "float", "datetime.datetime"):
                     if (
-                        full
+                        (global_full or field_full)
                         or name
                         not in {
                             "id",
@@ -319,32 +365,32 @@ def generate_query_params_attrs(
                                 for x in ["gt", "gte", "lt", "lte"]
                             ]
                         )
-                    if full:
+                    if global_full or field_full:
                         kwargs.append((f"{name}__range", Tuple[ptype, ptype]))
                 if ptype_str == "str":
-                    if full or name not in {"uuid"}:
+                    if (global_full or field_full) or name not in {"uuid"}:
                         kwargs.extend(
                             [
                                 (f"{name}__{x}", ptype_str)
                                 for x in [
                                     "contains",
+                                    "icontains",
                                     "startswith",
                                     "endswith",
                                 ]
                             ]
                         )
-                    if full:
+                    if global_full or field_full:
                         kwargs.extend(
                             [
                                 (f"{name}__{x}", ptype_str)
                                 for x in [
-                                    "icontains",
                                     "istartswith",
                                     "iendswith",
                                 ]
                             ]
                         )
-                if full and ptype_str == "datetime.datetime":
+                if (global_full or field_full) and ptype_str == "datetime.datetime":
                     kwargs.extend(
                         [
                             (f"{name}__{x}", "int")
@@ -388,11 +434,20 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
         create_params_code = "class CreateParams(typing.TypedDict, total=False):\n"
         query_params_code = "class QueryParams(CreateParams, total=False):\n"
 
+        create_flag, query_flag = False, False
         for arg in kwargs:
             if "__" not in arg[0]:
+                create_flag = True
                 create_params_code += f"    {arg[0]}: {arg[1]}\n"
             else:
+                query_flag = True
                 query_params_code += f"    {arg[0]}: {arg[1]}\n"
+
+        if not create_flag:
+            create_params_code += "    pass\n"
+
+        if not query_flag:
+            query_params_code += "    pass\n"
 
         return need_import, create_params_code + "\n" + query_params_code
 
@@ -403,3 +458,8 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
         include = ()
         exclude = ()
         max_recursion = 1
+
+    class StubGenMeta:
+        include = "__all__"  # '__all__'|('field_name', )
+        exclude = ()
+        full = ()
