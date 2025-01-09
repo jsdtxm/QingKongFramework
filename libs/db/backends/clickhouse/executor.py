@@ -30,6 +30,14 @@ from tortoise.filters import (
     starts_with,
 )
 
+class ILike(Like):  # type: ignore
+    def __init__(self, left, right, alias=None, escape=" ESCAPE '\\'") -> None:
+        """
+        A Like that supports an ESCAPE clause
+        """
+        super(Like, self).__init__(" ILIKE ", left, right, alias=alias)
+        self.escape = escape
+
 
 class ToString(functions.Function):
     def __init__(self, term, alias=None) -> None:
@@ -72,9 +80,9 @@ def mysql_insensitive_exact(field: Term, value: str) -> Criterion:
 
 
 def clickhouse_insensitive_contains(field: Term, value: str) -> Criterion:
-    return Like(
-        functions.Upper(functions.Coalesce(ToString(field), StrWrapper(""))),
-        functions.Upper(StrWrapper(f"%{escape_like(value)}%")),
+    return ILike(
+        functions.Coalesce(ToString(field), StrWrapper("")),
+        StrWrapper(f"%{escape_like(value)}%"),
         escape="",
     )
 
