@@ -1,4 +1,5 @@
 from collections import defaultdict
+from types import SimpleNamespace
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +15,7 @@ from typing import (
     Type,
     Union,
 )
-from types import SimpleNamespace
+
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 from tortoise.fields import relational
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
 
 async def values_list_to_named(fields_for_select_list, data):
     return [SimpleNamespace(**dict(zip(fields_for_select_list, x))) for x in await data]
+
 
 class ValuesListQuery(TortoiseValuesListQuery):
     def __init__(
@@ -144,6 +146,11 @@ class QuerySet(TortoiseQuerySet[MODEL]):
         def exclude(self, *args: Q, **kwargs: Any) -> "Self[MODEL]": ...
 
         def order_by(self, *orderings: str) -> "Self[MODEL]": ...
+
+        def offset(self, offset: int) -> "Self[MODEL]": ...
+
+        def limit(self, limit: int) -> "Self[MODEL]": ...
+
 
 class Manager(Generic[MODEL], TortoiseManager):
     _model: "BaseModel"
