@@ -68,11 +68,16 @@ class BaseSerializer:
         def model_dump_json(self, *args, **kwargs): ...
 
         @classmethod
-        async def from_queryset(cls,  queryset: "TortoiseQuerySet") -> List[Self]: ...
+        async def from_queryset(cls, queryset: "TortoiseQuerySet") -> List[Self]: ...
 
-        @copy_method_signature(PydanticModel.model_validate)
+        @classmethod
         def model_validate(
             cls,
+            obj: Any,
+            *,
+            strict: bool | None = None,
+            from_attributes: bool | None = None,
+            context: Any | None = None,
         ) -> Self: ...
 
 
