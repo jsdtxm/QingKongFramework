@@ -71,13 +71,12 @@ def mysql_insensitive_exact(field: Term, value: str) -> Criterion:
     return functions.Upper(functions.Cast(field, SqlTypes.CHAR)).eq(functions.Upper(str(value)))
 
 
-def mysql_insensitive_contains(field: Term, value: str) -> Criterion:
+def clickhouse_insensitive_contains(field: Term, value: str) -> Criterion:
     return Like(
-        functions.Upper(functions.Cast(field, SqlTypes.CHAR)),
+        functions.Upper(functions.Coalesce(ToString(field), StrWrapper(""))),
         functions.Upper(StrWrapper(f"%{escape_like(value)}%")),
         escape="",
     )
-
 
 def mysql_insensitive_starts_with(field: Term, value: str) -> Criterion:
     return Like(
@@ -109,7 +108,7 @@ class ClickHouseExecutor(BaseExecutor):
         starts_with: mysql_starts_with,
         ends_with: mysql_ends_with,
         insensitive_exact: mysql_insensitive_exact,
-        insensitive_contains: mysql_insensitive_contains,
+        insensitive_contains: clickhouse_insensitive_contains,
         insensitive_starts_with: mysql_insensitive_starts_with,
         insensitive_ends_with: mysql_insensitive_ends_with,
         search: mysql_search,
