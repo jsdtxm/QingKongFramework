@@ -33,7 +33,11 @@ class EmptyModelMetaclass(ModelMetaclass):
         return type.__new__(mcs, name, bases, attrs)
 
 
-class empty:
+class BoolMeta(type):
+    def __bool__(cls):
+        return False
+
+class empty(metaclass=BoolMeta):
     """
     This class is used to represent no data being provided for a given input
     or output value.
@@ -41,7 +45,8 @@ class empty:
     It is required because `None` may be a valid input or output value.
     """
 
-    pass
+    def __bool__(self):
+        return False
 
 
 NOT_READ_ONLY_WRITE_ONLY = "May not set both `read_only` and `write_only`"
