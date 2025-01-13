@@ -121,7 +121,7 @@ class ClickHouseClient(BaseDBAsyncClient):
         try:
             if mysql.__name__ == "asynch":
                 self._pool = await mysql.pool._create_pool(
-                    password=self.password, **self._template
+                    password=self.password, compression=True, **self._template
                 )
             else:
                 self._pool = await mysql.create_pool(
