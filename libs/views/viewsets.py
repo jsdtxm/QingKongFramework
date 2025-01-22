@@ -79,11 +79,15 @@ class GenericViewSetWrapper(ViewWrapper):
     def view(self, route: ViewSetRouteItem):  # type: ignore
         matches = re.findall(BRACE_REGEX, route.url)
 
-        extra_params = ", ".join([f"{match}: int" for match in matches])
+        extra_params = [f"{match}: int" for match in matches]
+        if route.action in ("create", "update"):
+            extra_params.append("body: dict")
+
+        extra_params_str = ", ".join(extra_params)
         extra_params_send = ", ".join([f"{match}={match}" for match in matches])
 
         function_definition = f"""def view_wrapper_factory(route, self):
-    async def view_wrapper(request: Request, user: OptionalCurrentUser, {extra_params}):
+    async def view_wrapper(request: Request, user: OptionalCurrentUser, {extra_params_str}):
         return await self.view_method(
             route.action, await self.django_request_adapter(request, user), {extra_params_send} 
         )
