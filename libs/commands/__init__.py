@@ -6,5 +6,6 @@ from .misc import about, stubgen
 from .server import gateway, runserver
 from .shell import shell
 from .user import createsuperuser
+from .load_data import loaddata
 
 cli = Group()
