@@ -16,6 +16,7 @@ from tortoise.contrib.pydantic.creator import PydanticMeta as RawPydanticMeta
 from tortoise.fields import Field as TortoiseField
 from tortoise.fields import IntField, JSONField, TextField, relational
 
+from libs.models.fields import DateField, DateTimeField
 from libs.serializers.fields import ListSerializer
 
 if TYPE_CHECKING:  # pragma: nocoverage
@@ -27,7 +28,7 @@ PydanticModel.data = lambda self: self  # type: ignore
 
 DEFAULT_VALUE_DICT = {int: 0, float: 0.0, str: ""}
 
-PdModel = TypeVar('PdModel', bound=PydanticModel)
+PdModel = TypeVar("PdModel", bound=PydanticModel)
 
 
 class PydanticMeta(RawPydanticMeta):
@@ -318,6 +319,11 @@ def pydantic_model_creator(
                 _name = name or get_name()
 
             return pmodel
+
+        if field_type is DateField or field_type is DateTimeField:
+            if not fdesc.get("nullable"):
+                if fdesc.get("auto_now_add") or fdesc.get("auto_now"):
+                    fdesc["nullable"] = True
 
         # Foreign keys and OneToOne fields are embedded schemas
         is_to_one_relation = False
