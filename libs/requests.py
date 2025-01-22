@@ -44,6 +44,10 @@ class DjangoStyleRequest:
         return FileFormData(self.file_data)
     
     @property
+    async def data(self):
+        return await self.request.json()
+    
+    @property
     def method(self):
         return self.request.method
     
