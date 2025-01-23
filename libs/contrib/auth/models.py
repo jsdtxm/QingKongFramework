@@ -33,7 +33,7 @@ class Permission(models.Model):
     instance. It is possible to say "Mary may change news stories," but it's
     not currently possible to say "Mary may change news stories, but only the
     ones she created herself" or "Mary may only change news stories that have a
-    certain status or publication date."
+    certain status or publication date.
 
     The permissions listed above are automatically created for each model.
     """
@@ -220,6 +220,9 @@ class AbstractUser(models.Model, LoadPermissionBackendMixin):
     class Meta:
         abstract = True
         manager = UserManager()
+
+    class PydanticMeta:
+        write_only_fields = ["password"]
 
 
 if settings.AUTH_USER_MODEL == "libs.contrib.auth.models.User":

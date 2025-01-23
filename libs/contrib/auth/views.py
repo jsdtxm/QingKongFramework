@@ -8,10 +8,12 @@ from libs.contrib.auth import authenticate_user
 from libs.contrib.auth.utils import (
     RawToken,
     RefreshTokenUser,
+    CurrentUser,
     TokenTypeEnum,
 )
 from libs.exceptions import HTTPException
 from libs.security.jwt import create_token
+from libs.contrib.auth.serializers import UserSerializer
 
 token_router = APIRouter()
 
@@ -62,4 +64,9 @@ async def token_refresh(user: RefreshTokenUser):
 async def token_verify(data: RawToken):
     payload, user = data
 
-    return {"payload": payload, "user": user}
+    return {"payload": payload, "user": user.username}
+
+
+@token_router.post("/profile")
+async def profile(user: CurrentUser):
+    return UserSerializer.model_validate(user)
