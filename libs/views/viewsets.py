@@ -3,6 +3,7 @@ from collections import namedtuple
 from functools import update_wrapper
 from inspect import getmembers
 from typing import (
+    Any,
     Generic,
     Iterable,
     List,
@@ -16,7 +17,7 @@ from typing import (
 )
 
 from fastapi.routing import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, SkipValidation
 from starlette.requests import Request
 from tortoise.queryset import MODEL
 from tortoise.queryset import QuerySet as TortoiseQuerySet
@@ -83,7 +84,14 @@ class GenericViewSetWrapper(ViewWrapper):
 
         extra_params = [f"{match}: int" for match in matches]
         if route.action in ("create", "update"):
-            extra_params.append("body: serializer_class")
+            extra_params.append(
+                "body: "
+                + (
+                    "SkipValidation[serializer_class]"
+                    if route.action == "update"
+                    else "serializer_class"
+                )
+            )
 
         extra_params_str = ", ".join(extra_params)
         extra_params_send = ", ".join([f"{match}={match}" for match in matches])
@@ -98,7 +106,12 @@ class GenericViewSetWrapper(ViewWrapper):
         local_env = {}
         exec(
             function_definition,
-            {"Request": Request, "OptionalCurrentUser": OptionalCurrentUser, "serializer_class": self.view_class.serializer_class},
+            {
+                "Request": Request,
+                "SkipValidation": SkipValidation,
+                "OptionalCurrentUser": OptionalCurrentUser,
+                "serializer_class": self.view_class.serializer_class,
+            },
             local_env,
         )
 
@@ -458,6 +471,21 @@ class GenericViewSet(GenericAPIView):
 
 class ReadOnlyModelViewSet(
     mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet
+):
+    """
+    A viewset that provides default `list()` and `retrieve()` actions.
+    """
+
+    pass
+
+
+class ModelViewSet(
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet,
 ):
     """
     A viewset that provides default `list()` and `retrieve()` actions.

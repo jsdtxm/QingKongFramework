@@ -62,6 +62,32 @@ if TYPE_CHECKING:
     class CreateModelMixinType(CreateModelMixin, GenericViewSet):
         pass
 
+
+class UpdateModelMixin:
+    """
+    Update a model instance.
+    """
+
+    async def update(
+        self: "UpdateModelMixinType", request: DjangoStyleRequest, *args, **kwargs
+    ):  # type: ignore
+        instance = await self.get_object()
+        serializer = await self.get_serializer(instance, data=await request.data)
+
+        await self.perform_update(instance)
+
+        return JSONResponse(serializer.model_dump())
+
+    async def perform_update(self, serializer: ModelSerializer):
+        await serializer.save()
+
+
+if TYPE_CHECKING:
+
+    class UpdateModelMixinType(UpdateModelMixin, GenericViewSet):
+        pass
+
+
 class DestroyModelMixin:
     """
     Destroy a model instance.
