@@ -96,6 +96,9 @@ def router_convert(urlpatterns: List[ApiPath]):
     root = APIRouter()
     for url in urlpatterns:
         if isinstance(url.endpoint, NestedRouter):
+            if url.path and not url.path.startswith("/"):
+                url.path = "/" + url.path
+
             router_list.append(RouterWrapper(url.endpoint.inner, url.path))
         elif isinstance(url.endpoint, ViewWrapper):
             if not url.path.startswith("/"):
