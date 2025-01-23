@@ -258,7 +258,7 @@ class GenericAPIView(Generic[MODEL], APIView):
         queryset lookups.  Eg if objects are referenced using multiple
         keyword arguments in the url conf.
         """
-        queryset = self.filter_queryset(self.get_queryset())
+        queryset = await self.filter_queryset(self.get_queryset())
 
         # Perform the lookup filtering.
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
@@ -333,7 +333,7 @@ class GenericAPIView(Generic[MODEL], APIView):
 
         return serializer_class.model_validate(instance)
 
-    def filter_queryset(self, queryset):
+    async def filter_queryset(self, queryset):
         """
         Given a queryset, filter it with whichever filter backend is in use.
 
