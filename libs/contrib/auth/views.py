@@ -45,7 +45,7 @@ async def token_obtain(req: TokenObtainReq):
 
 @token_router.post("/token/refresh")
 async def token_refresh(user: RefreshTokenUser):
-    if not user:
+    if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid login credentials")
 
     access_token = create_token(
