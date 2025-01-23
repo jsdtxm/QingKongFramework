@@ -303,35 +303,35 @@ class GenericAPIView(Generic[MODEL], APIView):
 
     @overload
     async def get_serializer(
-        self, data, many: Optional[bool] = False, **kwargs
+        self, instance: Any = None, data: Any = None, many: Optional[bool] = False, **kwargs
     ) -> serializers.BaseSerializer: ...
 
     @overload
     async def get_serializer(
-        self, data, many: Literal[True] = True, **kwargs
+        self, instance: Any = None, data: Any = None, many: Literal[True] = True, **kwargs
     ) -> ListSerializerWrapper: ...
 
     @overload
     async def get_serializer(
-        self, data, many: Literal[False] = False, **kwargs
+        self, instance: Any = None, data: Any = None, many: Literal[False] = False, **kwargs
     ) -> serializers.BaseSerializer: ...
 
     async def get_serializer(
-        self, data, many: Optional[bool] = False, **kwargs
+        self, instance: Any = None, data: Any = None, many: Optional[bool] = False, **kwargs
     ) -> ListSerializerWrapper | serializers.BaseSerializer:
         """
         Return the serializer instance that should be used for validating and
         deserializing input, and for serializing output.
         """
         serializer_class = self.get_serializer_class()
-        if isinstance(data, TortoiseQuerySet):
-            return ListSerializerWrapper(await serializer_class.from_queryset(data))
-        elif isinstance(data, list):
+        if isinstance(instance, TortoiseQuerySet):
+            return ListSerializerWrapper(await serializer_class.from_queryset(instance))
+        elif isinstance(instance, list):
             return ListSerializerWrapper(
-                [serializer_class.model_validate(x) for x in data]
+                [serializer_class.model_validate(x) for x in instance]
             )
 
-        return serializer_class.model_validate(data)
+        return serializer_class.model_validate(instance)
 
     def filter_queryset(self, queryset):
         """
