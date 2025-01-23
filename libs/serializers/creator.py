@@ -1,8 +1,15 @@
 from base64 import b32encode
+from datetime import datetime
 from hashlib import sha3_224
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, create_model
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    create_model,
+)
 from pydantic._internal._decorators import PydanticDescriptorProxy
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.contrib.pydantic.creator import (
@@ -426,6 +433,10 @@ def pydantic_model_creator(
         if isinstance(v, BaseModel):
             properties[k] = (v, Field(**fconfig))  # 不对劲啊这里
 
+    for k, v in properties.items():
+        if v[0] is datetime or v[0] is Optional[datetime]:
+            v[1].json_schema_extra |= {"examples": ["1970-01-01 00:00:00"]}
+
     # Here we endure that the name is unique, but complete objects are still labeled verbatim
     if not has_submodel:
         _name = name or f"{fqname}.leaf"
@@ -439,6 +450,7 @@ def pydantic_model_creator(
 
     # Creating Pydantic class for the properties generated before
     properties["model_config"] = pconfig
+
     model = create_model(
         _name,
         __base__=bases or PydanticModel,

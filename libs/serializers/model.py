@@ -13,6 +13,21 @@ from libs.serializers.base import (
 )
 from libs.serializers.creator import pydantic_model_creator
 
+class ModelSerializerPydanticModel(PydanticModel):
+    @model_serializer(mode="wrap")
+    def serialize(
+        self, original_serializer: Callable[[Self], dict[str, Any]]
+    ) -> dict[str, Any]:
+        result = original_serializer(self)
+
+        for k, v in result.items():
+            if isinstance(v, datetime):
+                result[k] = v.strftime("%Y-%m-%d %H:%M:%S")
+            elif isinstance(v, date):
+                result[k] = v.strftime("%Y-%m-%d")
+
+        return result
+
 
 class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
     # TODO
@@ -48,6 +63,7 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
             pydantic_model = pydantic_model_creator(
                 meta.model,
                 name=name,
+                bases=ModelSerializerPydanticModel,
                 extra_fields=extra_fields,
                 include=fields,
                 exclude=exclude,
@@ -61,7 +77,7 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
 
 
 class ModelSerializer(
-    BaseSerializer, PydanticModel, metaclass=ModelSerializerMetaclass
+    BaseSerializer, ModelSerializerPydanticModel, metaclass=ModelSerializerMetaclass
 ):
     """
     ModelSerializer
