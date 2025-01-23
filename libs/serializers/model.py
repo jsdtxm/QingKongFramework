@@ -27,6 +27,11 @@ class ModelSerializerPydanticModel(PydanticModel):
                 result[k] = v.strftime("%Y-%m-%d")
 
         return result
+    
+    @property
+    def read_only_fields(self):
+        return self.model_config["read_only_fields"]
+
 
 
 class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
@@ -45,6 +50,9 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
         if meta := attrs.get("Meta", None):
             fields = getattr(meta, "fields", ())
             exclude = getattr(meta, "exclude", ())
+            read_only_fields = getattr(meta, "read_only_fields", ())
+            write_only_fields = getattr(meta, "write_only_fields", ())
+            hidden_fields = getattr(meta, "hidden_fields", ())
 
             if fields == "__all__":
                 fields = ()
@@ -67,8 +75,11 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
                 extra_fields=extra_fields,
                 include=fields,
                 exclude=exclude,
+                read_only_fields=read_only_fields,
+                write_only_fields=write_only_fields,
+                hidden_fields=hidden_fields,
                 validators=validators_map | serializers_map,
-                depth=getattr(meta, "depth", 0)
+                depth=getattr(meta, "depth", 0),
             )
 
             return pydantic_model

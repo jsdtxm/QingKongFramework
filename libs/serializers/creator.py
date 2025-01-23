@@ -58,6 +58,9 @@ def pydantic_model_creator(
     exclude: Tuple[str, ...] = (),
     include: Tuple[str, ...] = (),
     computed: Tuple[str, ...] = (),
+    hidden_fields: Tuple[str, ...] = (),
+    read_only_fields: Tuple[str, ...] = (),
+    write_only_fields: Tuple[str, ...] = (),
     optional: Tuple[str, ...] = (),
     depth: int = 0,
     bases: type[PdModel] | tuple[type[PdModel], ...] | None = None,
@@ -170,6 +173,9 @@ def pydantic_model_creator(
     include = tuple(include) + default_include
     exclude = tuple(exclude) + default_exclude
     computed = tuple(computed) + default_computed
+    read_only_fields = tuple(read_only_fields)
+    write_only_fields = tuple(write_only_fields)
+    hidden_fields = tuple(hidden_fields)
 
     annotations = get_annotations(cls)
 
@@ -283,6 +289,17 @@ def pydantic_model_creator(
         field_default = fdesc.get("default")
         is_optional_field = fname in optional
 
+        if (
+            (fname in read_only_fields)
+            or fdesc.get("generated")
+        ):
+            fdesc["constraints"] = fdesc.get("constraints", {})
+            fdesc["constraints"]["readOnly"] = True
+
+        if fname in write_only_fields:
+            fdesc["constraints"] = fdesc.get("constraints", {})
+            fdesc["constraints"]["writeOnly"] = True
+
         def get_submodel(_model: "Type[Model]") -> Optional[Type[PydanticModel]]:
             """Get Pydantic model for the submodel"""
             nonlocal exclude, _name, has_submodel
@@ -394,6 +411,9 @@ def pydantic_model_creator(
             if "readOnly" in fdesc["constraints"]:
                 json_schema_extra["readOnly"] = fdesc["constraints"]["readOnly"]
                 del fdesc["constraints"]["readOnly"]
+            if "writeOnly" in fdesc["constraints"]:
+                json_schema_extra["writeOnly"] = fdesc["constraints"]["writeOnly"]
+                del fdesc["constraints"]["writeOnly"]
             fconfig.update(fdesc["constraints"])
             ptype = fdesc["python_type"]
             if fdesc.get("nullable"):
@@ -462,6 +482,12 @@ def pydantic_model_creator(
     model.__doc__ = _cleandoc(cls)
     # Store the base class
     model.model_config["orig_model"] = cls  # type: ignore
+    model.model_config["hidden_fields"] = hidden_fields  # type: ignore
+
+    model.model_config["read_only_fields"] = [
+        k for k, v in model.model_fields.items() if v.json_schema_extra.get("readOnly")
+    ]  # type: ignore
+
     # Store model reference so we can de-dup it later on if needed.
     _MODEL_INDEX[_name] = model
     return model
