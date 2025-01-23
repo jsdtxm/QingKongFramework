@@ -26,6 +26,9 @@ class JSONResponse(StarletteJSONResponse):
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
+        if content is None:
+            return b""
+        
         return json.dumps(
             content,
             cls=JSONEncoder,
