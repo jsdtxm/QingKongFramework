@@ -1,3 +1,4 @@
+import re
 from collections import namedtuple
 from functools import update_wrapper
 from inspect import getmembers
@@ -13,7 +14,6 @@ from typing import (
     Union,
     overload,
 )
-import re
 
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
@@ -54,6 +54,8 @@ BRACE_REGEX = re.compile(r"\{([a-zA-Z0-9_]+)\}")
 
 
 class GenericViewSetWrapper(ViewWrapper):
+    view_class: Type["GenericViewSet"]
+
     def get_routers(self, viewset: "GenericViewSet") -> Iterable[ViewSetRouteItem]:
         routers = []
 
@@ -81,7 +83,7 @@ class GenericViewSetWrapper(ViewWrapper):
 
         extra_params = [f"{match}: int" for match in matches]
         if route.action in ("create", "update"):
-            extra_params.append("body: dict")
+            extra_params.append("body: serializer_class")
 
         extra_params_str = ", ".join(extra_params)
         extra_params_send = ", ".join([f"{match}={match}" for match in matches])
@@ -96,7 +98,7 @@ class GenericViewSetWrapper(ViewWrapper):
         local_env = {}
         exec(
             function_definition,
-            {"Request": Request, "OptionalCurrentUser": OptionalCurrentUser},
+            {"Request": Request, "OptionalCurrentUser": OptionalCurrentUser, "serializer_class": self.view_class.serializer_class},
             local_env,
         )
 
@@ -328,7 +330,7 @@ class GenericAPIView(Generic[MODEL], APIView):
             return ListSerializerWrapper(
                 [serializer_class.model_validate(x) for x in data]
             )
-        
+
         return serializer_class.model_validate(data)
 
     def filter_queryset(self, queryset):
@@ -379,6 +381,7 @@ class GenericViewSet(GenericAPIView):
     action: str
 
     wrapper_class = GenericViewSetWrapper
+    serializer_class: Optional[Type[serializers.ModelSerializer]] = None
 
     @classmethod
     def get_actions(cls):

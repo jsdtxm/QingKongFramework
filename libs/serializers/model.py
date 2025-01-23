@@ -1,10 +1,15 @@
-from typing import Tuple, Type
+from typing import Iterable, Optional, Tuple, Type, Any, Callable, Self
 
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    model_serializer,
+)
 from pydantic._internal import _model_construction
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields import Field
 
+from libs.models.base import BaseModel as BaseDBModel
 from libs.serializers.base import (
     BaseSerializer,
     get_serializer_map,
@@ -12,6 +17,8 @@ from libs.serializers.base import (
     get_validators_map,
 )
 from libs.serializers.creator import pydantic_model_creator
+from datetime import datetime, date
+
 
 class ModelSerializerPydanticModel(PydanticModel):
     @model_serializer(mode="wrap")
@@ -32,6 +39,19 @@ class ModelSerializerPydanticModel(PydanticModel):
     def read_only_fields(self):
         return self.model_config["read_only_fields"]
 
+    @property
+    def orig_model(self) -> Type[BaseDBModel]:
+        return self.model_config["orig_model"]
+
+    async def save(
+        self,
+        using_db: Optional[BaseDBAsyncClient] = None,
+        update_fields: Optional[Iterable[str]] = None,
+        force_create: bool = False,
+        force_update: bool = False,
+    ):
+        instance = self.orig_model(**self.model_dump(exclude=self.read_only_fields))
+        await instance.save(using_db, update_fields, force_create, force_update)
 
 
 class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
