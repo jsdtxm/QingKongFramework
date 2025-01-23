@@ -41,6 +41,10 @@ PdModel = TypeVar("PdModel", bound=PydanticModel)
 class PydanticMeta(RawPydanticMeta):
     exclude_raw_fields: bool = False
 
+    read_only_fields: Tuple[str, ...] = ()
+    write_only_fields: Tuple[str, ...] = ()
+    hidden_fields: Tuple[str, ...] = ()
+
 
 def field_map_process(field_map):
     for name, desc in field_map.items():
@@ -156,6 +160,10 @@ def pydantic_model_creator(
     default_computed: Tuple[str, ...] = tuple(get_param("computed"))
     default_config: Optional[ConfigDict] = get_param("model_config")
 
+    default_read_only_fields: Tuple[str, ...] = tuple(get_param("read_only_fields"))
+    default_write_only_fields: Tuple[str, ...] = tuple(get_param("write_only_fields"))
+    default_hidden_fields: Tuple[str, ...] = tuple(get_param("hidden_fields"))
+
     backward_relations: bool = bool(get_param("backward_relations"))
 
     max_recursion: int = int(get_param("max_recursion"))
@@ -173,9 +181,10 @@ def pydantic_model_creator(
     include = tuple(include) + default_include
     exclude = tuple(exclude) + default_exclude
     computed = tuple(computed) + default_computed
-    read_only_fields = tuple(read_only_fields)
-    write_only_fields = tuple(write_only_fields)
-    hidden_fields = tuple(hidden_fields)
+
+    read_only_fields = tuple(read_only_fields) + default_read_only_fields
+    write_only_fields = tuple(write_only_fields) + default_write_only_fields
+    hidden_fields = tuple(hidden_fields) + default_hidden_fields
 
     annotations = get_annotations(cls)
 
@@ -486,6 +495,10 @@ def pydantic_model_creator(
 
     model.model_config["read_only_fields"] = [
         k for k, v in model.model_fields.items() if v.json_schema_extra.get("readOnly")
+    ]  # type: ignore
+
+    model.model_config["write_only_fields"] = [
+        k for k, v in model.model_fields.items() if v.json_schema_extra.get("writeOnly")
     ]  # type: ignore
 
     # Store model reference so we can de-dup it later on if needed.
