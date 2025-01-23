@@ -62,3 +62,21 @@ if TYPE_CHECKING:
     class CreateModelMixinType(CreateModelMixin, GenericViewSet):
         pass
 
+class DestroyModelMixin:
+    """
+    Destroy a model instance.
+    """
+
+    async def destroy(self: "DestroyModelMixinType", request, *args, **kwargs):  # type: ignore
+        instance = await self.get_object()
+        await self.perform_destroy(instance)
+        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
+
+    async def perform_destroy(self, instance: BaseModel):
+        await instance.delete()
+
+
+if TYPE_CHECKING:
+
+    class DestroyModelMixinType(DestroyModelMixin, GenericViewSet):
+        pass
