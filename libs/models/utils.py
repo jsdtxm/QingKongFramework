@@ -60,6 +60,11 @@ async def get_object_or_404(model_class, *args, **kwargs):
     try:
         return await model_class.get(*args, **kwargs)
     except DoesNotExist:
-        raise Http404(
-            "No %s matches the given query." % model_class.__name__
-        )
+        if isinstance(model_class, type):
+            name = model_class.__name__
+        else:
+            name = model_class.__class__.__name__
+            if name == "QuerySet":
+                name = model_class.model.__name__
+
+        raise Http404("No %s matches the given query." % name)
