@@ -1,10 +1,12 @@
-from typing import Iterable, Optional, Tuple, Type, Any, Callable, Self
+from datetime import date, datetime
+from typing import Any, Callable, Iterable, Optional, Self, Tuple, Type
 
 from pydantic import (
     BaseModel,
     model_serializer,
 )
 from pydantic._internal import _model_construction
+from pydantic.main import IncEx
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields import Field
@@ -17,7 +19,7 @@ from libs.serializers.base import (
     get_validators_map,
 )
 from libs.serializers.creator import pydantic_model_creator
-from datetime import datetime, date
+from libs.utils.functional import copy_method_signature
 
 
 class ModelSerializerPydanticModel(PydanticModel):
@@ -34,10 +36,19 @@ class ModelSerializerPydanticModel(PydanticModel):
                 result[k] = v.strftime("%Y-%m-%d")
 
         return result
-    
+
+    @copy_method_signature(PydanticModel.model_dump)
+    def model_dump(self, exclude: IncEx | None = None, **kwargs) -> dict[str, Any]:
+        exclude = (exclude or []) + self.write_only_fields
+        return super().model_dump(exclude=exclude, **kwargs)
+
     @property
     def read_only_fields(self):
         return self.model_config["read_only_fields"]
+
+    @property
+    def write_only_fields(self):
+        return self.model_config["write_only_fields"]
 
     @property
     def orig_model(self) -> Type[BaseDBModel]:
