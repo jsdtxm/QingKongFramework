@@ -330,6 +330,14 @@ class GenericAPIView(Generic[MODEL], APIView):
             return ListSerializerWrapper(
                 [serializer_class.model_validate(x) for x in instance]
             )
+        
+        if data is not None:
+            if instance is None:
+                return serializer_class.model_validate(data)
+            else:
+                instance = instance.update_from_dict(data)
+                serializer = serializer_class.model_validate(instance)
+                return serializer
 
         return serializer_class.model_validate(instance)
 
