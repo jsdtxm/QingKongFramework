@@ -44,10 +44,14 @@ class CreateModelMixin:
     Create a model instance.
     """
 
-    async def create(self: "CreateModelMixinType", request: DjangoStyleRequest, *args, **kwargs):  # type: ignore
+    async def create(
+        self: "CreateModelMixinType", request: DjangoStyleRequest, *args, **kwargs
+    ):  # type: ignore
         serializer = await self.get_serializer(data=await request.data)
         await self.perform_create(serializer)
-        return JSONResponse(serializer.model_dump(), status_code=status.HTTP_201_CREATED)
+        return JSONResponse(
+            serializer.model_dump(), status_code=status.HTTP_201_CREATED
+        )
 
     async def perform_create(self, serializer: ModelSerializer):
         await serializer.save()
