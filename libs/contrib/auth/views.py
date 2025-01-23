@@ -29,11 +29,11 @@ async def token_obtain(req: TokenObtainReq):
         raise HTTPException(status_code=401, detail="Invalid login credentials")
 
     access_token = create_token(
-        {"type": TokenTypeEnum.ACCESS.value},
+        {"type": TokenTypeEnum.ACCESS.value, "username": user.username},
         timedelta(seconds=settings.ACCESS_TOKEN_LIFETIME),
     )
     refresh_token = create_token(
-        {"type": TokenTypeEnum.REFRESH.value},
+        {"type": TokenTypeEnum.REFRESH.value, "username": user.username},
         timedelta(seconds=settings.REFRESH_TOKEN_LIFETIME),
     )
 
@@ -49,7 +49,7 @@ async def token_refresh(user: RefreshTokenUser):
         raise HTTPException(status_code=401, detail="Invalid login credentials")
 
     access_token = create_token(
-        {"type": TokenTypeEnum.ACCESS.value},
+        {"type": TokenTypeEnum.ACCESS.value, "username": user.username},
         timedelta(seconds=settings.ACCESS_TOKEN_LIFETIME),
     )
 
