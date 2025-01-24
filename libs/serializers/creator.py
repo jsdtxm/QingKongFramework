@@ -298,10 +298,7 @@ def pydantic_model_creator(
         field_default = fdesc.get("default")
         is_optional_field = fname in optional
 
-        if (
-            (fname in read_only_fields)
-            or fdesc.get("generated")
-        ):
+        if (fname in read_only_fields) or fdesc.get("generated"):
             fdesc["constraints"] = fdesc.get("constraints", {})
             fdesc["constraints"]["readOnly"] = True
 
@@ -429,6 +426,8 @@ def pydantic_model_creator(
                 json_schema_extra["nullable"] = True
             if is_optional_field or field_default is not None or fdesc.get("nullable"):
                 ptype = Optional[ptype]
+                json_schema_extra["nullable"] = True
+
             if not (exclude_readonly and json_schema_extra.get("readOnly") is True):
                 properties[fname] = annotation or ptype
 
