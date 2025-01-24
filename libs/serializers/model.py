@@ -39,20 +39,24 @@ class ModelSerializerPydanticModel(PydanticModel):
 
     @copy_method_signature(PydanticModel.model_dump)
     def model_dump(self, exclude: IncEx | None = None, **kwargs) -> dict[str, Any]:
-        exclude = (exclude or []) + self.write_only_fields
+        exclude = (exclude or []) + self.write_only_fields()
         return super().model_dump(exclude=exclude, **kwargs)
 
-    @property
-    def read_only_fields(self):
-        return self.model_config["read_only_fields"]
+    @classmethod
+    def read_only_fields(cls):
+        return cls.model_config["read_only_fields"]
 
-    @property
-    def write_only_fields(self):
-        return self.model_config["write_only_fields"]
+    @classmethod
+    def write_only_fields(cls):
+        return cls.model_config["write_only_fields"]
 
-    @property
-    def orig_model(self) -> Type[BaseDBModel]:
-        return self.model_config["orig_model"]
+    @classmethod
+    def hidden_fields(cls):
+        return cls.model_config["hidden_fields"]
+
+    @classmethod
+    def orig_model(cls) -> Type[BaseDBModel]:
+        return cls.model_config["orig_model"]
 
     async def save(
         self,
@@ -61,8 +65,21 @@ class ModelSerializerPydanticModel(PydanticModel):
         force_create: bool = False,
         force_update: bool = False,
     ):
-        instance = self.orig_model(**self.model_dump(exclude=self.read_only_fields))
+        instance = self.orig_model()(
+            **self.model_dump(exclude=self.read_only_fields(), exclude_unset=True)
+        )
         await instance.save(using_db, update_fields, force_create, force_update)
+
+    class Config:
+        @staticmethod
+        def json_schema_extra(schema: dict, cls):
+            props = {
+                k: v
+                for k, v in schema.get("properties", {}).items()
+                if k not in cls.hidden_fields()
+            }
+
+            schema["properties"] = props
 
 
 class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
