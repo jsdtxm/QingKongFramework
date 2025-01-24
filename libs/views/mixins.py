@@ -28,7 +28,7 @@ class ListModelMixin:
     """
 
     async def list(self: "GenericViewSet", request, *args, **kwargs):  # type: ignore
-        queryset = self.filter_queryset(self.get_queryset())
+        queryset = await self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
         if page is not None:
