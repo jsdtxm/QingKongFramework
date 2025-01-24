@@ -181,7 +181,7 @@ class APIView(View):
                     code=getattr(permission, "code", None),
                 )
 
-    def check_object_permissions(self, request, obj):
+    async def check_object_permissions(self, request, obj):
         """
         Check if the request should be permitted for a given object.
         Raises an appropriate exception if the request is not permitted.
@@ -287,7 +287,7 @@ class GenericAPIView(Generic[MODEL], APIView):
         obj = await get_object_or_404(queryset, **filter_kwargs)
 
         # May raise a permission denied
-        self.check_object_permissions(self.request, obj)
+        await self.check_object_permissions(self.request, obj)
 
         return obj
 
