@@ -8,6 +8,8 @@ from libs.utils.module_loading import (
     import_string,
     module_has_submodule,
 )
+from libs.utils.ports import find_free_port
+from libs.utils.fs import read_port_from_json
 
 APPS_MODULE_NAME = "apps"
 MODELS_MODULE_NAME = "models"
@@ -29,7 +31,7 @@ class AppConfig(metaclass=AppConfigMeta):
     name: str
     label: str
     prefix: str
-    port: int
+    port: int = None
 
     default_connection: str = "default"
 
@@ -39,6 +41,14 @@ class AppConfig(metaclass=AppConfigMeta):
     def __init__(self, name, module) -> None:
         self.name = name
         self.module = module
+
+        if self.port is None and self.has_module("urls"):
+            exists_config = read_port_from_json(name)
+            self.port = (
+                exists_config.get("port")
+                if exists_config and exists_config.get("port")
+                else find_free_port()
+            )
 
     def __str__(self):
         return f"<QingKongFramework.AppConfig {self.name}>"
@@ -150,3 +160,6 @@ class AppConfig(metaclass=AppConfigMeta):
         if module_has_submodule(self.module, name):
             module_name = "%s.%s" % (self.name, name)
             return cached_import_module(module_name)
+
+    def has_module(self, name: str):
+        return module_has_submodule(self.module, name)
