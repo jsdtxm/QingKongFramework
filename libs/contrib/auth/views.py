@@ -67,6 +67,6 @@ async def token_verify(data: RawToken):
     return {"payload": payload, "user": user.username}
 
 
-@token_router.post("/profile")
+@token_router.get("/profile")
 async def profile(user: CurrentUser):
     return UserSerializer.model_validate(user)

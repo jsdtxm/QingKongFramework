@@ -27,7 +27,7 @@ async def async_migrate(safe, guided, apps):
             f"ERROR {INTERNAL_AUTH_APP_LABEL} required {INTERNAL_CONTENTTYPES_APP_LABEL}"
         )
         return
-    
+
     if guardian_app_enabled and not auth_app_enabled:
         click.echo(
             f"ERROR {INTERNAL_GUARDIAN_APP_LABEL} required {INTERNAL_AUTH_APP_LABEL}"
@@ -40,7 +40,7 @@ async def async_migrate(safe, guided, apps):
 
     if len(apps) > 0:
         await Tortoise.close_connections()
-        
+
         return
 
     if content_type_app_enabled:
@@ -48,6 +48,8 @@ async def async_migrate(safe, guided, apps):
 
     if auth_app_enabled:
         from libs.contrib.auth.models import DefaultPerms, Permission
+
+    # TODO object permission anonymous user
 
     if content_type_app_enabled:
         for x in chain.from_iterable(
