@@ -39,8 +39,10 @@ class ModelSerializerPydanticModel(PydanticModel):
         return result
 
     @copy_method_signature(PydanticModel.model_dump)
-    def model_dump(self, exclude: IncEx | None = None, **kwargs) -> dict[str, Any]:
-        exclude = (exclude or []) + self.write_only_fields()
+    def model_dump(self, exclude: IncEx | None = None, exclude_write_only=True, **kwargs) -> dict[str, Any]:
+        exclude = (exclude or [])
+        if exclude_write_only:
+            exclude = exclude + self.write_only_fields()
         return super().model_dump(exclude=exclude, **kwargs)
 
     @classmethod
@@ -67,7 +69,7 @@ class ModelSerializerPydanticModel(PydanticModel):
         force_update: bool = False,
     ):
         instance = self.orig_model()(
-            **self.model_dump(exclude=self.read_only_fields(), exclude_unset=True)
+            **self.model_dump(exclude=self.read_only_fields(), exclude_unset=True, exclude_write_only=False)
         )
         await instance.save(using_db, update_fields, force_create, force_update)
 
@@ -77,7 +79,7 @@ class ModelSerializerPydanticModel(PydanticModel):
             props = {
                 k: v
                 for k, v in schema.get("properties", {}).items()
-                if k not in cls.hidden_fields()
+                if k not in cls.hidden_fields() and k not in cls.write_only_fields()
             }
 
             schema["properties"] = props
