@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from fastapi.responses import JSONResponse
-from tortoise.exceptions import DoesNotExist, IntegrityError
+from tortoise.exceptions import DoesNotExist, IntegrityError, ValidationError
 
 if TYPE_CHECKING:
     from fastapi import Request
@@ -18,5 +18,14 @@ def add_tortoise_exception_handler(app):
             status_code=422,
             content={
                 "detail": [{"loc": [], "msg": str(exc), "type": "IntegrityError"}]
+            },
+        )
+
+    @app.exception_handler(ValidationError)
+    async def validationError_exception_handler(request: "Request", exc: ValidationError):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": [{"loc": [], "msg": str(exc), "type": "ValidationError"}]
             },
         )
