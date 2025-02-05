@@ -4,6 +4,7 @@ from typing import Any, Callable, Iterable, Optional, Self, Tuple, Type
 from pydantic import (
     BaseModel,
     model_serializer,
+    model_validator,
 )
 from pydantic._internal import _model_construction
 from pydantic.main import IncEx
@@ -82,6 +83,18 @@ class ModelSerializerPydanticModel(PydanticModel):
             schema["properties"] = props
 
 
+def remove_hidden_fields_builder(fields):
+    @model_validator(mode="before")
+    def remove_hidden_fields(self):
+        for field in fields:
+            if field in self:
+                self.pop(field)
+
+        return self
+
+    return remove_hidden_fields
+
+
 class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
     # TODO
     # read_only_fields = ['account_name']
@@ -115,6 +128,15 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
             serializers_map = get_serializer_map(
                 attrs
             ) | get_serializers_map_from_fields(extra_fields)
+
+            # TODO 添加一个validator来移除掉不需要的属性
+            if hidden_fields or read_only_fields:
+                validators_map["remove_hidden_fields"] = remove_hidden_fields_builder(
+                    hidden_fields
+                )
+
+            if write_only_fields:
+                pass
 
             pydantic_model = pydantic_model_creator(
                 meta.model,
