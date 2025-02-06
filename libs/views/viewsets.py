@@ -64,7 +64,7 @@ class GenericViewSetWrapper(ViewWrapper):
             methods = REST_ACTION_METHOD_MAPPING[name]
             detail = name in {"retrieve", "update", "destroy"}
 
-            routers.append(ViewSetRouteItem(name, "/{id}" if detail else "/", methods))
+            routers.append(ViewSetRouteItem(name, "/{id}/" if detail else "/", methods))
 
         for name, action in viewset.get_extra_actions():
             detail = getattr(action, "detail", False)
