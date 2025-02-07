@@ -26,6 +26,19 @@ class LoginRequiredMixin(AccessMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
+class SuperUserRequiredMixin(AccessMixin):
+    """Verify that the current user is administrator."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if (
+            request.user is None
+            or not request.user.is_authenticated
+            or not request.user.is_superuser
+        ):
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
+
+
 class CreatorMixin:
     creator_field = "created_by_id"
 
@@ -38,7 +51,6 @@ class CreatorMixin:
 
 
 class CreatorWithFilterMixin(LoginRequiredMixin, CreatorMixin):
-    
     async def filter_queryset(self, queryset):
         assert self.request.user
         queryset = queryset.filter(**{self.creator_field: self.request.user.id})
