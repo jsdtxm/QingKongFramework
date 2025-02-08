@@ -61,6 +61,10 @@ class ModelSerializerPydanticModel(PydanticModel):
     def orig_model(cls) -> Type[BaseDBModel]:
         return cls.model_config["orig_model"]
 
+    @classmethod
+    def model_description(cls) -> Dict[str, Any]:
+        return cls.model_config["model_description"]
+
     async def save(
         self,
         using_db: Optional[BaseDBAsyncClient] = None,

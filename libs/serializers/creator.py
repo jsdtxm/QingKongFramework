@@ -486,8 +486,13 @@ def pydantic_model_creator(
         __validators__=validators,
         **properties,
     )
+
     # Copy the Model docstring over
     model.__doc__ = _cleandoc(cls)
+
+    # model_description
+    model.model_config['model_description'] = model_description
+
     # Store the base class
     model.model_config["orig_model"] = cls  # type: ignore
     model.model_config["hidden_fields"] = hidden_fields  # type: ignore
