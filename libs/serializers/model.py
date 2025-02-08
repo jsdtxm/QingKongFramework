@@ -1,5 +1,7 @@
+import asyncio
+from collections import defaultdict
 from datetime import date, datetime
-from typing import Any, Callable, Iterable, Optional, Self, Tuple, Type
+from typing import Any, Callable, Dict, Iterable, Optional, Self, Tuple, Type
 
 from pydantic import (
     BaseModel,
@@ -39,8 +41,10 @@ class ModelSerializerPydanticModel(PydanticModel):
         return result
 
     @copy_method_signature(PydanticModel.model_dump)
-    def model_dump(self, exclude: IncEx | None = None, exclude_write_only=True, **kwargs) -> dict[str, Any]:
-        exclude = (exclude or [])
+    def model_dump(
+        self, exclude: IncEx | None = None, exclude_write_only=True, **kwargs
+    ) -> dict[str, Any]:
+        exclude = exclude or []
         if exclude_write_only:
             exclude = exclude + self.write_only_fields()
         return super().model_dump(exclude=exclude, **kwargs)
@@ -71,11 +75,80 @@ class ModelSerializerPydanticModel(PydanticModel):
         update_fields: Optional[Iterable[str]] = None,
         force_create: bool = False,
         force_update: bool = False,
+        **extra_fields,
     ):
+        m2m_fields = self.model_description().get("m2m_fields", [])
+        backward_fk_fields = self.model_description().get("backward_fk_fields", [])
+
         instance = self.orig_model()(
-            **self.model_dump(exclude=self.read_only_fields(), exclude_unset=True, exclude_write_only=False)
+            **(
+                self.model_dump(
+                    exclude=self.read_only_fields()
+                    + [x["name"] for x in m2m_fields]
+                    + [x["name"] for x in backward_fk_fields],
+                    exclude_unset=True,
+                    exclude_write_only=False,
+                )
+                | extra_fields
+            )  # type: ignore[call-arg]
         )
+
         await instance.save(using_db, update_fields, force_create, force_update)
+
+        m2m_objects = await self._build_related_objects(m2m_fields, using_db=using_db)
+        for f in m2m_fields:
+            related_objects = m2m_objects.get(f["name"])
+            if not related_objects:
+                continue
+
+            await asyncio.gather(
+                *[getattr(instance, f["name"]).add(obj) for obj in related_objects]
+            )
+
+        await self._build_related_objects(
+            backward_fk_fields, related_pk=instance.id, using_db=using_db
+        )
+
+        return instance
+
+    async def _build_related_objects(
+        self, fields, related_pk=None, using_db: Optional[BaseDBAsyncClient] = None
+    ):
+        result = defaultdict(list)
+        for field in fields:
+            value = getattr(self, field["name"], None)
+            related_model: BaseDBModel = field["python_type"]
+
+            if value is None:
+                continue
+
+            if isinstance(value, Iterable) and len(value):
+                if isinstance(value[0], ModelSerializerPydanticModel):
+                    if related_pk:
+                        relation_field = (
+                            self.orig_model()
+                            ._meta.fields_map[field["name"]]
+                            .relation_field
+                        )
+
+                    related_objects = []
+                    for sub_value in value:
+                        if related_pk:
+                            related_object = sub_value.save(
+                                using_db=using_db, **{relation_field: related_pk}
+                            )
+                        else:
+                            related_object = sub_value.save(using_db=using_db)
+
+                        related_objects.append(related_object)
+
+                    result[field["name"]] = await asyncio.gather(*related_objects)
+                else:
+                    result[field["name"]] = await related_model.objects.using_db(
+                        using_db
+                    ).filter(id__in=value)
+
+        return result
 
     class Config:
         @staticmethod
@@ -176,5 +249,7 @@ class ModelSerializer(
             exclude = (field1, field2)
     ```
     """
+
+    # hidden_fields = 用户不可传递，由程序计算得出
 
     pass
