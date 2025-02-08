@@ -48,7 +48,11 @@ REST_ACTION_METHOD_MAPPING = {
     "destroy": ["delete"],
 }
 
-ViewSetRouteItem = namedtuple("ViewSetRouteItem", ["action", "url", "methods"])
+class ViewSetRouteItem:
+    def __init__(self, action, url, methods):
+        self.action = action
+        self.url = url
+        self.methods = methods
 
 
 BRACE_REGEX = re.compile(r"\{([a-zA-Z0-9_]+)\}")
@@ -102,6 +106,9 @@ class GenericViewSetWrapper(ViewWrapper):
             route.action, await self.django_request_adapter(request, user), {extra_params_send} 
         )
     return view_wrapper"""
+        
+        # HACK for get_serializer_class
+        route.serializer_class = self.view_class.serializer_class
 
         local_env = {}
         exec(
@@ -110,7 +117,7 @@ class GenericViewSetWrapper(ViewWrapper):
                 "Request": Request,
                 "SkipValidation": SkipValidation,
                 "OptionalCurrentUser": OptionalCurrentUser,
-                "serializer_class": self.view_class.serializer_class,
+                "serializer_class": self.view_class.get_serializer_class(route),
             },
             local_env,
         )
