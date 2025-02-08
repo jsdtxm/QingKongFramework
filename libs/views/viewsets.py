@@ -291,7 +291,7 @@ class GenericAPIView(Generic[MODEL], APIView):
 
         return obj
 
-    def get_serializer_class(self) -> Type[serializers.BaseSerializer]:
+    def get_serializer_class(self, action: Optional[str]=None) -> Type[serializers.BaseSerializer]:
         """
         Return the class to use for the serializer.
         Defaults to using `self.serializer_class`.
@@ -330,13 +330,15 @@ class GenericAPIView(Generic[MODEL], APIView):
     ) -> serializers.BaseSerializer: ...
 
     async def get_serializer(
-        self, instance: Any = None, data: Any = None, many: Optional[bool] = False, **kwargs
+        self, instance: Any = None, data: Any = None, many: Optional[bool] = False, action: Optional[str]=None, **kwargs
     ) -> ListSerializerWrapper | serializers.BaseSerializer:
         """
         Return the serializer instance that should be used for validating and
         deserializing input, and for serializing output.
+
+        action: override self.action
         """
-        serializer_class = self.get_serializer_class()
+        serializer_class = self.get_serializer_class(action=action)
         if isinstance(instance, TortoiseQuerySet):
             return ListSerializerWrapper(await serializer_class.from_queryset(instance))
         elif isinstance(instance, list):
