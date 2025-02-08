@@ -47,7 +47,7 @@ class CreatorMixin:
             setattr(serializer, self.creator_field, self.request.user.id)  # type: ignore[attr-defined]
         else:
             setattr(serializer, self.creator_field, None)  # type: ignore[attr-defined]
-        await serializer.save()
+        return await serializer.save()
 
 
 class CreatorWithFilterMixin(LoginRequiredMixin, CreatorMixin):

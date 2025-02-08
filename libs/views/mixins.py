@@ -44,17 +44,19 @@ class CreateModelMixin:
     Create a model instance.
     """
 
-    async def create(
+    async def create(  # type: ignore
         self: "CreateModelMixinType", request: DjangoStyleRequest, *args, **kwargs
-    ):  # type: ignore
+    ):
         serializer = await self.get_serializer(data=await request.data)
-        await self.perform_create(serializer)
+        instance = await self.perform_create(serializer)  # type: ignore
+
         return JSONResponse(
-            serializer.model_dump(), status_code=status.HTTP_201_CREATED
+            (await self.get_serializer(instance, action="retrieve")).model_dump(),
+            status_code=status.HTTP_201_CREATED,
         )
 
     async def perform_create(self, serializer: ModelSerializer):
-        await serializer.save()
+        return await serializer.save()
 
 
 if TYPE_CHECKING:
@@ -68,9 +70,9 @@ class UpdateModelMixin:
     Update a model instance.
     """
 
-    async def update(
+    async def update(  # type: ignore
         self: "UpdateModelMixinType", request: DjangoStyleRequest, *args, **kwargs
-    ):  # type: ignore
+    ):
         instance = await self.get_object()
         serializer = await self.get_serializer(instance, data=await request.data)
 
