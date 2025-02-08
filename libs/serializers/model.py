@@ -13,6 +13,7 @@ from pydantic.main import IncEx
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields import Field
+from tortoise.transactions import in_transaction
 
 from libs.models.base import BaseModel as BaseDBModel
 from libs.serializers.base import (
@@ -93,21 +94,24 @@ class ModelSerializerPydanticModel(PydanticModel):
             )  # type: ignore[call-arg]
         )
 
-        await instance.save(using_db, update_fields, force_create, force_update)
+        async with in_transaction():  # TODO 或许需要根据model判断一下用哪个连接
+            await instance.save(using_db, update_fields, force_create, force_update)
 
-        m2m_objects = await self._build_related_objects(m2m_fields, using_db=using_db)
-        for f in m2m_fields:
-            related_objects = m2m_objects.get(f["name"])
-            if not related_objects:
-                continue
-
-            await asyncio.gather(
-                *[getattr(instance, f["name"]).add(obj) for obj in related_objects]
+            m2m_objects = await self._build_related_objects(
+                m2m_fields, using_db=using_db
             )
+            for f in m2m_fields:
+                related_objects = m2m_objects.get(f["name"])
+                if not related_objects:
+                    continue
 
-        await self._build_related_objects(
-            backward_fk_fields, related_pk=instance.id, using_db=using_db
-        )
+                await asyncio.gather(
+                    *[getattr(instance, f["name"]).add(obj) for obj in related_objects]
+                )
+
+            await self._build_related_objects(
+                backward_fk_fields, related_pk=instance.id, using_db=using_db
+            )
 
         return instance
 
