@@ -37,6 +37,7 @@ class BoolMeta(type):
     def __bool__(cls):
         return False
 
+
 class empty(metaclass=BoolMeta):
     """
     This class is used to represent no data being provided for a given input
@@ -84,6 +85,9 @@ class BaseSerializer:
             from_attributes: bool | None = None,
             context: Any | None = None,
         ) -> Self: ...
+
+        @classmethod
+        async def from_tortoise_orm(cls, obj: "BaseModel") -> Self: ...
 
 
 class OverrideMixin:

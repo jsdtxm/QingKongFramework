@@ -1,5 +1,4 @@
 import re
-from collections import namedtuple
 from functools import update_wrapper
 from inspect import getmembers
 from typing import (
@@ -24,6 +23,7 @@ from tortoise.queryset import QuerySet as TortoiseQuerySet
 
 from libs import exceptions, serializers
 from libs.contrib.auth.utils import OptionalCurrentUser
+from libs.models import BaseModel as BaseDBModel
 from libs.models import Manager, Model, get_object_or_404
 from libs.permissions.base import BasePermission
 from libs.requests import DjangoStyleRequest
@@ -47,6 +47,7 @@ REST_ACTION_METHOD_MAPPING = {
     "update": ["put"],
     "destroy": ["delete"],
 }
+
 
 class ViewSetRouteItem:
     def __init__(self, action, url, methods):
@@ -106,7 +107,7 @@ class GenericViewSetWrapper(ViewWrapper):
             route.action, await self.django_request_adapter(request, user), {extra_params_send} 
         )
     return view_wrapper"""
-        
+
         # HACK for get_serializer_class
         route.serializer_class = self.view_class.serializer_class
 
@@ -298,7 +299,9 @@ class GenericAPIView(Generic[MODEL], APIView):
 
         return obj
 
-    def get_serializer_class(self, action: Optional[str]=None) -> Type[serializers.BaseSerializer]:
+    def get_serializer_class(
+        self, action: Optional[str] = None
+    ) -> Type[serializers.BaseSerializer]:
         """
         Return the class to use for the serializer.
         Defaults to using `self.serializer_class`.
@@ -323,21 +326,38 @@ class GenericAPIView(Generic[MODEL], APIView):
 
     @overload
     async def get_serializer(
-        self, instance: Any = None, data: Any = None, many: Optional[bool] = False, **kwargs
+        self,
+        instance: Any = None,
+        data: Any = None,
+        many: Optional[bool] = False,
+        **kwargs,
     ) -> serializers.BaseSerializer: ...
 
     @overload
     async def get_serializer(
-        self, instance: Any = None, data: Any = None, many: Literal[True] = True, **kwargs
+        self,
+        instance: Any = None,
+        data: Any = None,
+        many: Literal[True] = True,
+        **kwargs,
     ) -> ListSerializerWrapper: ...
 
     @overload
     async def get_serializer(
-        self, instance: Any = None, data: Any = None, many: Literal[False] = False, **kwargs
+        self,
+        instance: Any = None,
+        data: Any = None,
+        many: Literal[False] = False,
+        **kwargs,
     ) -> serializers.BaseSerializer: ...
 
     async def get_serializer(
-        self, instance: Any = None, data: Any = None, many: Optional[bool] = False, action: Optional[str]=None, **kwargs
+        self,
+        instance: Any = None,
+        data: Any = None,
+        many: Optional[bool] = False,
+        action: Optional[str] = None,
+        **kwargs,
     ) -> ListSerializerWrapper | serializers.BaseSerializer:
         """
         Return the serializer instance that should be used for validating and
@@ -352,7 +372,7 @@ class GenericAPIView(Generic[MODEL], APIView):
             return ListSerializerWrapper(
                 [serializer_class.model_validate(x) for x in instance]
             )
-        
+
         if data is not None:
             if instance is None:
                 return serializer_class.model_validate(data)
@@ -360,6 +380,9 @@ class GenericAPIView(Generic[MODEL], APIView):
                 instance = instance.update_from_dict(data)
                 serializer = serializer_class.model_validate(instance)
                 return serializer
+
+        if isinstance(instance, BaseDBModel):
+            return await serializer_class.from_tortoise_orm(instance)
 
         return serializer_class.model_validate(instance)
 
