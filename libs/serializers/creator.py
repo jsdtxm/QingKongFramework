@@ -374,6 +374,7 @@ def pydantic_model_creator(
 
         # HACK
         elif field_type is ListSerializer:
+            # TODO 这里不受depth控制
             field_pydantic_type = fdesc.get("pydantic_type")
 
             child = fdesc.get("child")
@@ -459,7 +460,13 @@ def pydantic_model_creator(
 
     for k, v in extra_fields.items():
         if isinstance(v, BaseModel):
-            properties[k] = (v, Field(**fconfig))  # 不对劲啊这里
+            # 这里用来处理嵌套的字段
+            if isinstance(v, PydanticModel):
+                # 这里姑且认为是ModelSerializer
+                properties[k] = (type(v), Field(**fconfig))
+            else:
+                # TODO 不知道干嘛的
+                properties[k] = (v, Field(**fconfig))
 
     for k, v in properties.items():
         if v[0] is datetime or v[0] is Optional[datetime]:
@@ -491,7 +498,7 @@ def pydantic_model_creator(
     model.__doc__ = _cleandoc(cls)
 
     # model_description
-    model.model_config['model_description'] = model_description
+    model.model_config["model_description"] = model_description
 
     # Store the base class
     model.model_config["orig_model"] = cls  # type: ignore
