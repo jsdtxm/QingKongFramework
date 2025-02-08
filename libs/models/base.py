@@ -189,7 +189,7 @@ class Manager(Generic[MODEL], TortoiseManager):
 
 
 class BaseMeta:
-    manager = Manager()
+    # manager = Manager()   # 先注释掉，观察一下
     external: bool = False
     ignore_schema: Optional[bool] = None
     app: str = "none"
