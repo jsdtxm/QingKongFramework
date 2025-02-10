@@ -77,7 +77,7 @@ class GenericViewSetWrapper(ViewWrapper):
             routers.append(
                 ViewSetRouteItem(
                     name,
-                    ("/{id}/" if detail else "/") + action.url_path,
+                    ("/{id}/" if detail else "/") + action.url_path + "/",
                     action.methods,
                 )
             )
