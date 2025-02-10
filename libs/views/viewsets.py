@@ -126,6 +126,8 @@ class GenericViewSetWrapper(ViewWrapper):
         return local_env["view_wrapper_factory"](route, self)
 
     def as_router(self, name=None, response_model=None, response_class=None):
+        # AS Router
+        
         router = APIRouter()
         for route_item in self.get_routers(self.view_class):
             router.add_api_route(
@@ -300,7 +302,7 @@ class GenericAPIView(Generic[MODEL], APIView):
         return obj
 
     def get_serializer_class(
-        self, action: Optional[str] = None
+        self, override_action: Optional[str] = None
     ) -> Type[serializers.BaseSerializer]:
         """
         Return the class to use for the serializer.
@@ -356,16 +358,16 @@ class GenericAPIView(Generic[MODEL], APIView):
         instance: Any = None,
         data: Any = None,
         many: Optional[bool] = False,
-        action: Optional[str] = None,
+        override_action: Optional[str] = None,
         **kwargs,
     ) -> ListSerializerWrapper | serializers.BaseSerializer:
         """
         Return the serializer instance that should be used for validating and
         deserializing input, and for serializing output.
 
-        action: override self.action
+        override_action: override self.action
         """
-        serializer_class = self.get_serializer_class(action=action)
+        serializer_class = self.get_serializer_class(override_action=override_action)
         if isinstance(instance, TortoiseQuerySet):
             return ListSerializerWrapper(await serializer_class.from_queryset(instance))
         elif isinstance(instance, list):

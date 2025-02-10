@@ -51,7 +51,7 @@ class CreateModelMixin:
         instance = await self.perform_create(serializer)  # type: ignore
 
         return JSONResponse(
-            (await self.get_serializer(instance, action="retrieve")).model_dump(),
+            (await self.get_serializer(instance, override_action="retrieve")).model_dump(),
             status_code=status.HTTP_201_CREATED,
         )
 
