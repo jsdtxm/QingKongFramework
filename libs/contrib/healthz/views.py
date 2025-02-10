@@ -6,12 +6,12 @@ from libs.responses import JsonResponse
 router = APIRouter(tags=["Healthz"])
 
 
-@router.get("/healthz")
+@router.get("/healthz/")
 async def healthz():
     return {"status": "UP"}
 
 
-@router.get("/healthz_extend")
+@router.get("/healthz_extend/")
 async def healthz_extend():
     checks, status_code = await check_db_and_cache()
 

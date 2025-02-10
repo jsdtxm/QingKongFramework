@@ -25,7 +25,7 @@ class TokenObtainReq(BaseModel):
     password: str
 
 
-@token_router.post("/token")
+@token_router.post("/token/")
 async def token_obtain(req: TokenObtainReq):
     user = await authenticate_user(req.username, req.password)
 
@@ -47,7 +47,7 @@ async def token_obtain(req: TokenObtainReq):
     }
 
 
-@token_router.post("/token/refresh")
+@token_router.post("/token/refresh/")
 async def token_refresh(user: RefreshTokenUser):
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid login credentials")
@@ -62,13 +62,13 @@ async def token_refresh(user: RefreshTokenUser):
     }
 
 
-@token_router.post("/token/verify")
+@token_router.post("/token/verify/")
 async def token_verify(data: RawToken):
     payload, user = data
 
     return {"payload": payload, "user": user.username}
 
 
-@token_router.get("/profile")
+@token_router.get("/profile/")
 async def profile(user: CurrentUser):
     return UserSerializer.model_validate(user)
