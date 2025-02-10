@@ -15,7 +15,9 @@ class BaseSettings(PydanticBaseSettings):
 
     ADD_CORS_HEADERS: bool = False
 
-    INSTALLED_APPS: List[str]
+    INSTALLED_APPS: List[str] = []
+
+    NO_EXPORT_APPS: List[str] = []
 
     DATABASES: dict[str, dict[str, Any]]
     CACHES: dict[str, dict[str, Any]] = {}

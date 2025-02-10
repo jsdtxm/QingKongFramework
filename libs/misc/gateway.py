@@ -230,7 +230,7 @@ def run_gateway(
     apps = init_apps(settings.INSTALLED_APPS)
 
     app_configs = [
-        x for x in apps.app_configs.values() if x.has_module("urls")
+        x for x in apps.app_configs.values() if x.has_module("urls") and x.name not in settings.NO_EXPORT_APPS
     ]
 
     proxy_rules = [

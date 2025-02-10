@@ -78,7 +78,7 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
     app_configs = [
         x
         for x in apps.app_configs.values()
-        if x.name.split(".")[-1] not in exclude and x.has_module("urls")
+        if x.name.split(".")[-1] not in exclude and x.has_module("urls") and x.name not in settings.NO_EXPORT_APPS
     ]
 
     # patch
