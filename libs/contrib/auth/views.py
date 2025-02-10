@@ -15,7 +15,9 @@ from libs.exceptions import HTTPException
 from libs.security.jwt import create_token
 from libs.contrib.auth.serializers import UserSerializer
 
-token_router = APIRouter()
+token_router = APIRouter(
+    tags=["Auth"]
+)
 
 
 class TokenObtainReq(BaseModel):

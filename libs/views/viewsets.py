@@ -143,6 +143,7 @@ class GenericViewSetWrapper(ViewWrapper):
                 route_item.url,
                 self.get_typed_view(self.view(route_item), route_item.action),
                 name=name,
+                tags=[view_set_name_clear(self.view_class.__name__),],
                 methods=route_item.methods,
                 response_model=response_model,
                 response_class=response_class,

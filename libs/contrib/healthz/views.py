@@ -3,7 +3,7 @@ from fastapi.routing import APIRouter
 from libs.contrib.healthz.utils import check_db_and_cache
 from libs.responses import JsonResponse
 
-router = APIRouter()
+router = APIRouter(tags=["Healthz"])
 
 
 @router.get("/healthz")
