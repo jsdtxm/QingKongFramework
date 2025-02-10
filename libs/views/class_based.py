@@ -10,6 +10,7 @@ from libs.contrib.auth.utils import OptionalCurrentUser
 from libs.requests import DjangoStyleRequest
 from libs.responses import HttpResponse, HttpResponseNotAllowed
 from libs.utils.functional import classonlymethod
+from libs.utils.strings import split_camel_case
 
 logger = logging.getLogger("qingkong.request")
 
@@ -57,7 +58,7 @@ class ViewWrapper:
         return router
 
     def get_typed_view(self, view, method: str):
-        view.__name__ = f"{self.view_class.__name__}_{method}"
+        view.__name__ = f"{' '.join(split_camel_case(self.view_class.__name__.replace('ViewSet', '')))}_{method}"
 
         return view
 
