@@ -33,6 +33,7 @@ from libs.utils.module_loading import import_string
 from libs.views import mixins
 from libs.views.class_based import View, ViewWrapper
 from libs.views.decorators import ActionMethodMapper
+from libs.utils.strings import split_camel_case
 
 DEFAULTS = {
     "DEFAULT_PERMISSION_CLASSES": [
@@ -48,6 +49,9 @@ REST_ACTION_METHOD_MAPPING = {
     "destroy": ["delete"],
 }
 
+def view_set_name_clear(cls_name: str) -> str:
+    return ' '.join(split_camel_case(cls_name.replace('ViewSet', '')))
+
 
 class ViewSetRouteItem:
     def __init__(self, action, url, methods):
@@ -61,6 +65,11 @@ BRACE_REGEX = re.compile(r"\{([a-zA-Z0-9_]+)\}")
 
 class GenericViewSetWrapper(ViewWrapper):
     view_class: Type["GenericViewSet"]
+
+    def get_typed_view(self, view, method: str):
+        view.__name__ = f"{view_set_name_clear(self.view_class.__name__)}_{method}"
+
+        return view
 
     def get_routers(self, viewset: "GenericViewSet") -> Iterable[ViewSetRouteItem]:
         routers = []

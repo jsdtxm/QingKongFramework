@@ -17,6 +17,10 @@ logger = logging.getLogger("qingkong.request")
 RequestType = TypeVar("RequestType", bound=DjangoStyleRequest)
 
 
+def view_name_clear(cls_name: str) -> str:
+    return " ".join(split_camel_case(cls_name.replace("View", "")))
+
+
 class ViewWrapper:
     def __init__(self, view, view_class: Type["View"], initkwargs: Dict[str, Any]):
         self.view_method = view
@@ -58,7 +62,7 @@ class ViewWrapper:
         return router
 
     def get_typed_view(self, view, method: str):
-        view.__name__ = f"{' '.join(split_camel_case(self.view_class.__name__.replace('ViewSet', '')))}_{method}"
+        view.__name__ = f"{view_name_clear(self.view_class.__name__)}_{method}"
 
         return view
 
