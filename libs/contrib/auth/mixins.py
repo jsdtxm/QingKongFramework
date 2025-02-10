@@ -39,6 +39,19 @@ class SuperUserRequiredMixin(AccessMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
+class ReadonlyOrSuperUserMixin(AccessMixin):
+    """Verify that the current user is administrator."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if self.action in {"create", "update", "destroy"} and (
+            request.user is None
+            or not request.user.is_authenticated
+            or not request.user.is_superuser
+        ):
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
+
+
 class CreatorMixin:
     creator_field = "created_by_id"
 
