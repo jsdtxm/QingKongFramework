@@ -378,7 +378,7 @@ class GenericAPIView(Generic[MODEL], APIView):
                 return serializer_class.model_validate(data)
             else:
                 instance = instance.update_from_dict(data)
-                serializer = serializer_class.model_validate(instance)
+                serializer = await serializer_class.from_tortoise_orm(instance)
                 return serializer
 
         if isinstance(instance, BaseDBModel):
