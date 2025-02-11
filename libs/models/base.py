@@ -29,6 +29,7 @@ from tortoise.queryset import ValuesListQuery as TortoiseValuesListQuery
 
 from libs import apps
 from libs.apps.config import AppConfig
+from libs.utils.functional import classproperty
 from libs.utils.typing import type_to_str
 
 if TYPE_CHECKING:
@@ -225,7 +226,7 @@ class ModelMetaClass(TortoiseModelMeta):
                     meta_class.table = db_table
                 elif not abstract:
                     meta_class.table = (
-                        f"{app_config.label.replace(".", "_")}_{name.lower()}"
+                        f"{app_config.label.replace('.', '_')}_{name.lower()}"
                     )
 
             attrs["Meta"] = meta_class
@@ -410,7 +411,9 @@ def generate_query_params_attrs(
 
 
 class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
-    objects: Union[Manager[Self], QuerySet[Self]] = Manager()
+    @classproperty
+    def objects(cls):
+        return cls._meta.manager
 
     app: AppConfig
 
