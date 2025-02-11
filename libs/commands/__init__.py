@@ -7,5 +7,6 @@ from .server import gateway, runserver
 from .shell import shell
 from .user import createsuperuser
 from .load_data import loaddata
+from .decorators import async_init_qingkong
 
 cli = Group()
