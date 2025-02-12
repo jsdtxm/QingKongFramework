@@ -20,6 +20,8 @@ logging.config.dictConfig(generate_app_logging_config("gateway"))
 access_logger = logging.getLogger("qingkong.access")
 error_logger = logging.getLogger("qingkong.error")
 
+debug_flag = False
+
 
 class ProxyLocation:
     prefix: str
@@ -34,7 +36,7 @@ class ProxyLocation:
         self.target = target
         self.rewrite = rewrite
 
-        self.prefix = re.search(r"^/(\S+)/\{", path).groups(1)[0]
+        self.prefix = s.groups(1)[0] if (s := re.search(r"^/(\S+)/\{", path)) else ""
 
         self.add_slashes = add_slashes
         self.fastapi_redirect = fastapi_redirect
@@ -45,10 +47,19 @@ class ProxyLocation:
         )
 
     def log(self):
-        return f"ProxyLocation {click.style(f"{self.prefix}/*", fg="bright_blue")} -> {click.style(self.target, fg="bright_cyan")}; Rewrite: {click.style(self.rewrite, fg="magenta")}"
+        return f"ProxyLocation {click.style(f'{self.prefix}/*', fg='bright_blue')} -> {click.style(self.target, fg='bright_cyan')}; Rewrite: {click.style(self.rewrite, fg='magenta')}"
 
     @classmethod
     def prefix_proxy(cls, prefix, target, add_slashes=False, fastapi_redirect=False):
+        if prefix == "":
+            return cls(
+                r"/{path:.*}",
+                target,
+                (r"^/(.*)$", r"/$1"),
+                add_slashes=add_slashes,
+                fastapi_redirect=fastapi_redirect,
+            )
+
         return cls(
             r"/" + prefix + r"/{path:.*}",
             target,
@@ -116,12 +127,13 @@ def handler_factory(proxy_loc: ProxyLocation):
     async def handler(request: aiohttp.web.Request):
         async with aiohttp.ClientSession() as session:
             request_url = proxy_loc.construct_target_url(request.path_qs)
+            request_content = await request.read()
             async with session.request(
                 method=request.method,
                 url=request_url,
                 headers=request.headers,
                 allow_redirects=False,
-                data=await request.read(),
+                data=request_content,
             ) as response:
                 content = await response.read()
 
@@ -169,6 +181,10 @@ def handler_factory(proxy_loc: ProxyLocation):
                         headers["Access-Control-Allow-Origin"] = origin or referer
                         headers["Access-Control-Allow-Credentials"] = "true"
                         headers["Access-Control-Allow-Headers"] = "Content-Type"
+
+                if debug_flag:
+                    print(request_content)
+                    print(content)
 
                 return aiohttp.web.Response(
                     body=content, status=response.status, headers=headers
@@ -226,11 +242,18 @@ def run_gateway(
     default_upstream="127.0.0.1",
     add_slashes=False,
     fastapi_redirect=False,
+    debug=False,
 ):
+    global debug_flag
+
+    debug_flag = debug
+
     apps = init_apps(settings.INSTALLED_APPS)
 
     app_configs = [
-        x for x in apps.app_configs.values() if x.has_module("urls") and x.name not in settings.NO_EXPORT_APPS
+        x
+        for x in apps.app_configs.values()
+        if x.has_module("urls") and x.name not in settings.NO_EXPORT_APPS
     ]
 
     proxy_rules = [
@@ -269,9 +292,9 @@ def run_gateway(
 
     proxy_app.add_routes([r.to_aiohttp_route() for r in proxy_rules])
     error_logger.info(
-        f"Gateway running on {click.style(f"http://{host}:{port}", fg="bright_white")} (Press CTRL+C to quit)"
+        f"Gateway running on {click.style(f'http://{host}:{port}', fg='bright_white')} (Press CTRL+C to quit)"
     )
-    error_logger.info(f"Started server process [{click.style(os.getpid(), fg="blue")}]")
+    error_logger.info(f"Started server process [{click.style(os.getpid(), fg='blue')}]")
     error_logger.info("Waiting for application startup.")
 
     aiohttp.web.run_app(
