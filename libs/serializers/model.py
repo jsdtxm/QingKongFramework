@@ -32,6 +32,7 @@ class ModelSerializerPydanticModel(PydanticModel):
         self, original_serializer: Callable[[Self], dict[str, Any]]
     ) -> dict[str, Any]:
         result = original_serializer(self)
+        # TODO 或许不再需要，直接放到response阶段处理
 
         for k, v in result.items():
             if isinstance(v, datetime):

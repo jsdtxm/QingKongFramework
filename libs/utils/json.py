@@ -46,13 +46,27 @@ def is_aware(value):
     return value.utcoffset() is not None
 
 
-def _replace_nan(o):
+def default_datetime_format(o):
+    if isinstance(o, datetime.datetime):
+        return o.strftime("%Y-%m-%d %H:%M:%S")
+    elif isinstance(o, datetime.date):
+        return o.isoformat()
+    elif isinstance(o, datetime.time):
+        return o.strftime("%H:%M:%S")
+    elif isinstance(o, dict):
+        return {k: default_datetime_format(v) for k, v in o.items()}
+    elif isinstance(o, list):
+        return [default_datetime_format(v) for v in o]
+    return o
+
+
+def replace_nan(o):
     if isinstance(o, float) and math.isnan(o):
         return None
     elif isinstance(o, dict):
-        return {k: _replace_nan(v) for k, v in o.items()}
+        return {k: replace_nan(v) for k, v in o.items()}
     elif isinstance(o, list):
-        return [_replace_nan(v) for v in o]
+        return [replace_nan(v) for v in o]
     return o
 
 
@@ -62,10 +76,9 @@ class JSONEncoder(json.JSONEncoder):
     UUIDs.
     """
 
-    def encode(self, obj):
-        return super().encode(_replace_nan(obj))
-
     def default(self, o):
+        # Copy From Django
+
         # See "Date Time String Format" in the ECMA-262 specification.
         if isinstance(o, datetime.datetime):
             r = o.isoformat()

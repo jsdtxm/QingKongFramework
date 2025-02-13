@@ -1,4 +1,9 @@
-import json
+try:
+    import orjson
+except ImportError:
+    orjson = None
+    import json
+
 import os
 import typing
 from io import IOBase
@@ -12,7 +17,7 @@ from starlette.responses import RedirectResponse as RedirectResponse  # noqa
 from starlette.responses import Response as Response  # noqa
 from starlette.responses import StreamingResponse as StreamingResponse  # noqa
 
-from libs.utils.json import JSONEncoder
+from libs.utils.json import JSONEncoder, default_datetime_format, replace_nan
 
 
 class JSONResponse(StarletteJSONResponse):
@@ -23,13 +28,26 @@ class JSONResponse(StarletteJSONResponse):
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
+        orjson_parse_datetime: bool = True,
+        json_replace_nan: bool = False,
     ) -> None:
+        self.orjson_parse_datetime = orjson_parse_datetime
+        self.json_replace_nan = json_replace_nan
+
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
         if content is None:
             return b""
-        
+
+        if orjson:
+            if self.orjson_parse_datetime:
+                content = default_datetime_format(content)
+            return orjson.dumps(content)
+
+        if self.json_replace_nan:
+            content = replace_nan(content)
+
         return json.dumps(
             content,
             cls=JSONEncoder,
