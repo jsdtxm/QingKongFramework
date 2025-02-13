@@ -19,6 +19,7 @@ from libs.initialize.cache import init_cache
 from libs.initialize.db import async_init_db, get_tortoise_config, init_models
 from libs.middleware.trustedhost import TrustedHostMiddleware
 from libs.models.tortoise import Tortoise
+from libs.responses import JsonResponse
 from libs.router import router_convert
 from libs.utils.module_loading import import_string
 from libs.utils.typing import copy_method_signature
@@ -59,6 +60,7 @@ class FastAPI(RawFastAPI):
         include_healthz: bool = True,
         redirect_slashes=True,
         middleware: Sequence[Middleware] = [],
+        default_response_class=JsonResponse,
         **kwargs,
     ):
         apps = init_apps(settings.INSTALLED_APPS)
@@ -79,6 +81,7 @@ class FastAPI(RawFastAPI):
             lifespan=lifespan_wrapper(lifespan or default_lifespan),
             middleware=middleware,
             redirect_slashes=redirect_slashes,
+            default_response_class=default_response_class,
             **kwargs,
         )
 

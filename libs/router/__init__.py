@@ -4,13 +4,35 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Type, Uni
 
 from fastapi import params
 from fastapi.datastructures import Default, DefaultPlaceholder
-from fastapi.routing import APIRoute, APIRouter
+from fastapi.routing import APIRoute as FastapiAPIRoute
+from fastapi.routing import APIRouter as FastapiAPIRouter
 from fastapi.types import IncEx
 from fastapi.utils import generate_unique_id
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 from starlette.routing import BaseRoute
 
+from libs.responses import JSONResponse
 from libs.views.class_based import ViewWrapper
+
+
+class APIRoute(FastapiAPIRoute):
+    def __init__(
+        self,
+        *args,
+        response_class=JSONResponse,
+        **kwargs,
+    ) -> None:
+        return super().__init__(*args, response_class=response_class, **kwargs)
+
+
+class APIRouter(FastapiAPIRouter):
+    def __init__(
+        self,
+        *,
+        route_class=APIRoute,
+        **kwargs,
+    ) -> None:
+        return super().__init__(route_class=route_class, **kwargs)
 
 
 class ApiPath:
