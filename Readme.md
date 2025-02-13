@@ -1,3 +1,3 @@
 # Accelerate
 
-## orjson
+## orjson==3.10.15
