@@ -1,6 +1,7 @@
 import datetime
 import decimal
 import json
+import math
 import uuid
 
 
@@ -45,11 +46,24 @@ def is_aware(value):
     return value.utcoffset() is not None
 
 
+def _replace_nan(o):
+    if isinstance(o, float) and math.isnan(o):
+        return None
+    elif isinstance(o, dict):
+        return {k: _replace_nan(v) for k, v in o.items()}
+    elif isinstance(o, list):
+        return [_replace_nan(v) for v in o]
+    return o
+
+
 class JSONEncoder(json.JSONEncoder):
     """
     JSONEncoder subclass that knows how to encode date/time, decimal types, and
     UUIDs.
     """
+
+    def encode(self, obj):
+        return super().encode(_replace_nan(obj))
 
     def default(self, o):
         # See "Date Time String Format" in the ECMA-262 specification.
