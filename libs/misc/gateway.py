@@ -15,6 +15,7 @@ import uvloop
 from common.settings import settings
 from libs.initialize.apps import init_apps
 from libs.logging import generate_app_logging_config
+from libs.misc.aiohttp_utils import aiohttp_print_override
 
 logging.config.dictConfig(generate_app_logging_config("gateway"))
 access_logger = logging.getLogger("qingkong.access")
@@ -229,10 +230,6 @@ async def log_middleware(app, handler):
         return response
 
     return middleware_handler
-
-
-def aiohttp_print_override(*args, **kwargs):
-    error_logger.info("Application startup complete.")
 
 
 def run_gateway(

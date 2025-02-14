@@ -3,6 +3,7 @@ import click
 from libs.commands.utils import parse_dict
 from libs.misc.ascii_art import print_logo
 from libs.misc.gateway import run_gateway
+from libs.misc.serve_static import run_static_server
 from libs.misc.serve import serve_app, serve_apps
 
 
@@ -26,6 +27,18 @@ def runserver(app, host, exclude, workers, reload):
 @click.option("--add-slashes", is_flag=True, type=click.BOOL)
 @click.option("--fastapi-redirect", is_flag=True, type=click.BOOL)
 @click.option("--debug", is_flag=True, type=click.BOOL)
-def gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirect, debug):
+def gateway(
+    host, port, upstream, default_upstream, add_slashes, fastapi_redirect, debug
+):
     print_logo()
-    run_gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirect, debug)
+    run_gateway(
+        host, port, upstream, default_upstream, add_slashes, fastapi_redirect, debug
+    )
+
+
+@click.option("--host", default="127.0.0.1", type=click.STRING)
+@click.option("--port", default=8080, type=click.INT)
+@click.option("--root", default="./static", type=click.STRING)
+def serve_static(host, port, root):
+    print_logo()
+    run_static_server(host, port, root_dir=root)
