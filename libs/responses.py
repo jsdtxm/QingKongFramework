@@ -21,6 +21,8 @@ from libs.utils.json import JSONEncoder, default_datetime_format, replace_nan
 
 
 class JSONResponse(StarletteJSONResponse):
+    # 到这边之前会被fastapi的serialize_response处理(fastapi.routing.serialize_response)
+    # 还有可能被fastapi.encoders.jsonable_encoder处理
     def __init__(
         self,
         content: typing.Any = None,
@@ -28,7 +30,7 @@ class JSONResponse(StarletteJSONResponse):
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
-        orjson_parse_datetime: bool = True,
+        orjson_parse_datetime: bool = False,
         json_replace_nan: bool = False,
     ) -> None:
         self.orjson_parse_datetime = orjson_parse_datetime
