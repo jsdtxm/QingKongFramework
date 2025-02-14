@@ -1,11 +1,13 @@
 import logging
 import os
+from pathlib import Path
 
 import aiohttp
 import aiohttp.web
 import click
 import uvloop
-from pathlib import Path
+from aiohttp.web_exceptions import HTTPNotFound
+
 from libs.misc.aiohttp_utils import aiohttp_print_override
 
 access_logger = logging.getLogger("qingkong.access")
@@ -27,7 +29,7 @@ def index_handler_factory(root_dir: Path):
     return index_handler
 
 
-def serve_static_factory(root_dir: Path):
+def serve_static_factory(root_dir: Path, try_files: str):
     async def serve_static(request):
         filename = request.match_info["filename"]
         if "../" in filename:
@@ -39,12 +41,20 @@ def serve_static_factory(root_dir: Path):
         if root_dir != requested_path.parent and root_dir not in requested_path.parents:
             raise aiohttp.web.HTTPForbidden()
 
-        return aiohttp.web.FileResponse(requested_path)
+        if requested_path.exists() and requested_path.is_file():
+            return aiohttp.web.FileResponse(requested_path)
+
+        if try_files:
+            return aiohttp.web.FileResponse((root_dir / "index.html").resolve())
+
+        raise HTTPNotFound(text="File not found")
 
     return serve_static
 
 
-def run_static_server(host="127.0.0.1", port=8000, root_dir="./static"):
+def run_static_server(
+    host="127.0.0.1", port=8000, root_dir="./static", try_files="index.html"
+):
     root_dir = Path(root_dir).resolve()
 
     if not root_dir.exists():
@@ -53,7 +63,7 @@ def run_static_server(host="127.0.0.1", port=8000, root_dir="./static"):
 
     app = aiohttp.web.Application()
     app.router.add_get("/", index_handler_factory(root_dir))
-    app.router.add_get("/{filename:.*}", serve_static_factory(root_dir))
+    app.router.add_get("/{filename:.*}", serve_static_factory(root_dir, try_files))
 
     error_logger.info(
         f"Static server running on {click.style(f'http://{host}:{port}', fg='bright_white')} (Press CTRL+C to quit)"
