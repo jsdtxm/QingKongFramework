@@ -24,6 +24,8 @@ from libs.router import router_convert
 from libs.utils.module_loading import import_string
 from libs.utils.typing import copy_method_signature
 
+import libs.patchs.fastapi.encoders as _
+
 
 @asynccontextmanager
 async def default_lifespan(app: RawFastAPI):
