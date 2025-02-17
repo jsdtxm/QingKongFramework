@@ -95,7 +95,7 @@ class ModelSerializerPydanticModel(PydanticModel):
             )  # type: ignore[call-arg]
         )
 
-        async with in_transaction():  # TODO 或许需要根据model判断一下用哪个连接
+        async with in_transaction(instance.app.default_connection):
             await instance.save(using_db, update_fields, force_create, force_update)
 
             m2m_objects = await self._build_related_objects(
