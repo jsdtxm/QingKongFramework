@@ -1,7 +1,7 @@
 from typing import Union
 
 from apps.app_name.models import Tournament
-from fastapi.routing import APIRouter
+from libs.router import APIRouter
 
 router = APIRouter()
 
