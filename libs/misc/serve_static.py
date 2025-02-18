@@ -8,8 +8,12 @@ import click
 import uvloop
 from aiohttp.web_exceptions import HTTPNotFound
 
-from libs.misc.aiohttp_utils import aiohttp_print_override
-from libs.misc.gateway import handler_factory, ProxyLocation
+from libs.misc.aiohttp_utils import (
+    aiohttp_print_override,
+    error_middleware,
+    log_middleware,
+)
+from libs.misc.gateway import ProxyLocation, handler_factory
 
 access_logger = logging.getLogger("qingkong.access")
 error_logger = logging.getLogger("qingkong.error")
@@ -67,16 +71,16 @@ def run_static_server(
         error_logger.error(f"Static directory {root_dir} does not exist.")
         return
 
-    app = aiohttp.web.Application()
+    app = aiohttp.web.Application(middlewares=[log_middleware, error_middleware])
     app.router.add_get("/", index_handler_factory(root_dir))
 
     if api_prefix and api_target:
         app.router.add_route(
             "*",
-            api_prefix,
+            api_prefix+"/{path:.*}",
             handler_factory(
                 ProxyLocation.prefix_proxy(
-                    api_prefix,
+                    api_prefix[1:],
                     api_target,
                 )
             ),
