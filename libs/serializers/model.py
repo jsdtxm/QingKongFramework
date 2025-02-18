@@ -95,24 +95,25 @@ class ModelSerializerPydanticModel(PydanticModel):
             )  # type: ignore[call-arg]
         )
 
-        async with in_transaction(instance.app.default_connection):
-            await instance.save(using_db, update_fields, force_create, force_update)
+        # async with in_transaction(instance.app.default_connection):
+        # TODO 使用transaction+mysql会导致死锁
+        await instance.save(using_db, update_fields, force_create, force_update)
 
-            m2m_objects = await self._build_related_objects(
-                m2m_fields, using_db=using_db
+        m2m_objects = await self._build_related_objects(
+            m2m_fields, using_db=using_db
+        )
+        for f in m2m_fields:
+            related_objects = m2m_objects.get(f["name"])
+            if not related_objects:
+                continue
+
+            await asyncio.gather(
+                *[getattr(instance, f["name"]).add(obj) for obj in related_objects]
             )
-            for f in m2m_fields:
-                related_objects = m2m_objects.get(f["name"])
-                if not related_objects:
-                    continue
 
-                await asyncio.gather(
-                    *[getattr(instance, f["name"]).add(obj) for obj in related_objects]
-                )
-
-            await self._build_related_objects(
-                backward_fk_fields, related_pk=instance.id, using_db=using_db
-            )
+        await self._build_related_objects(
+            backward_fk_fields, related_pk=instance.id, using_db=using_db
+        )
 
         return instance
 
