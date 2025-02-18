@@ -9,6 +9,7 @@ import uvloop
 from aiohttp.web_exceptions import HTTPNotFound
 
 from libs.misc.aiohttp_utils import aiohttp_print_override
+from libs.misc.gateway import handler_factory, ProxyLocation
 
 access_logger = logging.getLogger("qingkong.access")
 error_logger = logging.getLogger("qingkong.error")
@@ -53,7 +54,12 @@ def serve_static_factory(root_dir: Path, try_files: str):
 
 
 def run_static_server(
-    host="127.0.0.1", port=8000, root_dir="./static", try_files="index.html"
+    host="127.0.0.1",
+    port=8000,
+    root_dir="./static",
+    try_files="index.html",
+    api_prefix=None,
+    api_target=None,
 ):
     root_dir = Path(root_dir).resolve()
 
@@ -63,6 +69,19 @@ def run_static_server(
 
     app = aiohttp.web.Application()
     app.router.add_get("/", index_handler_factory(root_dir))
+
+    if api_prefix and api_target:
+        app.router.add_route(
+            "*",
+            api_prefix,
+            handler_factory(
+                ProxyLocation.prefix_proxy(
+                    api_prefix,
+                    api_target,
+                )
+            ),
+        )
+
     app.router.add_get("/{filename:.*}", serve_static_factory(root_dir, try_files))
 
     error_logger.info(

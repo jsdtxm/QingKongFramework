@@ -39,6 +39,10 @@ def gateway(
 @click.option("--host", default="127.0.0.1", type=click.STRING)
 @click.option("--port", default=8080, type=click.INT)
 @click.option("--root", default="./static", type=click.STRING)
-def serve_static(host, port, root):
+@click.option("--api-prefix", default="/api", type=click.STRING)
+@click.option("--api-target", default="http://127.0.0.1:8000", type=click.STRING)
+def serve_static(host, port, root, api_prefix, api_target):
     print_logo()
-    run_static_server(host, port, root_dir=root)
+    run_static_server(
+        host, port, root_dir=root, api_prefix=api_prefix, api_target=api_target
+    )
