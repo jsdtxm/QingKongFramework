@@ -65,6 +65,10 @@ def read_port_from_json(app_name, json_file_path='service_ports.json', timeout=1
     """
     start_time = time.time()
     while True:
+        if not os.path.exists(json_file_path):
+            with open(json_file_path, 'w') as f:
+                json.dump({}, f)
+                
         with open(json_file_path, 'r') as f:
             try:
                 # 尝试获取共享锁（允许其他读操作同时进行）
