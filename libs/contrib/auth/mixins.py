@@ -66,5 +66,8 @@ class CreatorMixin:
 class CreatorWithFilterMixin(LoginRequiredMixin, CreatorMixin):
     async def filter_queryset(self, queryset):
         assert self.request.user
+        if self.request.user.is_superuser:
+            return queryset
+        
         queryset = queryset.filter(**{self.creator_field: self.request.user.id})
         return queryset
