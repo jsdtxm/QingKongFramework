@@ -1,8 +1,10 @@
 import http
-
-from starlette.exceptions import HTTPException
 from typing import Optional
+
 from starlette import status
+from starlette.exceptions import HTTPException
+from tortoise.exceptions import DoesNotExist as DoesNotExist  # noqa
+from tortoise.exceptions import IntegrityError as IntegrityError  # noqa
 
 
 class ImproperlyConfigured(Exception):
@@ -45,4 +47,3 @@ class Http404(HttpCodeException):
 
 class MethodNotAllowed(HttpCodeException):
     status_code = status.HTTP_405_METHOD_NOT_ALLOWED
-    
