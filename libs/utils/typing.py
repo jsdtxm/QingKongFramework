@@ -19,4 +19,5 @@ def type_to_str(t):
         datetime: "datetime.datetime",
         float: "float",
         bool: "bool",
+        bytes: "bytes",
     }.get(t, str(t))
