@@ -180,6 +180,9 @@ class Manager(Generic[MODEL], TortoiseManager):
 
     def get_queryset(self) -> QuerySet[MODEL]:
         return self._queryset_class(self._model)
+    
+    def __getattr__(self, item):
+        return getattr(self.get_queryset(), item, getattr(self._model, item))
 
     if TYPE_CHECKING:
 
