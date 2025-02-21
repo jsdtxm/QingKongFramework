@@ -57,6 +57,9 @@ class DjangoStyleRequest:
     async def data(self):
         return await self.request.json()
 
+    async def body(self):
+        return await self.request.body()
+
     @property
     def method(self):
         return self.request.method
@@ -72,7 +75,7 @@ class QueryParamsWrap:
 
     def get(self, key: typing.Any):
         return self.inner.get(key)
-    
+
     def getlist(self, key: typing.Any):
         return self.inner.getlist(key)
 
