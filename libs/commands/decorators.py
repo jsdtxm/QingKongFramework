@@ -12,10 +12,11 @@ def async_init_qingkong(func):
         init_apps(settings.INSTALLED_APPS)
         await async_init_db(get_tortoise_config(settings.DATABASES))
 
-        result = await func(*args, **kwargs)
-
-        await Tortoise.close_connections()
-
-        return result
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            raise e
+        finally:
+            await Tortoise.close_connections()
 
     return wrapper
