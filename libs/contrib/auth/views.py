@@ -49,6 +49,7 @@ async def token_obtain(req: TokenObtainReq):
 
 @token_router.post("/token/refresh/")
 async def token_refresh(user: RefreshTokenUser):
+    # TODO 如果用户修改密码，这里实际上不能处理好
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid login credentials")
 
