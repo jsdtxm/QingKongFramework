@@ -62,6 +62,14 @@ class DjangoStyleRequest:
 
     async def body(self):
         return await self.request.body()
+    
+    @property
+    def headers(self):
+        return self.request.headers
+    
+    @property
+    def client(self):
+        return self.request.client
 
     @property
     def method(self):
