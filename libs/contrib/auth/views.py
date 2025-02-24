@@ -1,23 +1,21 @@
 from datetime import timedelta
 
-from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from common.settings import settings
 from libs.contrib.auth import authenticate_user
+from libs.contrib.auth.serializers import UserSerializer
 from libs.contrib.auth.utils import (
+    CurrentUser,
     RawToken,
     RefreshTokenUser,
-    CurrentUser,
     TokenTypeEnum,
 )
 from libs.exceptions import HTTPException
+from libs.router import APIRouter
 from libs.security.jwt import create_token
-from libs.contrib.auth.serializers import UserSerializer
 
-token_router = APIRouter(
-    tags=["Auth"]
-)
+token_router = APIRouter(tags=["Auth"])
 
 
 class TokenObtainReq(BaseModel):
