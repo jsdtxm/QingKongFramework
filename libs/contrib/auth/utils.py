@@ -2,7 +2,6 @@ from enum import Enum
 from typing import Annotated, Awaitable, Callable, Optional, Type
 
 import jwt
-from async_lru import alru_cache
 from fastapi import Depends, HTTPException, status
 from jwt.exceptions import InvalidTokenError
 
@@ -45,13 +44,16 @@ async def get_anonymous_user():
     return await get_user_model().get(username=ANONYMOUS_USERNAME)
 
 
-@alru_cache()
 async def get_user(username: str) -> Optional["UserProtocol"]:
     user_model: "UserProtocol" = import_string(settings.AUTH_USER_MODEL)
     if user_model is None:
         raise Exception("AUTH_USER_MODEL IS NOT SET")
+    user = await user_model.objects.get_or_none(username=username)
 
-    return await user_model.objects.get_or_none(username=username)
+    if user and not user.is_active:
+        return None
+
+    return user
 
 
 def verify_password(plain_password, hashed_password):
