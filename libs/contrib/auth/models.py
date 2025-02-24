@@ -217,6 +217,9 @@ class AbstractUser(models.Model, LoadPermissionBackendMixin):
 
         return await self.get_permission_backend().has_module_perms(self, app_label)
 
+    def set_password(self, password):
+        self.password = make_password(password)
+
     class Meta:
         abstract = True
         manager = UserManager()
