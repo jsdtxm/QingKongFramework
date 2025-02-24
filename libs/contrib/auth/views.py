@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from fastapi import Request, Response
 from pydantic import BaseModel, field_validator
 
 from common.settings import settings
@@ -107,3 +108,13 @@ async def change_password(user: CurrentUser, req: PasswordUpdate):
     await user.save()
 
     return {"msg": "Password updated successfully"}
+
+
+@token_router.post("/logout/")
+async def logout(user: CurrentUser, request: Request, response: Response):
+    cookies = request.cookies
+
+    for key in cookies.keys():
+        response.delete_cookie(key=key)
+
+    return {"msg": "Logout successfully"}
