@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from pydantic import ValidationError as PydanticValidationError
 from tortoise.exceptions import DoesNotExist, IntegrityError, ValidationError
 
 if TYPE_CHECKING:
@@ -22,10 +23,26 @@ def add_tortoise_exception_handler(app):
         )
 
     @app.exception_handler(ValidationError)
-    async def validationError_exception_handler(request: "Request", exc: ValidationError):
+    async def validationError_exception_handler(
+        request: "Request", exc: ValidationError
+    ):
         return JSONResponse(
             status_code=422,
             content={
                 "detail": [{"loc": [], "msg": str(exc), "type": "ValidationError"}]
             },
+        )
+
+
+def add_valueerror_exception_handler(app):
+    @app.exception_handler(PydanticValidationError)
+    async def valueerror_exception_handler(
+        request: "Request", exc: PydanticValidationError
+    ):
+        return Response(
+            status_code=400,
+            content=exc.json(
+                include_url=False, include_input=False
+            ),
+            headers={"content-type": "application/json"},
         )
