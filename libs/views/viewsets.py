@@ -252,6 +252,9 @@ class GenericAPIView(Generic[MODEL], APIView):
     # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
     pagination_class = None
 
+    # Cache
+    _obj: Optional[MODEL] = None
+
     # Allow generic typing checking for generic views.
     def __class_getitem__(cls, *args, **kwargs):
         return cls
@@ -291,6 +294,9 @@ class GenericAPIView(Generic[MODEL], APIView):
         queryset lookups.  Eg if objects are referenced using multiple
         keyword arguments in the url conf.
         """
+        if self._obj is not None:
+            return self._obj
+
         queryset = await self.filter_queryset(self.get_queryset())
 
         # Perform the lookup filtering.
@@ -309,7 +315,9 @@ class GenericAPIView(Generic[MODEL], APIView):
         # May raise a permission denied
         await self.check_object_permissions(self.request, obj)
 
-        return obj
+        self._obj = obj
+
+        return self._obj
 
     def get_serializer_class(
         self, override_action: Optional[str] = None
