@@ -3,7 +3,6 @@ from asyncio import create_task
 from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
 from typing import Callable, Optional, Sequence
 
-from common.settings import settings
 from fastapi import BackgroundTasks as BackgroundTasks  # type: ignore
 from fastapi import FastAPI as RawFastAPI
 from fastapi import WebSocket as WebSocket  # type: ignore
@@ -13,8 +12,10 @@ from starlette.middleware import Middleware
 from starlette.types import Lifespan
 
 import libs.patchs.fastapi.encoders as _
+from common.settings import settings
 from libs.cache import connections
 from libs.exception_handlers import (
+    add_pydantic_validation_exception_handler,
     add_tortoise_exception_handler,
     add_valueerror_exception_handler,
 )
@@ -100,4 +101,5 @@ class FastAPI(RawFastAPI):
         add_pagination(self)
 
         add_tortoise_exception_handler(self)
+        add_pydantic_validation_exception_handler(self)
         add_valueerror_exception_handler(self)
