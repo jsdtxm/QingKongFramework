@@ -34,22 +34,39 @@ class ViewWrapper:
         await self.view_class.post_request_process(new_request)
         return new_request
 
-    def view(self):
-        async def view_wrapper(
-            request: Request, user: self.view_class.authentication_class
-        ):
-            return await self.view_method(
-                await self.django_request_adapter(request, user)
-            )
+    def view(self, url_params=[]):
+        extra_params_str = (
+            ", ".join([f"{match}: int" for match in url_params]) if url_params else ""
+        )
+        extra_params_send = ", ".join([f"{match}={match}" for match in url_params])
+        function_definition = f"""def view_wrapper_factory(self):
+    async def view_wrapper(
+        request: Request, user: self.view_class.authentication_class, {extra_params_str}
+    ):
+        return await self.view_method(
+            await self.django_request_adapter(request, user), {extra_params_send}
+        )
+    return view_wrapper"""
 
-        return view_wrapper
+        local_env = {}
+        exec(
+            function_definition,
+            {
+                "Request": Request,
+            },
+            local_env,
+        )
 
-    def as_router(self, name=None, response_model=None, response_class=None):
+        return local_env["view_wrapper_factory"](self)
+
+    def as_router(
+        self, name=None, response_model=None, response_class=None, url_params=[]
+    ):
         router = APIRouter()
         for method in self.view_class.implemented_methods():
             router.add_api_route(
                 "/",
-                self.get_typed_view(self.view(), method),
+                self.get_typed_view(self.view(url_params), method),
                 name=name,
                 methods=[
                     method,
