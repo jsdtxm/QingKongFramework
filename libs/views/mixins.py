@@ -30,10 +30,10 @@ class ListModelMixin:
     async def list(self: "GenericViewSet", request, *args, **kwargs):  # type: ignore
         queryset = await self.filter_queryset(self.get_queryset())
 
-        page = self.paginate_queryset(queryset)
+        page = await self.paginate_queryset(queryset)
         if page is not None:
             serializer = await self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+            return self.get_paginated_response(serializer.model_dump())
 
         serializer = await self.get_serializer(queryset, many=True)
         return JSONResponse(serializer.model_dump())
