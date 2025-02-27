@@ -1,3 +1,4 @@
+import re
 from collections.abc import Mapping
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Type, Union
@@ -13,6 +14,7 @@ from starlette.routing import BaseRoute
 
 from libs.responses import JSONResponse
 from libs.views.class_based import ViewWrapper
+from libs.views.viewsets import BRACE_REGEX
 
 
 class APIRoute(FastapiAPIRoute):
@@ -127,6 +129,20 @@ def router_convert(urlpatterns: List[ApiPath]):
                 url.path = "/" + url.path
             if url.path.endswith("/"):
                 url.path = url.path[:-1]
+
+            if url.endpoint.__class__ is ViewWrapper:
+                # url 参数提取，排除viewset
+                url_params = re.findall(BRACE_REGEX, url.path)
+                if url_params:
+                    router = url.endpoint.as_router(
+                        url.name,
+                        url.response_model,
+                        url.response_class,
+                        url_params=url_params,
+                    )
+
+                    router_list.append(RouterWrapper(router, url.path))
+                    continue
 
             router = url.endpoint.as_router(
                 url.name, url.response_model, url.response_class
