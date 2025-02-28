@@ -3,7 +3,12 @@ from typing import List, Type
 from libs.contrib.auth.models import Group
 from libs.contrib.auth.typing import UserProtocol
 from libs.contrib.contenttypes.models import ContentType
-from libs.models import Model, Q, Subquery
+from libs.contrib.guardian.utils import (
+    get_group_obj_perms_model_class,
+    get_identity,
+    get_user_obj_perms_model_class,
+)
+from libs.models import BaseModel, Model, Q, Subquery
 from libs.utils.module_loading import import_string
 
 
@@ -15,6 +20,9 @@ async def get_objects_for_user(
     with_superuser=True,
     accept_model_perms=True,
 ):
+    GroupObjectPermission = get_group_obj_perms_model_class()
+    UserObjectPermission = get_user_obj_perms_model_class()
+
     if isinstance(perms, str):
         perms = [perms]
 
@@ -22,13 +30,6 @@ async def get_objects_for_user(
         raise Exception("not support yet")
 
     perms = perms[0]
-
-    GroupObjectPermission = import_string(
-        "libs.contrib.guardian.models.GroupObjectPermission"
-    )
-    UserObjectPermission = import_string(
-        "libs.contrib.guardian.models.UserObjectPermission"
-    )
 
     queryset = klass.objects.all()
 
@@ -95,3 +96,22 @@ async def get_objects_for_group(
     q = Q(id__in=Subquery(group_obj_perms_queryset.values("object_id")))
 
     return queryset.filter(q)
+
+
+async def assign_perm(perms, user_or_group, obj):
+    if isinstance(perms, str):
+        perms = [perms]
+
+    user, group = get_identity(user_or_group)
+
+    if isinstance(obj, BaseModel):
+        obj = [
+            obj,
+        ]
+
+    PermissionModel = (
+        get_user_obj_perms_model_class() if user else get_group_obj_perms_model_class()
+    )
+
+    for perm in perms:
+        await PermissionModel.objects.bulk_assign_perm(perm, user_or_group, obj)
