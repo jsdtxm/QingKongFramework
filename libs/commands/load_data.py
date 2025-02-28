@@ -52,6 +52,7 @@ def get_all_fixtures(folders):
 
     return sorted(found_files)
 
+
 async def _loaddata_inner(file_path):
     if "/" not in file_path and not os.path.exists(file_path):
         app_dirs = list(
@@ -78,6 +79,7 @@ async def _loaddata_inner(file_path):
             instance = model(id=item["pk"], **item["fields"])
             await instance.save()
 
+
 async def _loaddata(file_path):
     init_apps(settings.INSTALLED_APPS)
     await async_init_db(get_tortoise_config(settings.DATABASES))
@@ -89,7 +91,7 @@ async def _loaddata(file_path):
                 filter(lambda x: x.startswith("apps"), settings.INSTALLED_APPS),
             )
         )
-        files = get_all_fixtures(app_dirs)
+        files = sorted(get_all_fixtures(app_dirs), key=lambda x: os.path.basename(x))
         for file in files:
             print(file)
             await _loaddata_inner(file)
