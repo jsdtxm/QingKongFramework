@@ -27,6 +27,7 @@ class JSONResponse(StarletteJSONResponse):
         self,
         content: typing.Any = None,
         status_code: int = 200,
+        status: typing.Optional[int] = None,
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
@@ -36,7 +37,7 @@ class JSONResponse(StarletteJSONResponse):
         self.orjson_parse_datetime = orjson_parse_datetime
         self.json_replace_nan = json_replace_nan
 
-        super().__init__(content, status_code, headers, media_type, background)
+        super().__init__(content, status or status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
         if content is None:
