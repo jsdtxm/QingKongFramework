@@ -95,11 +95,13 @@ class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
         status_code: int = 200,
         headers: typing.Mapping[str, str] | None = None,
         media_type: str = "application/octet-stream",
+        content_type: typing.Optional[str] = None,
         background: BackgroundTask | None = None,
         filename: str | None = None,
         stat_result: os.stat_result | None = None,
         method: str | None = None,
         content_disposition_type: str = "attachment",
+        as_attachment: typing.Optional[bool] = None,
     ) -> None:
         if isinstance(path, IOBase):
             path.close()
@@ -107,12 +109,15 @@ class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
 
             if path is None:
                 raise Exception("Not support this type")
+            
+        if as_attachment is not None and as_attachment is False:
+            content_disposition_type = "inline"
 
         super().__init__(
             path,
             status_code,
             headers,
-            media_type,
+            content_type or media_type,
             background,
             filename,
             stat_result,
@@ -137,5 +142,5 @@ class HttpResponseForbidden(HttpResponse):
 class JsonResponseForbidden(JsonResponse):
     def __init__(self, content=None, status_code: int = 403, **kwargs) -> None:
         super().__init__(
-            content, status_code, **kwargs
+            content or {"error": "Forbidden"}, status_code, **kwargs
         )
