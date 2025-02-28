@@ -30,10 +30,10 @@ from libs.requests import DjangoStyleRequest
 from libs.responses import JSONResponse
 from libs.utils.functional import classonlymethod, copy_method_signature
 from libs.utils.module_loading import import_string
+from libs.utils.strings import BRACE_REGEX, split_camel_case
 from libs.views import mixins
 from libs.views.class_based import View, ViewWrapper
 from libs.views.decorators import ActionMethodMapper
-from libs.utils.strings import split_camel_case
 
 DEFAULTS = {
     "DEFAULT_PERMISSION_CLASSES": [
@@ -49,8 +49,9 @@ REST_ACTION_METHOD_MAPPING = {
     "destroy": ["delete"],
 }
 
+
 def view_set_name_clear(cls_name: str) -> str:
-    return ' '.join(split_camel_case(cls_name.replace('ViewSet', '')))
+    return " ".join(split_camel_case(cls_name.replace("ViewSet", "")))
 
 
 class ViewSetRouteItem:
@@ -58,9 +59,6 @@ class ViewSetRouteItem:
         self.action = action
         self.url = url
         self.methods = methods
-
-
-BRACE_REGEX = re.compile(r"\{([a-zA-Z0-9_]+)\}")
 
 
 class GenericViewSetWrapper(ViewWrapper):
@@ -136,14 +134,16 @@ class GenericViewSetWrapper(ViewWrapper):
 
     def as_router(self, name=None, response_model=None, response_class=None):
         # AS Router
-        
+
         router = APIRouter()
         for route_item in self.get_routers(self.view_class):
             router.add_api_route(
                 route_item.url,
                 self.get_typed_view(self.view(route_item), route_item.action),
                 name=name,
-                tags=[view_set_name_clear(self.view_class.__name__),],
+                tags=[
+                    view_set_name_clear(self.view_class.__name__),
+                ],
                 methods=route_item.methods,
                 response_model=response_model,
                 response_class=response_class,

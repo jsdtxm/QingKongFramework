@@ -36,9 +36,13 @@ class ViewWrapper:
 
     def view(self, url_params=[]):
         extra_params_str = (
-            ", ".join([f"{match}: int" for match in url_params]) if url_params else ""
+            ", ".join([f"{item[0]}: {item[1]}" for item in url_params])
+            if url_params
+            else ""
         )
-        extra_params_send = ", ".join([f"{match}={match}" for match in url_params])
+        extra_params_send = ", ".join(
+            [f"{match[0]}={match[0]}" for match in url_params]
+        )
         function_definition = f"""def view_wrapper_factory(self):
     async def view_wrapper(
         request: Request, user: self.view_class.authentication_class, {extra_params_str}

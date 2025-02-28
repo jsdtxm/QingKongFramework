@@ -1,6 +1,7 @@
 import re
 from collections.abc import Mapping
 from enum import Enum
+from itertools import chain
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Type, Union
 
 from fastapi import params
@@ -13,8 +14,8 @@ from starlette.responses import Response
 from starlette.routing import BaseRoute
 
 from libs.responses import JSONResponse
+from libs.utils.strings import BRACE_REGEX, convert_url_format, extract_type_and_name
 from libs.views.class_based import ViewWrapper
-from libs.views.viewsets import BRACE_REGEX
 
 
 class APIRoute(FastapiAPIRoute):
@@ -132,7 +133,16 @@ def router_convert(urlpatterns: List[ApiPath]):
 
             if url.endpoint.__class__ is ViewWrapper:
                 # url 参数提取，排除viewset
-                url_params = re.findall(BRACE_REGEX, url.path)
+                url_curly_params = [
+                    (x, "int") for x in re.findall(BRACE_REGEX, url.path)
+                ]
+                url_angle_params = extract_type_and_name(url.path)
+
+                url_params = list(chain(url_curly_params, url_angle_params))
+
+                if url_angle_params:
+                    url.path = convert_url_format(url.path)
+
                 if url_params:
                     router = url.endpoint.as_router(
                         url.name,
