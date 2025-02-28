@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Callable, Concatenate, ParamSpec, TypeVar
+from uuid import UUID
 
 SP = ParamSpec("SP")
 TR = TypeVar("TR")
@@ -20,4 +21,5 @@ def type_to_str(t):
         float: "float",
         bool: "bool",
         bytes: "bytes",
+        UUID: "uuid.UUID"
     }.get(t, str(t))
