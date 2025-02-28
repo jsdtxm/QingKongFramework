@@ -81,7 +81,7 @@ class HttpResponse(ResponseHeaderOperatorsMixin, Response):
         headers: typing.Mapping[str, str] | None = None,
         content_type: str | None = None,
         background: BackgroundTask | None = None,
-        charset: str = "urf-8",
+        charset: str = "utf-8",
     ) -> None:
         self.charset = charset
 
