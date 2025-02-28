@@ -1,3 +1,5 @@
+from typing import Type
+
 from libs.contrib.auth.models import Group
 from libs.contrib.auth.typing import UserProtocol
 from libs.contrib.contenttypes.models import ContentType
@@ -8,7 +10,7 @@ from libs.utils.module_loading import import_string
 async def get_objects_for_user(
     user: UserProtocol,
     perm: str,
-    klass: Model,
+    klass: Type[Model],
     use_groups=True,
     with_superuser=True,
     accept_model_perms=True,
