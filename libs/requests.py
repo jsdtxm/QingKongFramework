@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional, Any
 from libs.datastructures import FileFormData, UploadFile, StringFormData
 from starlette.datastructures import UploadFile as StarletteUploadFile
 from starlette.datastructures import QueryParams
+from libs.utils.base import class_override
 
 if TYPE_CHECKING:
     from libs.contrib.auth.typing import UserProtocol
@@ -43,30 +44,28 @@ class DjangoStyleRequest:
     @property
     async def FILES(self) -> FileFormData:
         if self.file_data is None:
-            self.file_data = {
-                k: v
-                for k, v in (await self.form()).items()
+            self.file_data = [
+                (k, class_override(v, UploadFile))
+                for k, v in (await self.form()).multi_items()
                 if isinstance(v, StarletteUploadFile)
-            }
-            for v in self.file_data.values():
-                v.__class__ = UploadFile
+            ]
 
         return FileFormData(self.file_data)
 
     async def json(self):
         return await self.request.json()
-    
+
     @property
     async def data(self):
         return await self.request.json()
 
     async def body(self):
         return await self.request.body()
-    
+
     @property
     def headers(self):
         return self.request.headers
-    
+
     @property
     def client(self):
         return self.request.client
