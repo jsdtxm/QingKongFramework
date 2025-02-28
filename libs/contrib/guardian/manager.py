@@ -56,7 +56,7 @@ class BaseObjectPermissionManager(models.Manager[MODEL]):
         ctype = await ContentType.from_model(klass)
 
         if not isinstance(perm, Permission):
-            permission = Permission.objects.get(content_type=ctype, codename=perm)
+            permission = await Permission.objects.get(content_type=ctype, perm=perm)
         else:
             permission = perm
 
@@ -77,20 +77,24 @@ class BaseObjectPermissionManager(models.Manager[MODEL]):
                 user_or_group, perm, klass, accept_model_perms=False
             )
 
-        queryset = queryset.exclude(
-            pk__in=assigned_objects.values_list("id", flat=True)
-        )
+        existed_ids = await assigned_objects.values_list("id", flat=True)
+
+        if isinstance(queryset, list):
+            existed_ids_set = set(existed_ids)
+            queryset = [x for x in queryset if x.id not in existed_ids_set]
+        else:
+            queryset = await queryset.exclude(pk__in=existed_ids)
 
         assigned_perms = []
-        for instance in await queryset:
+        for instance in queryset:
             kwargs = {
                 "permission": permission,
                 self.user_or_group_field: user_or_group,
                 "content_type": ctype,
-                "object_pk": instance.pk,
+                "object_id": instance.pk,
             }
             assigned_perms.append(self._model(**kwargs))
 
-        self._model.bulk_create(assigned_perms)
+        await self._model.bulk_create(assigned_perms)
 
         return assigned_perms

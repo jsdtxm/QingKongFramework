@@ -22,7 +22,7 @@ class UserObjectPermission(models.Model):
                 fields=("content_type", "object_id"), name="user_object_permissions_idx"
             ),
         ]
-        manager = BaseObjectPermissionManager
+        manager = BaseObjectPermissionManager()
 
     def __str__(self):
         return f"{self.user} {self.permission} #{self.object_id}"
@@ -46,7 +46,7 @@ class GroupObjectPermission(models.Model):
                 name="group_object_permissions_idx",
             ),
         ]
-        manager = BaseObjectPermissionManager
+        manager = BaseObjectPermissionManager()
 
     def __str__(self):
         return f"{self.group} {self.permission} #{self.object_id}"
