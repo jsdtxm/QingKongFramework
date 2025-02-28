@@ -132,3 +132,10 @@ class HttpResponseForbidden(HttpResponse):
         super().__init__(
             content, status_code, **kwargs
         )
+
+
+class JsonResponseForbidden(JsonResponse):
+    def __init__(self, content=None, status_code: int = 403, **kwargs) -> None:
+        super().__init__(
+            content, status_code, **kwargs
+        )
