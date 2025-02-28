@@ -24,21 +24,26 @@ class ObjectPermissionBackend(ModelPermissionBackend):
 
         if isinstance(principal, AbstractUser):
             ctype = await ContentType.from_model(obj)
-            return (
-                await UserObjectPermission.objects.filter(
-                    user=principal,
+
+            ok = await UserObjectPermission.objects.filter(
+                user=principal,
+                content_type=ctype,
+                permission__perm=perm,
+                object_id=obj.id,
+            ).exists()
+            if not ok:
+                group_ids = await principal.groups.all().values_list("id", flat=True)
+                if not group_ids:
+                    return False
+
+                return await GroupObjectPermission.objects.filter(
+                    group__id__in=group_ids,
                     content_type=ctype,
                     permission__perm=perm,
                     object_id=obj.id,
                 ).exists()
-            ) or (
-                await GroupObjectPermission.objects.filter(
-                    group__in=principal.groups.all(),
-                    content_type=ctype,
-                    permission__perm=perm,
-                    object_id=obj.id,
-                ).exists()
-            )
+
+            return ok
         else:
             return await GroupObjectPermission.objects.filter(
                 group=principal,
@@ -58,7 +63,7 @@ class ObjectPermissionBackend(ModelPermissionBackend):
     ):
         if isinstance(obj, type):
             return await super().has_perms(principal, perm_list, obj)
-        
+
         if not isinstance(perm_list, Iterable) or isinstance(perm_list, str):
             raise ValueError("perm_list must be an iterable of permissions.")
 
