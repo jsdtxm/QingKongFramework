@@ -72,7 +72,36 @@ def generate_hypertable_sql(table_name: str, config: dict) -> str:
     # 合并所有参数
     full_params = params + named_params
 
-    return f"SELECT create_hypertable({', '.join(full_params)});"
+    result_sql = f"""
+    DO $$
+    DECLARE
+        pk_name TEXT;
+    BEGIN
+        -- 获取当前主键约束的名称
+        SELECT constraint_name INTO pk_name
+        FROM information_schema.table_constraints 
+        WHERE table_name = '{table_name}' AND constraint_type = 'PRIMARY KEY';
+            
+        -- 检查是否找到主键
+        IF pk_name IS NOT NULL THEN
+            -- 删除现有的主键
+            EXECUTE 'ALTER TABLE {table_name} DROP CONSTRAINT ' || quote_ident(pk_name);
+        END IF;
+
+        -- 添加新的主键 (再考虑考虑需要不需要吧)
+        -- EXECUTE 'ALTER TABLE {table_name} ADD PRIMARY KEY (id, {time_col}{f", {partitioning_col}" if partitioning_col else ""})';
+    END $$;
+    """
+
+    result_sql += f"\nSELECT create_hypertable({', '.join(full_params)});"
+
+    if compress_segmentby := config.get("compress_segmentby"):
+        result_sql += f"\nALTER TABLE {table_name} SET (timescaledb.compress, timescaledb.compress_segmentby = '{compress_segmentby}');"
+
+    if compression_policy := config.get("compression_policy"):
+        result_sql += f"\nSELECT add_compression_policy('{table_name}', INTERVAL '{compression_policy}');"
+
+    return result_sql
 
 
 def get_create_schema_sql(
