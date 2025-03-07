@@ -71,18 +71,11 @@ class ModelSerializerPydanticModel(PydanticModel):
     def model_description(cls) -> Dict[str, Any]:
         return cls.model_config["model_description"]
 
-    async def save(
-        self,
-        using_db: Optional[BaseDBAsyncClient] = None,
-        update_fields: Optional[Iterable[str]] = None,
-        force_create: bool = False,
-        force_update: bool = False,
-        **extra_fields,
-    ):
+    def to_model(self, **extra_fields):
         m2m_fields = self.model_description().get("m2m_fields", [])
         backward_fk_fields = self.model_description().get("backward_fk_fields", [])
 
-        instance = self.orig_model()(
+        return self.orig_model()(
             **(
                 self.model_dump(
                     exclude=self.read_only_fields()
@@ -95,13 +88,24 @@ class ModelSerializerPydanticModel(PydanticModel):
             )  # type: ignore[call-arg]
         )
 
+    async def save(
+        self,
+        using_db: Optional[BaseDBAsyncClient] = None,
+        update_fields: Optional[Iterable[str]] = None,
+        force_create: bool = False,
+        force_update: bool = False,
+        **extra_fields,
+    ):
+        m2m_fields = self.model_description().get("m2m_fields", [])
+        backward_fk_fields = self.model_description().get("backward_fk_fields", [])
+
+        instance = self.to_model(**extra_fields)
+
         # async with in_transaction(instance.app.default_connection):
         # TODO 使用transaction+mysql会导致死锁
         await instance.save(using_db, update_fields, force_create, force_update)
 
-        m2m_objects = await self._build_related_objects(
-            m2m_fields, using_db=using_db
-        )
+        m2m_objects = await self._build_related_objects(m2m_fields, using_db=using_db)
         for f in m2m_fields:
             related_objects = m2m_objects.get(f["name"])
             if not related_objects:
