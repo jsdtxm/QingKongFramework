@@ -26,8 +26,53 @@ def _get_models_to_create(
             if model._meta.db == self.client:
                 model._check()
                 models_to_create.append(model)
-    
+
     return models_to_create
+
+
+def generate_hypertable_sql(table_name: str, config: dict) -> str:
+    """
+    生成TimescaleDB的create_hypertable SQL语句
+
+    :param table_name: 目标表名
+    :param config: 配置字典，包含：
+        - time_column_name: 必选，时间字段名
+        - partitioning_column: 可选，空间分区字段
+        - number_partitions: 可选，空间分片数量
+        - chunk_time_interval: 可选，分片时间间隔（默认'7 days'）
+    :return: 完整的SQL语句
+    """
+    # 参数校验
+    if "time_column_name" not in config:
+        raise ValueError("必须指定 time_column_name")
+
+    time_col = config["time_column_name"]
+    partitioning_col = config.get("partitioning_column")
+    num_partitions = config.get("number_partitions")
+    chunk_interval = config.get("chunk_time_interval", "7 days")
+
+    # 空间分区校验
+    if (partitioning_col and not num_partitions) or (
+        num_partitions and not partitioning_col
+    ):
+        raise ValueError("partitioning_column 和 number_partitions 必须同时存在")
+
+    # 构建参数列表
+    params = [f"'{table_name}'", f"'{time_col}'"]
+
+    # 添加命名参数
+    named_params = []
+    if partitioning_col and num_partitions:
+        named_params.append(f"partitioning_column => '{partitioning_col}'")
+        named_params.append(f"number_partitions => {num_partitions}")
+
+    # 始终使用命名参数传递时间间隔
+    named_params.append(f"chunk_time_interval => INTERVAL '{chunk_interval}'")
+
+    # 合并所有参数
+    full_params = params + named_params
+
+    return f"SELECT create_hypertable({', '.join(full_params)});"
 
 
 def get_create_schema_sql(
@@ -37,9 +82,15 @@ def get_create_schema_sql(
 
     models_to_create = _get_models_to_create(self, models_to_create, apps)
 
+    extra_sql = []
+
     tables_to_create = []
     for model in models_to_create:
-        tables_to_create.append(self._get_table_sql(model, safe))
+        data = self._get_table_sql(model, safe)
+        if hypertable := getattr(model.Meta, "hypertable", None):
+            extra_sql.append(generate_hypertable_sql(model._meta.db_table, hypertable))
+
+        tables_to_create.append(data)
 
     tables_to_create_count = len(tables_to_create)
 
@@ -67,7 +118,7 @@ def get_create_schema_sql(
             )
         m2m_tables_to_create += next_table_for_create["m2m_tables"]
 
-    return chain(ordered_tables_for_create + m2m_tables_to_create)
+    return chain(ordered_tables_for_create + m2m_tables_to_create + extra_sql)
 
 
 def get_schema_sql(client: "BaseDBAsyncClient", safe: bool, apps: list[str]) -> str:
