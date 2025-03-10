@@ -7,8 +7,11 @@ from fastapi import BackgroundTasks as BackgroundTasks  # type: ignore
 from fastapi import FastAPI as RawFastAPI
 from fastapi import WebSocket as WebSocket  # type: ignore
 from fastapi.applications import AppType
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi_pagination import add_pagination
 from starlette.middleware import Middleware
+from starlette.requests import Request
+from starlette.responses import HTMLResponse
 from starlette.types import Lifespan
 
 import libs.patchs.fastapi.encoders as _
@@ -86,6 +89,7 @@ class FastAPI(RawFastAPI):
             middleware=middleware,
             redirect_slashes=redirect_slashes,
             default_response_class=default_response_class,
+            docs_url=None,
             **kwargs,
         )
 
@@ -96,6 +100,27 @@ class FastAPI(RawFastAPI):
         if url_module and (urlpatterns := getattr(url_module, "urlpatterns", None)):
             for router in router_convert(urlpatterns):
                 self.include_router(**router)
+
+        # static assets
+        async def custom_swagger_ui_html(req: Request) -> HTMLResponse:
+            root_path = req.scope.get("root_path", "").rstrip("/")
+            openapi_url = root_path + self.openapi_url
+            oauth2_redirect_url = self.swagger_ui_oauth2_redirect_url
+            if oauth2_redirect_url:
+                oauth2_redirect_url = root_path + oauth2_redirect_url
+
+            return get_swagger_ui_html(
+                openapi_url=openapi_url,
+                title=f"{self.title} - Swagger UI",
+                oauth2_redirect_url=oauth2_redirect_url,
+                init_oauth=self.swagger_ui_init_oauth,
+                swagger_ui_parameters=self.swagger_ui_parameters,
+                swagger_js_url="https://cdn.bootcdn.net/ajax/libs/swagger-ui/5.9.0/swagger-ui-bundle.js",
+                swagger_css_url="https://cdn.bootcdn.net/ajax/libs/swagger-ui/5.9.0/swagger-ui.css",
+                swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+            )
+
+        self.add_route("/docs", custom_swagger_ui_html, include_in_schema=False)
 
         add_pagination(self)
 
