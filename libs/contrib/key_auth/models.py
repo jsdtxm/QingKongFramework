@@ -16,7 +16,7 @@ class APIKey(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.PROTECT)
 
-    prefix = models.CharField(max_length=32, null=True)
+    suffix = models.CharField(max_length=32, null=True)
 
     is_active = models.BooleanField(default=True)
 
