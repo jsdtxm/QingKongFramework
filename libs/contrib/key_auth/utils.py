@@ -48,7 +48,7 @@ def get_api_key_factory(
                 return None
 
         if return_user:
-            return api_key.user
+            return await api_key.user
 
         if raw:
             return (payload, api_key)
