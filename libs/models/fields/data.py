@@ -1,6 +1,12 @@
-from typing import Any
+from typing import Any, Optional
+from uuid import UUID
 
 from tortoise.fields import data as tortoise_data_fields
+
+try:
+    from asyncpg.pgproto.pgproto import UUID as AsyncpgUUID
+except Exception:
+    AsyncpgUUID = None
 
 
 # Integer
@@ -48,7 +54,7 @@ class PositiveSmallIntegerField(tortoise_data_fields.SmallIntField):
             "ge": 0,
             "le": 65535,
         }
-    
+
     class _db_postgres:
         SQL_TYPE = "INT"
         GENERATED_SQL = "SERIAL NOT NULL PRIMARY KEY"
@@ -106,6 +112,7 @@ class EmailField(CharField):
         kwargs.setdefault("max_length", 254)
         super().__init__(**kwargs)
 
+
 # Time
 class TimeField(tortoise_data_fields.TimeField):
     def __init__(self, verbose_name=None, **kwargs: Any) -> None:
@@ -120,7 +127,13 @@ class DateField(tortoise_data_fields.DateField):
 
 
 class DateTimeField(tortoise_data_fields.DatetimeField):
-    def __init__(self, verbose_name=None, auto_now: bool = False, auto_now_add: bool = False, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        verbose_name=None,
+        auto_now: bool = False,
+        auto_now_add: bool = False,
+        **kwargs: Any,
+    ) -> None:
         self.verbose_name = verbose_name
         super().__init__(auto_now, auto_now_add, **kwargs)
 
@@ -155,3 +168,11 @@ class UUIDField(tortoise_data_fields.UUIDField):
     def __init__(self, verbose_name=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
         super().__init__(**kwargs)
+
+    def to_python_value(self, value: Any) -> Optional[UUID]:
+        if value is None or isinstance(value, UUID):
+            if AsyncpgUUID is not None and isinstance(value, AsyncpgUUID):
+                return UUID(value.hex)
+
+            return value
+        return UUID(value)
