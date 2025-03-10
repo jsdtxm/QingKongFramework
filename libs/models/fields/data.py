@@ -48,6 +48,10 @@ class PositiveSmallIntegerField(tortoise_data_fields.SmallIntField):
             "ge": 0,
             "le": 65535,
         }
+    
+    class _db_postgres:
+        SQL_TYPE = "INT"
+        GENERATED_SQL = "SERIAL NOT NULL PRIMARY KEY"
 
 
 class BigIntegerField(tortoise_data_fields.BigIntField):
