@@ -36,11 +36,12 @@ class APIKeyViewSet(ModelViewSet):
 
     async def create(self, request, *args, **kwargs):
         data = (await request.data) | {"uuid": str(uuid7())}
+        uuid = data["uuid"]
 
         serializer = await self.get_serializer(data=data)
 
         token = create_token(
-            {"uuid": serializer.uuid, "iat": int(time.time())},
+            {"uuid": uuid, "iat": int(time.time())},
             timedelta(days=3650),
         )
         serializer.suffix = token[-32:]
