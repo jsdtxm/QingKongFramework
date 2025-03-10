@@ -32,7 +32,7 @@ class PositiveIntegerField(tortoise_data_fields.IntField):
 
     class _db_postgres:
         SQL_TYPE = "BIGINT"
-        GENERATED_SQL = "SERIAL NOT NULL PRIMARY KEY"
+        GENERATED_SQL = "BIGSERIAL NOT NULL PRIMARY KEY"
 
 
 class PositiveSmallIntegerField(tortoise_data_fields.SmallIntField):
