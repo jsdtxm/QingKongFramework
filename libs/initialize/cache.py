@@ -14,7 +14,7 @@ def init_cache():
             from redis import asyncio as aioredis
 
             conn = aioredis.from_url(config["LOCATION"])
-        elif backend.endswith("RedisCache"):
+        elif backend.endswith("PostgresBackend"):
             import asyncpg
 
             conn = asyncpg.create_pool(dsn=config["LOCATION"])
