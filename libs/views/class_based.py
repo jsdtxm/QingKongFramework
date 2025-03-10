@@ -152,9 +152,6 @@ class View:
                 )
             return self.dispatch(request, *args, **kwargs)
 
-        # view.view_class = cls
-        # view.view_initkwargs = initkwargs
-
         # take name and docstring from class
         update_wrapper(view, cls, updated=())
 
@@ -163,7 +160,6 @@ class View:
         update_wrapper(view, cls.dispatch, assigned=())
 
         return cls.wrapper_class(view, cls, initkwargs)
-        # return view
 
     def setup(self, request: DjangoStyleRequest, *args, **kwargs):
         """Initialize attributes shared by all view methods."""

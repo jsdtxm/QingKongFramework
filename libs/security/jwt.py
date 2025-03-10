@@ -141,3 +141,4 @@ def individual_jwt_auth_factory(inner: Callable[[Request, str], Awaitable]):
 
 
 IndividualJwtAuth = Annotated[dict, Depends(individual_jwt_auth_factory(jwt_validator))]
+
