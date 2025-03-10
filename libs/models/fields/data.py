@@ -30,6 +30,10 @@ class PositiveIntegerField(tortoise_data_fields.IntField):
             "le": 4294967295,
         }
 
+    class _db_postgres:
+        SQL_TYPE = "INT"
+        GENERATED_SQL = "SERIAL NOT NULL PRIMARY KEY"
+
 
 class PositiveSmallIntegerField(tortoise_data_fields.SmallIntField):
     SQL_TYPE = "SMALLINT UNSIGNED"
