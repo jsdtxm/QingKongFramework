@@ -5,7 +5,7 @@ from libs.cache import caches, connections
 from libs.utils.module_loading import import_string
 
 
-def init_cache():
+async def init_cache():
     for alias, config in settings.CACHES.items():
         backend: str = config["BACKEND"]
         backend_class = import_string(backend)
@@ -17,7 +17,7 @@ def init_cache():
         elif backend.endswith("PostgresBackend"):
             import asyncpg
 
-            conn = asyncpg.create_pool(dsn=config["LOCATION"])
+            conn = await asyncpg.connect(dsn=config["LOCATION"])
         else:
             raise Exception(f"Unknown Backend {backend}")
 

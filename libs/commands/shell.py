@@ -14,7 +14,7 @@ def shell():
     init_apps(settings.INSTALLED_APPS)
     loop.run_until_complete(async_init_db(get_tortoise_config(settings.DATABASES)))
 
-    init_cache()
+    loop.run_until_complete(init_cache())
 
     code.interact(local=locals())
 

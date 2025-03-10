@@ -72,8 +72,7 @@ class FastAPI(RawFastAPI):
 
         init_models()
         create_task(async_init_db(get_tortoise_config(settings.DATABASES)))
-
-        init_cache()
+        create_task(init_cache())
 
         package = inspect.stack()[1].frame.f_locals.get("__package__")
 
