@@ -19,7 +19,7 @@ class UserObjectPermission(models.Model):
         unique_together = ["user", "permission", "object_id"]
         indexes = [
             models.Index(
-                fields=("content_type", "object_id"), name="user_object_permissions_idx"
+                fields=("content_type_id", "object_id"), name="user_object_permissions_idx"
             ),
         ]
         manager = BaseObjectPermissionManager()
@@ -42,7 +42,7 @@ class GroupObjectPermission(models.Model):
         unique_together = ["group", "permission", "object_id"]
         indexes = [
             models.Index(
-                fields=("content_type", "object_id"),
+                fields=("content_type_id", "object_id"),
                 name="group_object_permissions_idx",
             ),
         ]
