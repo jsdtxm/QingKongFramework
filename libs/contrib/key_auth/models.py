@@ -24,7 +24,7 @@ class APIKey(models.Model):
 
     def __str__(self):
         return (
-            f"{self.name} - {self.prefix}..."  # Mask the full key for security reasons
+            f"{self.name} - {self.suffix}..."  # Mask the full key for security reasons
         )
 
     class Meta:
