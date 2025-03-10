@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any, Callable, Concatenate, ParamSpec, TypeVar
 from uuid import UUID
+from decimal import Decimal
 
 SP = ParamSpec("SP")
 TR = TypeVar("TR")
@@ -18,8 +19,10 @@ def type_to_str(t):
         int: "int",
         str: "str",
         datetime: "datetime.datetime",
+        date: "datetime.date",
         float: "float",
         bool: "bool",
         bytes: "bytes",
-        UUID: "uuid.UUID"
+        UUID: "uuid.UUID",
+        Decimal: "decimal.Decimal"
     }.get(t, str(t))

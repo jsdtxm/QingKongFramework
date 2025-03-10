@@ -49,6 +49,7 @@ def generate(module_name: str, mode: str):
     pre_import_lines = [
         "import typing\n",
         "import datetime\n",
+        "import decimal\n",
         "import uuid\n",
         "from tortoise.queryset import Q, QuerySetSingle\n",
         "from tortoise.backends.base.client import BaseDBAsyncClient\n",
