@@ -26,3 +26,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 CALL _qk_expire_rows();
+
+-- (cron db) Create a schedule to run the procedure every hour
+SELECT cron.schedule_in_database('_qk_expire_rows', '0 * * * *', $$CALL _qk_expire_rows();$$, 'chem_synth_core');
+
+-- List all scheduled jobs
+SELECT * FROM cron.job;
