@@ -92,14 +92,18 @@ class Filter(Generic[VALUE]):
         self.nested_field = fields[1] if len(fields) > 1 else None
 
     def filter(self, queryset, value):
-        return queryset.filter(**{f"{self.field_name}__{self.lookup_expr}": value})
+        lookup_expr = (
+            "" if self.lookup_expr == LookupExprEnum.exact.value else self.lookup_expr
+        )
+
+        return queryset.filter(
+            **{f"{self.field_name}{f'__{lookup_expr}' if lookup_expr else ''}": value}
+        )
 
     def jsonfield_filter(self, queryset, value):
         if self.lookup_expr == LookupExprEnum.contains.value:
             return queryset.filter(
-                **{
-                    f"{self.source_field}__contains": {self.nested_field: value}
-                }
+                **{f"{self.source_field}__contains": {self.nested_field: value}}
             )
 
         lookup_expr = (
