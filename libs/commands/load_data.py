@@ -114,6 +114,14 @@ async def _loaddata_inner(file_path):
             instance = model(id=item["pk"], **item["fields"])
             await instance.save()
 
+        conn = Tortoise.get_connection(model._meta.default_connection)
+        if "PostgreSQL" in conn.__class__.__name__:
+            table = model._meta.db_table
+            res = await conn.execute_query(f'''SELECT setval(
+                pg_get_serial_sequence('{table}', 'id'),
+                COALESCE((SELECT MAX("id") FROM "{table}"), 1)
+            );''')
+            print("setval", res)
 
 async def _loaddata(file_path):
     init_apps(settings.INSTALLED_APPS)

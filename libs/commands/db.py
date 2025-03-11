@@ -68,6 +68,15 @@ async def async_migrate(safe, guided, apps):
                     ignore_conflicts=True,
                 )
 
+        conn = Tortoise.get_connection(ContentType._meta.default_connection)
+        if "PostgreSQL" in conn.__class__.__name__:
+            table = ContentType._meta.db_table
+            res = await conn.execute_query(f'''SELECT setval(
+                pg_get_serial_sequence('{table}', 'id'),
+                COALESCE((SELECT MAX("id") FROM "{table}"), 1)
+            );''')
+            print("setval", res)
+
     await Tortoise.close_connections()
 
 
