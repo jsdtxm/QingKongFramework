@@ -64,6 +64,7 @@ class Filter(Generic[VALUE]):
         field_name=None,
         lookup_expr: str = None,
         *,
+        alias=None,
         label=None,
         method=None,
         distinct=False,
@@ -77,6 +78,7 @@ class Filter(Generic[VALUE]):
         self.field_name = field_name
         self.lookup_expr = lookup_expr
 
+        self.alias = alias
         self.label = label
         self.method = method
         self.distinct = distinct

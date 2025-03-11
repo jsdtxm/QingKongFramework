@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional, Type
 
 from pydantic import BaseModel, Field, create_model
 
@@ -29,7 +29,7 @@ class FilterSetMetaclass(type):
             # 创建Pydantic字段：类型为Optional，并设置别名
             model_fields[filter_name] = (
                 optional_type,
-                Field(default=None, alias=filter_instance.field_name),
+                Field(default=None, alias=filter_instance.alias or None),
             )
 
         # 动态创建Pydantic模型并附加到类属性
@@ -48,6 +48,7 @@ class FilterSetMetaclass(type):
 class BaseFilterSet:
     if TYPE_CHECKING:
         filters: Dict[str, Filter]
+        PydanticModel: Type[BaseModel]
 
     def __init__(self, data: QueryParamsWrap, queryset, *, request=None, **kwargs):
         self.data = data
@@ -57,7 +58,9 @@ class BaseFilterSet:
         self.model_fields_map = queryset.model._meta.fields_map
 
     def filter_queryset(self, queryset):
-        for name, value in self.data.to_dict().items():
+        params = self.PydanticModel.model_validate(self.data.to_dict())
+
+        for name, value in params.model_dump(exclude_unset=True).items():
             try:
                 filter_obj = self.filters[name]
                 if isinstance(
