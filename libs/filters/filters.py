@@ -93,10 +93,14 @@ class Filter(Generic[VALUE]):
         return queryset.filter(**{f"{self.field_name}__{self.lookup_expr}": value})
 
     def jsonfield_filter(self, queryset, value):
+        lookup_expr = (
+            "" if self.lookup_expr == LookupExprEnum.exact.value else self.lookup_expr
+        )
+
         return queryset.filter(
             **{
                 f"{self.source_field}__filter": {
-                    f"{self.nested_field}__{self.lookup_expr}": value
+                    f"{self.nested_field}{f'__{lookup_expr}' if lookup_expr else ''}": value
                 }
             }
         )
