@@ -246,7 +246,8 @@ class GenericAPIView(Generic[MODEL], APIView):
     lookup_url_kwarg = None
 
     # The filter backend classes to use for queryset filtering
-    # filter_backends = api_settings.DEFAULT_FILTER_BACKENDS
+    filter_backends = []
+    # filterset_class = FilterSet
 
     # The style to use for queryset pagination.
     # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
@@ -415,8 +416,8 @@ class GenericAPIView(Generic[MODEL], APIView):
         method if you want to apply the configured filtering backend to the
         default queryset.
         """
-        # for backend in list(self.filter_backends):
-        #     queryset = backend().filter_queryset(self.request, queryset, self)
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(self.request, queryset, self)
         return queryset
 
     @property
