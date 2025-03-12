@@ -15,6 +15,7 @@ from starlette.responses import HTMLResponse
 from starlette.types import Lifespan
 
 import libs.patchs.fastapi.encoders as _
+import libs.patchs.starlette.requests as _
 from common.settings import settings
 from libs.cache import connections
 from libs.exception_handlers import (
