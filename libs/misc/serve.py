@@ -15,7 +15,6 @@ from libs.initialize.apps import init_apps
 from libs.logging import log_config_template
 from libs.patchs.uvicorn.subprocess import subprocess_started
 from libs.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
-from libs.utils.fs import write_port_to_json
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
@@ -34,10 +33,6 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     log_config = deepcopy(log_config_template)
     for formatter in log_config["formatters"].values():
         formatter["app_label"] = app_config.label
-
-    write_port_to_json(
-        app_name, app_config.port, address=None if host != "127.0.0.1" else host
-    )
 
     uvicorn.run(
         f"{app_name}.asgi:app",
@@ -78,7 +73,9 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
     app_configs = [
         x
         for x in apps.app_configs.values()
-        if x.name.split(".")[-1] not in exclude and x.has_module("urls") and x.name not in settings.NO_EXPORT_APPS
+        if x.name.split(".")[-1] not in exclude
+        and x.has_module("urls")
+        and x.name not in settings.NO_EXPORT_APPS
     ]
 
     # patch

@@ -1,15 +1,16 @@
 import inspect
 import types
-from typing import Tuple, Type
+from typing import Optional, Tuple, Type
 
 from libs.exceptions import ImproperlyConfigured
+from libs.utils.fs import get_existed_ports, read_port_from_json, write_port_to_json
+from libs.utils.lock import FileLock
 from libs.utils.module_loading import (
     cached_import_module,
     import_string,
     module_has_submodule,
 )
 from libs.utils.ports import find_free_port
-from libs.utils.fs import read_port_from_json
 
 APPS_MODULE_NAME = "apps"
 MODELS_MODULE_NAME = "models"
@@ -31,7 +32,7 @@ class AppConfig(metaclass=AppConfigMeta):
     name: str
     label: str
     prefix: str
-    port: int = None
+    port: Optional[int] = None
 
     default_connection: str = "default"
 
@@ -43,12 +44,19 @@ class AppConfig(metaclass=AppConfigMeta):
         self.module = module
 
         if self.port is None and self.has_module("urls"):
-            exists_config = read_port_from_json(name)
-            self.port = (
-                exists_config.get("port")
-                if exists_config and exists_config.get("port")
-                else find_free_port()
-            )
+            from common.settings import settings
+
+            if name not in settings.NO_EXPORT_APPS:
+                with FileLock(
+                    name=f"{settings.PROJECT_NAME or settings.BASE_DIR.name}_choice_port.lock",
+                    timeout=5,
+                ):
+                    exists_config = read_port_from_json(name)
+                    if exists_config and (p := exists_config.get("port")):
+                        self.port = p
+                    else:
+                        self.port = find_free_port(exclude_ports=get_existed_ports())
+                        write_port_to_json(name, self.port, address="127.0.0.1")
 
     def __str__(self):
         return f"<QingKongFramework.AppConfig {self.name}>"
