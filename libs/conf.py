@@ -8,6 +8,8 @@ from pydantic_settings import SettingsConfigDict
 class BaseSettings(PydanticBaseSettings):
     model_config = SettingsConfigDict(env_prefix="QK_")
 
+    PROJECT_NAME: Optional[str] = None
+
     BASE_DIR: Path
     SECRET_KEY: str = "longlivethegreatunityofthepeople"
 
@@ -42,4 +44,6 @@ class BaseSettings(PydanticBaseSettings):
     ACCESS_TOKEN_LIFETIME: int = 60 * 60
     REFRESH_TOKEN_LIFETIME: int = 60 * 60 * 24 * 7
 
-    AUTH_PERMISSION_BACKEND: str = "libs.contrib.auth.backends.permission.ModelPermissionBackend"
+    AUTH_PERMISSION_BACKEND: str = (
+        "libs.contrib.auth.backends.permission.ModelPermissionBackend"
+    )
