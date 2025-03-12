@@ -20,10 +20,11 @@ from libs.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     apps = init_apps(settings.INSTALLED_APPS)
 
-    if "." not in app_name:
+    try:
+        app_config = apps.app_configs[app_name]
+    except KeyError:
         app_name = f"apps.{app_name}"
-
-    app_config = apps.app_configs[app_name]
+        app_config = apps.app_configs[app_name]
 
     # patch
     uvicorn.supervisors.watchfilesreload.WatchFilesReload.__init__ = (
