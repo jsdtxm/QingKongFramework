@@ -1,6 +1,7 @@
 import socket
 
-def find_free_port(start=19000, end=20000):
+
+def find_free_port(start=19000, end=20000, exclude_ports=set()):
     """
     在指定的范围内查找一个未被占用的端口。
 
@@ -9,11 +10,14 @@ def find_free_port(start=19000, end=20000):
     :return: 未被占用的端口号或者 None（如果在范围内没有可用端口）
     """
     for port in range(start, end + 1):
+        if port in exclude_ports:
+            continue
+
         # 创建一个新的socket对象用于测试
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
                 # 尝试绑定端口
-                s.bind(('127.0.0.1', port))
+                s.bind(("127.0.0.1", port))
                 return port
             except socket.error as e:
                 # 如果端口已被占用或出现其他错误，则继续循环
