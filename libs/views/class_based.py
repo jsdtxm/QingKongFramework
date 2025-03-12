@@ -99,8 +99,6 @@ class View:
     authentication_class: Any = OptionalCurrentUser
     request_class = DjangoStyleRequest
 
-    # TODO support Auth
-
     http_method_names = [
         "get",
         "post",
