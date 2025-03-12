@@ -60,6 +60,13 @@ def lifespan_wrapper(lifespan: Callable[[RawFastAPI], _AsyncGeneratorContextMana
     return wrapper
 
 
+async def load_url_module(self, apps, package):
+    url_module = apps.app_configs[package].import_module("urls")
+    if url_module and (urlpatterns := getattr(url_module, "urlpatterns", None)):
+        for router in router_convert(urlpatterns):
+            self.include_router(**router)
+
+
 class FastAPI(RawFastAPI):
     @copy_method_signature(RawFastAPI.__init__)
     def __init__(
@@ -96,10 +103,7 @@ class FastAPI(RawFastAPI):
         if include_healthz:
             self.include_router(import_string("libs.contrib.healthz.views.router"))
 
-        url_module = apps.app_configs[package].import_module("urls")
-        if url_module and (urlpatterns := getattr(url_module, "urlpatterns", None)):
-            for router in router_convert(urlpatterns):
-                self.include_router(**router)
+        create_task(load_url_module(self, apps, package))
 
         # static assets
         async def custom_swagger_ui_html(req: Request) -> HTMLResponse:
