@@ -4,10 +4,12 @@ import click
 import uvloop
 
 from common.settings import settings
+from libs.commands.decorators import async_init_qingkong
 from libs.db.utils import generate_schemas
 from libs.initialize.apps import init_apps
 from libs.initialize.db import async_init_db, get_tortoise_config
 from libs.models.tortoise import Tortoise
+from libs.tools.get_table_structure import SchemaExporter
 from libs.tools.reverse_generation import table_to_django_model
 
 INTERNAL_CONTENTTYPES_APP_LABEL = "libs.contrib.contenttypes"
@@ -110,3 +112,20 @@ def reverse_generation(connection, db, table):
             table,
         )
     )
+
+
+@async_init_qingkong
+async def async_auto_migrate(table):
+    pg_exporter = SchemaExporter(
+        "default",
+        [
+            table,
+        ],
+    )
+    res = await pg_exporter.export("pg_schema.sql")
+    print(res)
+
+
+@click.argument("table")
+def auto_migrate(table):
+    uvloop.run(async_auto_migrate(table))
