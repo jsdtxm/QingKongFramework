@@ -5,6 +5,8 @@ import uvloop
 
 from common.settings import settings
 from libs.commands.decorators import async_init_qingkong
+from libs.db import connections
+from libs.db.migrate import generate_diff_sql, parse_sql
 from libs.db.utils import generate_schemas
 from libs.initialize.apps import init_apps
 from libs.initialize.db import async_init_db, get_tortoise_config
@@ -122,8 +124,21 @@ async def async_auto_migrate(table):
             table,
         ],
     )
-    res = await pg_exporter.export("pg_schema.sql")
-    print(res)
+    res = await pg_exporter.export()
+
+    conn = connections["default"]
+
+    generator = conn.schema_generator(conn)
+    from apps.main.models import Cert
+
+    sql = generator._get_table_sql(Cert, True)
+
+    old_schema = parse_sql(res, True)
+    new_schema = parse_sql(sql["table_creation_string"], True)
+    changes = generate_diff_sql(old_schema, new_schema)
+
+    print("-- 数据库变更脚本")
+    print("\n".join(changes))
 
 
 @click.argument("table")

@@ -195,7 +195,7 @@ class SchemaExporter:
             return AiosqliteDumper
         raise ValueError(f"Unsupported connection type: {type(conn)}")
 
-    async def export(self, output_file: str):
+    async def export(self):
         dumper_class = self._get_dumper_class()
         dumper = dumper_class(self.conn_name, self.tables)
 
@@ -214,7 +214,7 @@ class SchemaExporter:
 
 
 # 使用示例
-async def main():
+async def example():
     # 导出PostgreSQL（包含完整约束和索引）
     pg_exporter = SchemaExporter("pg_conn", ["users"])
     await pg_exporter.export("pg_schema.sql")
@@ -231,4 +231,4 @@ async def main():
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(main())
+    asyncio.run(example())
