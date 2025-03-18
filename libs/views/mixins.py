@@ -2,10 +2,10 @@ from typing import TYPE_CHECKING
 
 from starlette import status
 
-from libs.responses import JSONResponse
-from libs.serializers.model import ModelSerializer
 from libs.models.base import BaseModel
 from libs.requests import DjangoStyleRequest
+from libs.responses import JSONResponse
+from libs.serializers.model import ModelSerializer
 
 if TYPE_CHECKING:
     from libs.views.viewsets import GenericViewSet
@@ -51,7 +51,9 @@ class CreateModelMixin:
         instance = await self.perform_create(serializer)  # type: ignore
 
         return JSONResponse(
-            (await self.get_serializer(instance, override_action="retrieve")).model_dump(),
+            (
+                await self.get_serializer(instance, override_action="retrieve")
+            ).model_dump(),
             status_code=status.HTTP_201_CREATED,
         )
 

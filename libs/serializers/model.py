@@ -110,10 +110,9 @@ class ModelSerializerPydanticModel(PydanticModel):
             related_objects = m2m_objects.get(f["name"])
             if not related_objects:
                 continue
-
-            await asyncio.gather(
-                *[getattr(instance, f["name"]).add(obj) for obj in related_objects]
-            )
+            
+            for obj in related_objects:
+                await getattr(instance, f["name"]).add(obj)
 
         await self._build_related_objects(
             backward_fk_fields, related_pk=instance.id, using_db=using_db
