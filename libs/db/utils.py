@@ -207,7 +207,7 @@ async def generate_schema_for_client(
 
 
 async def generate_schemas(
-    cls: Tortoise, safe: bool = True, guided=False, apps: list[str] = None
+    cls: Type[Tortoise], safe: bool = True, guided=False, apps: list[str] = None
 ) -> None:
     """
     Generate schemas according to models provided to ``.init()`` method.

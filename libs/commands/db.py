@@ -1,3 +1,23 @@
+"""
+数据库相关命令行工具模块
+
+该模块提供了与数据库操作相关的命令行工具，包括：
+- 数据库迁移（migrate）
+- 自动迁移（auto_migrate）
+- 反向生成模型（reverse_generation）
+
+模块主要功能：
+1. 处理数据库迁移操作，包括安全迁移和引导迁移
+2. 从数据库表结构反向生成 Django 模型
+3. 自动生成数据库变更脚本
+4. 处理与内容类型、权限相关的数据库初始化
+
+依赖：
+- Tortoise ORM 用于数据库操作
+- Click 用于命令行接口
+- uvloop 用于异步事件循环优化
+"""
+
 from itertools import chain
 
 import click
@@ -20,6 +40,14 @@ INTERNAL_GUARDIAN_APP_LABEL = "libs.contrib.guardian"
 
 
 async def async_migrate(safe, guided, apps):
+    """
+    此函数用于异步执行数据库迁移操作。
+
+    Args:
+        safe (bool): 表示是否安全迁移。
+        guided (bool): 表示是否进行引导迁移。
+        apps (list): 要处理的应用列表。
+    """
     auth_app_enabled = INTERNAL_AUTH_APP_LABEL in settings.INSTALLED_APPS
     guardian_app_enabled = INTERNAL_GUARDIAN_APP_LABEL in settings.INSTALLED_APPS
     content_type_app_enabled = (
@@ -87,11 +115,29 @@ async def async_migrate(safe, guided, apps):
 @click.option("--safe", default=True)
 @click.option("--guided", default=True)
 @click.option("--apps", multiple=True)
-def migrate(safe=True, guided=True, apps=[]):
+def migrate(safe=True, guided=True, apps=None):
+    """
+    此函数用于执行数据库迁移操作。
+
+    Args:
+        safe (bool): 表示是否安全迁移，默认为 True。
+        guided (bool): 表示是否进行引导迁移，默认为 True。
+        apps (list): 要处理的应用列表，默认为 None。
+    """
+    if apps is None:
+        apps = []
     uvloop.run(async_migrate(safe, guided, apps))
 
 
 async def print_result(func, *args, **kwargs):
+    """
+    此函数用于异步调用指定的函数，并打印其返回结果。
+
+    Args:
+        func (callable): 要调用的函数。
+        *args: 传递给函数的位置参数。
+        **kwargs: 传递给函数的关键字参数。
+    """
     print(await func(*args, **kwargs))
 
 
@@ -99,6 +145,14 @@ async def print_result(func, *args, **kwargs):
 @click.option("--connection", default="default")
 @click.option("--db", default=None)
 def reverse_generation(connection, db, table):
+    """
+    此函数用于从数据库表反向生成 Django 模型。
+
+    Args:
+        connection (str): 数据库连接名称。
+        db (str): 数据库名称。
+        table (str): 要反向生成的表名。
+    """
     db_config = settings.DATABASES[connection]
 
     uvloop.run(
@@ -117,30 +171,54 @@ def reverse_generation(connection, db, table):
 
 
 @async_init_qingkong
-async def async_auto_migrate(table):
-    pg_exporter = SchemaExporter(
-        "default",
-        [
-            table,
-        ],
-    )
-    res = await pg_exporter.export()
+async def async_auto_migrate(apps: list[str]):
+    """
+    异步自动迁移数据库的函数。
 
-    conn = connections["default"]
+    此函数会处理指定应用的数据库迁移，通过比较旧的和新的数据库模式，生成并打印数据库变更脚本。
 
-    generator = conn.schema_generator(conn)
-    from apps.main.models import Cert
+    Args:
+        apps (list[str]): 要处理的应用列表。
+    """
+    process_apps = []
+    for app in Tortoise.apps:
+        if app in apps:
+            process_apps.append(app)
 
-    sql = generator._get_table_sql(Cert, True)
+    for app in process_apps:
+        for model in Tortoise.apps[app].values():
+            table = model._meta.db_table  # pylint: disable=W0212
 
-    old_schema = parse_sql(res, True)
-    new_schema = parse_sql(sql["table_creation_string"], True)
-    changes = generate_diff_sql(old_schema, new_schema)
+            pg_exporter = SchemaExporter(
+                "default",
+                [
+                    table,
+                ],
+            )
+            res = await pg_exporter.export()
 
-    print("-- 数据库变更脚本")
-    print("\n".join(changes))
+            conn = connections["default"]
+
+            generator = conn.schema_generator(conn)
+
+            sql = generator._get_table_sql(model, True)  # pylint: disable=W0212
+
+            old_schema = parse_sql(res, True)
+            new_schema = parse_sql(sql["table_creation_string"], True)
+            changes = generate_diff_sql(old_schema, new_schema)
+
+            print("-- 数据库变更脚本")
+            print("\n".join(changes))
 
 
-@click.argument("table")
-def auto_migrate(table):
-    uvloop.run(async_auto_migrate(table))
+@click.option("--apps", multiple=True)
+def auto_migrate(apps):
+    """
+    自动迁移数据库的函数。
+
+    此函数会调用异步自动迁移函数 `async_auto_migrate` 来处理数据库迁移。
+
+    Args:
+        apps (list[str]): 要处理的应用列表。
+    """
+    uvloop.run(async_auto_migrate(apps))
