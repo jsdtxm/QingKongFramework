@@ -177,20 +177,23 @@ async def async_auto_migrate(apps: list[str]):
     """
     process_apps = []
     for app in Tortoise.apps:
-        if app in apps:
+        if not apps or app in apps:
             process_apps.append(app)
 
     for app in process_apps:
         for model in Tortoise.apps[app].values():
+            if model._meta.external:  # pylint: disable=W0212
+                continue
+
             table = model._meta.db_table  # pylint: disable=W0212
 
-            pg_exporter = SchemaExporter(
+            exporter = SchemaExporter(
                 "default",
                 [
                     table,
                 ],
             )
-            res = await pg_exporter.export()
+            res = await exporter.export()
 
             conn = connections["default"]
 
@@ -198,12 +201,26 @@ async def async_auto_migrate(apps: list[str]):
 
             sql = generator._get_table_sql(model, True)  # pylint: disable=W0212
 
-            old_schema = parse_sql(res, True)
-            new_schema = parse_sql(sql["table_creation_string"], True)
-            changes = generate_diff_sql(old_schema, new_schema)
+            conn_class_name = conn.__class__.__name__
+            if "PostgreSQL" in conn_class_name:
+                dialect = "Postgres"
+            elif "MySQL" in conn_class_name:
+                dialect = "MySQL"
+            elif "Sqlite" in conn_class_name:
+                dialect = "SQLite"
+            else:
+                raise ValueError(f"Unsupported database: {conn_class_name}")
 
-            print("-- 数据库变更脚本")
-            print("\n".join(changes))
+            old_schema = parse_sql(res, True, dialect.lower())
+            new_schema = parse_sql(sql["table_creation_string"], True, dialect.lower())
+
+            changes = generate_diff_sql(old_schema, new_schema)[0]
+
+            if changes:
+                alert_sql = "\n".join(changes)
+                print("-- 数据库变更脚本")
+                print(alert_sql)
+        # await conn.execute_query()
 
 
 @click.option("--apps", multiple=True)
