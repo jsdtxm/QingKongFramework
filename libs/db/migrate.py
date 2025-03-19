@@ -23,6 +23,21 @@ from itertools import chain
 
 import sqlglot
 from sqlglot import exp
+from sqlglot.dialects.dialect import Dialect
+
+NUMBER_TYPE_SET = {
+    exp.DataType.Type.BIGINT,
+    exp.DataType.Type.UBIGINT,
+    exp.DataType.Type.INT,
+    exp.DataType.Type.UINT,
+    exp.DataType.Type.MEDIUMINT,
+    exp.DataType.Type.UMEDIUMINT,
+    exp.DataType.Type.SMALLINT,
+    exp.DataType.Type.USMALLINT,
+    exp.DataType.Type.TINYINT,
+    exp.DataType.Type.UTINYINT,
+}
+
 
 
 def merge_and_sort_columns(data):
@@ -44,7 +59,7 @@ def merge_and_sort_columns(data):
     return result
 
 
-def parse_sql(file_path, is_content=False, read="mysql"):
+def parse_sql(file_path, is_content=False, dialect="mysql"):
     """解析 SQL 文件并返回包含表结构和索引的字典"""
     # print(file_path)
     if is_content:
@@ -53,9 +68,13 @@ def parse_sql(file_path, is_content=False, read="mysql"):
         with open(file_path, "r", encoding="utf-8") as f:
             sql = f.read()
 
+    dialect = Dialect.get_or_raise(dialect)
+
     tables = {}
     table_name = None
-    statements = sqlglot.parse(sql, read=read)
+    statements = sqlglot.parse(sql, read=dialect, dialect=dialect)
+
+    generator = dialect.Generator()
 
     unique_key_dict = {}
 
@@ -99,10 +118,12 @@ def parse_sql(file_path, is_content=False, read="mysql"):
             # 解析列定义
             for col_def in stmt.find_all(exp.ColumnDef):
                 col_name = col_def.name
-                col_type = col_def.args["kind"].this.name.upper()
+                col_kind: exp.DataType = col_def.args["kind"]
+
+                col_type = generator.datatype_sql(col_kind)
                 constraints = []
                 default = None
-
+                
                 # 处理列约束（NOT NULL、DEFAULT 等）
                 for constraint in col_def.args.get("constraints", []):
                     if isinstance(constraint, exp.NotNullColumnConstraint):
@@ -112,6 +133,7 @@ def parse_sql(file_path, is_content=False, read="mysql"):
 
                 columns[col_name] = {
                     "type": col_type,
+                    "kind": col_kind,
                     "default": default,
                     "constraints": constraints,
                 }
@@ -242,6 +264,21 @@ def generate_alter_statements(old_schema, new_schema, table_name):
             or old_def["default"] != new_def["default"]
             or old_def["constraints"] != new_def["constraints"]
         ):
+            if old_def["type"] != new_def["type"] and "kind" in old_def and "kind" in new_def:
+                old_kind, new_kind = old_def["kind"], new_def["kind"]
+
+                if old_kind.this == new_kind.this and new_kind.this in NUMBER_TYPE_SET:
+                    if not new_kind.expressions and old_kind.expressions:
+                        # 跳过new_schema没有数字类型长度的问题
+                        continue
+                
+                if str(old_kind).upper() == "TINYINT(1)" and str(new_def["kind"]).upper() == "BOOLEAN":
+                    continue
+
+                if str(old_kind).upper() == "TEXT" and str(new_def["kind"]).upper() == "JSON":
+                    # TODO这边似乎是mysql的锅
+                    continue
+            
             constraints = " ".join(new_def["constraints"])
             default_clause = (
                 f" DEFAULT {new_def['default']}"
