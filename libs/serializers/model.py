@@ -23,6 +23,7 @@ from libs.serializers.base import (
     get_validators_map,
 )
 from libs.serializers.creator import pydantic_model_creator
+from libs.utils.context import BlankContextManager
 from libs.utils.functional import copy_method_signature
 
 
@@ -94,6 +95,7 @@ class ModelSerializerPydanticModel(PydanticModel):
         update_fields: Optional[Iterable[str]] = None,
         force_create: bool = False,
         force_update: bool = False,
+        is_in_transaction: bool = False,
         **extra_fields,
     ):
         m2m_fields = self.model_description().get("m2m_fields", [])
@@ -101,23 +103,28 @@ class ModelSerializerPydanticModel(PydanticModel):
 
         instance = self.to_model(**extra_fields)
 
-        # async with in_transaction(instance.app.default_connection):
-        # TODO 使用transaction+mysql会导致死锁
-        await instance.save(using_db, update_fields, force_create, force_update)
-
-        m2m_objects = await self._build_related_objects(m2m_fields, using_db=using_db)
-        for f in m2m_fields:
-            related_objects = m2m_objects.get(f["name"])
-            if not related_objects:
-                continue
-            
-            for obj in related_objects:
-                await getattr(instance, f["name"]).add(obj)
-
-        await self._build_related_objects(
-            backward_fk_fields, related_pk=instance.id, using_db=using_db
+        transaction_context_manager = (
+            BlankContextManager if is_in_transaction else in_transaction
         )
 
+        async with transaction_context_manager(instance.app.default_connection):
+            await instance.save(using_db, update_fields, force_create, force_update)
+
+            m2m_objects = await self._build_related_objects(
+                m2m_fields, using_db=using_db
+            )
+
+            for f in m2m_fields:
+                related_objects = m2m_objects.get(f["name"])
+                if not related_objects:
+                    continue
+
+                for obj in related_objects:
+                    await getattr(instance, f["name"]).add(obj)
+
+            await self._build_related_objects(
+                backward_fk_fields, related_pk=instance.id, using_db=using_db
+            )
         return instance
 
     async def _build_related_objects(
@@ -144,18 +151,22 @@ class ModelSerializerPydanticModel(PydanticModel):
                     for sub_value in value:
                         if related_pk:
                             related_object = sub_value.save(
-                                using_db=using_db, **{relation_field: related_pk}
+                                using_db=using_db,
+                                is_in_transaction=True,
+                                **{relation_field: related_pk},
                             )
                         else:
-                            related_object = sub_value.save(using_db=using_db)
+                            related_object = sub_value.save(
+                                using_db=using_db, is_in_transaction=True
+                            )
 
                         related_objects.append(related_object)
 
                     result[field["name"]] = await asyncio.gather(*related_objects)
                 else:
-                    result[field["name"]] = await related_model.objects.using_db(
-                        using_db
-                    ).filter(id__in=value)
+                    result[field["name"]] = await related_model.objects.filter(
+                        id__in=value
+                    ).using_db(using_db)
 
         return result
 
