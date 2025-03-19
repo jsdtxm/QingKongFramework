@@ -8,7 +8,7 @@ def cookies(self: HTTPConnection) -> dict[str, str]:
         cookie_header = self.headers.getlist("cookie")
         if len(cookie_header) > 1:
             cookie_header = "; ".join(cookie_header)
-        else:
+        elif len(cookie_header) == 1:
             cookie_header = cookie_header[0]
 
         if cookie_header:
