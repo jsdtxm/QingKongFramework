@@ -106,7 +106,7 @@ def generate_hypertable_sql(table_name: str, config: dict) -> str:
 
 def get_create_schema_sql(
     self: "BaseSchemaGenerator", safe: bool = True, apps: list[str] = None
-) -> str:
+) -> []:
     models_to_create: "List[Type[Model]]" = []
 
     models_to_create = _get_models_to_create(self, models_to_create, apps)
@@ -119,7 +119,11 @@ def get_create_schema_sql(
         if hypertable := getattr(model.Meta, "hypertable", None):
             extra_sql.append(generate_hypertable_sql(model._meta.db_table, hypertable))
 
-        tables_to_create.append(data)
+        if not model._meta.external:
+            tables_to_create.append(data)
+
+    if not tables_to_create:
+        return []
 
     tables_to_create_count = len(tables_to_create)
 
