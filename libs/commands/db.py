@@ -92,13 +92,8 @@ async def async_migrate(safe, guided, apps):
             )
 
             if auth_app_enabled:
-                await Permission.bulk_create(
-                    [
-                        Permission(content_type=content_type, perm=p)
-                        for p in DefaultPerms
-                    ],
-                    ignore_conflicts=True,
-                )
+                for p in DefaultPerms:
+                    await Permission.get_or_create(content_type=content_type, perm=p)
 
         conn = Tortoise.get_connection(ContentType._meta.default_connection)
         if "PostgreSQL" in conn.__class__.__name__:
