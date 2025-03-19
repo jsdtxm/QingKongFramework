@@ -141,7 +141,7 @@ class AsyncmyDumper(BaseSchemaDumper):
 
             # 过滤主键和唯一约束
             extra_indexes = [
-                f"CREATE INDEX {idx['Key_name']} ON {table} ({idx['Column_name']});"
+                f"CREATE INDEX {idx['Key_name']} ON {table} (`{idx['Column_name']}`);"
                 for idx in indexes
                 if idx["Key_name"] != "PRIMARY" and not idx["Non_unique"]
             ]
