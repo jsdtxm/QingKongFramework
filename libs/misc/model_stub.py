@@ -91,6 +91,8 @@ def generate(module_name: str, mode: str):
                             """def filter(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
                             """def exclude(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
                             """def get(cls, *args: Q, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> QuerySetSingle[typing.Self]: # type: ignore""",
+                            """def get_or_none(cls, *args: Q, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> QuerySetSingle[typing.Optional[typing.Self]]: # type: ignore""",
+                            """async def get_or_create(cls, defaults: typing.Optional[dict] = None, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> typing.Tuple[typing.Self, bool]: # type: ignore""",
                         ],
                     ),
                 )
