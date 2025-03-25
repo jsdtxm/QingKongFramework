@@ -170,6 +170,10 @@ class ModelSerializerPydanticModel(PydanticModel):
 
         return result
 
+    def update(self, data: dict) -> Self:
+        self.__dict__.update(data)
+        return self
+
     class Config:
         @staticmethod
         def json_schema_extra(schema: dict, cls):
