@@ -78,9 +78,14 @@ class UpdateModelMixin:
         instance = await self.get_object()
         serializer = await self.get_serializer(instance, data=await request.data)
 
-        await self.perform_update(instance)
+        await self.perform_update(serializer)
 
-        return JSONResponse(serializer.model_dump())
+        return JSONResponse(
+            (
+                await self.get_serializer(instance, override_action="retrieve")
+            ).model_dump(),
+            status_code=status.HTTP_200_OK,
+        )
 
     async def perform_update(self, serializer: ModelSerializer):
         await serializer.save()

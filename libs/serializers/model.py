@@ -28,6 +28,8 @@ from libs.utils.functional import copy_method_signature
 
 
 class ModelSerializerPydanticModel(PydanticModel):
+    _instance: Optional[BaseDBModel] = None
+
     @model_serializer(mode="wrap")
     def serialize(
         self, original_serializer: Callable[[Self], dict[str, Any]]
@@ -73,6 +75,9 @@ class ModelSerializerPydanticModel(PydanticModel):
         return cls.model_config["model_description"]
 
     def to_model(self, **extra_fields):
+        if self._instance:
+            return self._instance
+
         m2m_fields = self.model_description().get("m2m_fields", [])
         backward_fk_fields = self.model_description().get("backward_fk_fields", [])
 
@@ -101,31 +106,36 @@ class ModelSerializerPydanticModel(PydanticModel):
         m2m_fields = self.model_description().get("m2m_fields", [])
         backward_fk_fields = self.model_description().get("backward_fk_fields", [])
 
-        instance = self.to_model(**extra_fields)
+        self._instance = self.to_model(**extra_fields)
 
         transaction_context_manager = (
             BlankContextManager if is_in_transaction else in_transaction
         )
 
-        async with transaction_context_manager(instance.app.default_connection):
-            await instance.save(using_db, update_fields, force_create, force_update)
+        async with transaction_context_manager(self._instance.app.default_connection):
+            await self._instance.save(
+                using_db, update_fields, force_create, force_update
+            )
 
             m2m_objects = await self._build_related_objects(
                 m2m_fields, using_db=using_db
             )
 
             for f in m2m_fields:
+                field = getattr(self._instance, f["name"])
+                await field.clear()
+
                 related_objects = m2m_objects.get(f["name"])
                 if not related_objects:
                     continue
 
                 for obj in related_objects:
-                    await getattr(instance, f["name"]).add(obj)
+                    await field.add(obj)
 
             await self._build_related_objects(
-                backward_fk_fields, related_pk=instance.id, using_db=using_db
+                backward_fk_fields, related_pk=self._instance.id, using_db=using_db
             )
-        return instance
+        return self._instance
 
     async def _build_related_objects(
         self, fields, related_pk=None, using_db: Optional[BaseDBAsyncClient] = None

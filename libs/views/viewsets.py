@@ -396,10 +396,13 @@ class GenericAPIView(Generic[MODEL], APIView):
 
         if data is not None:
             if instance is None:
+                # create
                 return serializer_class.model_validate(data)
             else:
-                instance = instance.update_from_dict(data)
+                # update
                 serializer = await serializer_class.from_tortoise_orm(instance)
+                serializer.update(data)
+                serializer._instance = instance
                 return serializer
 
         if isinstance(instance, BaseDBModel):
