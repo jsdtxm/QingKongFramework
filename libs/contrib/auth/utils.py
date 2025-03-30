@@ -81,6 +81,7 @@ def get_current_user_factory(
     token_type: Optional[TokenTypeEnum] = None,
     raw: bool = False,
     raise_exception: bool = True,
+    extra_action: Optional[Callable] = None,
 ):
     async def get_current_user(
         token: Annotated[str, Depends(global_bearer_token_header)],
@@ -94,42 +95,53 @@ def get_current_user_factory(
             payload: dict[str, str] = jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[ALGORITHM]
             )
+            if token_type is not None and payload.get("type") != token_type.value:
+                raise credentials_exception
+
             username = payload.get("username")
             if username is None:
-                if raise_exception:
-                    raise credentials_exception
-                else:
-                    return None
-        except InvalidTokenError:
+                raise credentials_exception
+
+            user = await get_user(username=username)
+            if user is None or user.is_active is False:
+                raise credentials_exception
+        except (InvalidTokenError, HTTPException):
             if raise_exception:
                 raise credentials_exception
             else:
-                return None
+                return (None, None) if raw else None
 
-        if token_type is not None and payload.get("type") != token_type.value:
-            if raise_exception:
-                raise credentials_exception
-            else:
-                return None
+        if extra_action is not None:
+            return extra_action(token_type, raw, raise_exception, payload, user)
 
-        user = await get_user(username=username)
-
-        if user is None or user.is_active is False:
-            if raise_exception:
-                raise credentials_exception
-            else:
-                return None
-
-        if raw:
-            return (payload, user)
-
-        return user
+        return (payload, user) if raw else user
 
     return get_current_user
 
 
+def is_superuser(
+    token_type: Optional[TokenTypeEnum],
+    raw: bool,
+    raise_exception: bool,
+    payload: dict[str, str],
+    user: UserProtocol,
+):
+    try:
+        if not user.is_superuser:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except Exception:
+        return (None, None) if raw else None
+
+
 CurrentUser = Annotated[
     UserProtocol, Depends(get_current_user_factory(TokenTypeEnum.ACCESS))
+]
+CurrentSuperUser = Annotated[
+    UserProtocol, Depends(get_current_user_factory(TokenTypeEnum.ACCESS, extra_action=is_superuser))
 ]
 OptionalCurrentUser = Annotated[
     Optional[UserProtocol],
