@@ -1,17 +1,19 @@
-FROM python:3.12-alpine AS builder
+FROM python:3.12-slim-bookworm AS builder
 
-ARG APK_MIRROR=mirrors.tuna.tsinghua.edu.cn/alpine
-ARG PYPI_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+RUN sed -e 's|^URIs: http://deb.debian.org/debian-security|URIs: http://mirrors.tuna.tsinghua.edu.cn/debian-security|g' \
+    -e 's|^URIs: http://deb.debian.org/debian|URIs: http://mirrors.tuna.tsinghua.edu.cn/debian|g' \
+    -i  /etc/apt/sources.list.d/debian.sources
 
-RUN sed -i "s|dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
-RUN pip config set global.index-url ${PYPI_MIRROR}
+RUN pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
-RUN apk add gcc musl-dev
+RUN apt update
+RUN apt install -y gcc wget
+
 RUN pip install wheel
 
 WORKDIR /app/
 
-RUN wget --user-agent="pip/23.3.1 python/3.12" \
+RUN wget --user-agent="pip/23.3.1 python/3.10" \
     https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/50/1e/67ec08cde59222d275909a508ad2db1ac8c20a72404a189dca31e242179b/asyncmy-0.2.9.tar.gz && \
     tar -xzf asyncmy-0.2.9.tar.gz
 
@@ -25,16 +27,16 @@ WORKDIR /app/asyncmy-0.2.9
 RUN pip install .
 RUN find /usr/local/lib/python3.12 -type d -name '__pycache__' -exec rm -r {} +
 
-FROM python:3.12-alpine
+FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Xia Min <jsdtxm@gmail.com>"
 RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-ARG APK_MIRROR=mirrors.tuna.tsinghua.edu.cn/alpine
-ARG PYPI_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+RUN sed -e 's|^URIs: http://deb.debian.org/debian-security|URIs: http://mirrors.tuna.tsinghua.edu.cn/debian-security|g' \
+    -e 's|^URIs: http://deb.debian.org/debian|URIs: http://mirrors.tuna.tsinghua.edu.cn/debian|g' \
+    -i  /etc/apt/sources.list.d/debian.sources
 
-RUN sed -i "s|dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
-RUN pip config set global.index-url ${PYPI_MIRROR} && \
+RUN pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple && \
     find /usr/local/lib/python3.12 -type d -name '__pycache__' -exec rm -r {} +
 
 WORKDIR /app/
