@@ -19,6 +19,8 @@ aiohttp==3.10.10
 colorama==0.4.6
 click==8.1.7
 
+pydantic==2.10.6
+pydantic_core==2.27.2
 pydantic-settings==2.6.1
 
 pytz==2024.2
