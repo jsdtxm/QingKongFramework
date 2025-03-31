@@ -1,1 +1,1 @@
-docker build -t qingkong_framework:latest-py3.12 --progress plain -f deploy/Dockerfile.debian .
+docker build -t qingkong_framework:latest-py3.12 --progress plain -f deploy/Dockerfile .
