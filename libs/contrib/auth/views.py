@@ -2,20 +2,33 @@ from datetime import timedelta
 
 from fastapi import Request, Response
 from pydantic import BaseModel, field_validator
+from starlette import status
 
 from common.settings import settings
 from libs.contrib.auth import authenticate_user
-from libs.contrib.auth.serializers import UserSerializer
+from libs.contrib.auth.mixins import SuperUserRequiredMixin
+from libs.contrib.auth.models import Group
+from libs.contrib.auth.serializers import (
+    GroupSerializer,
+    GroupUserSerializer,
+    UserSerializer,
+)
 from libs.contrib.auth.utils import (
     CurrentUser,
     RawToken,
     RefreshTokenUser,
     TokenTypeEnum,
+    get_user_model,
 )
 from libs.django.hashers import make_password
 from libs.exceptions import HTTPException
+from libs.responses import JSONResponse
 from libs.router import APIRouter
 from libs.security.jwt import create_token
+from libs.views import viewsets
+from libs.views.decorators import action
+
+User = get_user_model()
 
 token_router = APIRouter(tags=["Auth"])
 
@@ -119,3 +132,54 @@ async def logout(user: CurrentUser, request: Request, response: Response):
         response.delete_cookie(key=key)
 
     return {"msg": "Logout successfully"}
+
+
+class GroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+
+    @action(detail=True, methods=["get"], url_path="user")
+    async def list_users(self, request, id=None):
+        group = await self.get_object()
+        user_set = await group.user_set.all()
+
+        serializer = viewsets.ListSerializerWrapper(
+            [UserSerializer.model_validate(x) for x in user_set]
+        )
+
+        return JSONResponse(serializer.model_dump())
+
+    @action(detail=True, methods=["post"], url_path="user")
+    async def add_users(self, request, id=None):
+        group = await self.get_object()
+
+        try:
+            serializer = GroupUserSerializer.model_validate(await request.data)
+            users = await User.objects.filter(id__in=serializer.user_ids)
+            await group.user_set.add(*users)
+            return JSONResponse(
+                {
+                    "msg": "ok",
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            raise e
+
+    @action(detail=True, methods=["delete"], url_path="user")
+    async def remove_users(self, request, id=None):
+        group = await self.get_object()
+
+        try:
+            serializer = GroupUserSerializer.model_validate(await request.data)
+
+            users = await User.objects.filter(id__in=serializer.user_ids)
+            await group.user_set.remove(*users)
+            return JSONResponse(
+                {
+                    "msg": "ok",
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            raise e
