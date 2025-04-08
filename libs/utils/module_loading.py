@@ -121,7 +121,7 @@ def package_try_import(package, module_name):
         return False
 
 
-def module_dir(module):
+def get_module_dir(module):
     """
     Find the name of the directory that contains a module, if possible.
 
