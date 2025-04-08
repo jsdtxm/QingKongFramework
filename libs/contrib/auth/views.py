@@ -10,7 +10,7 @@ from libs.contrib.auth.mixins import SuperUserRequiredMixin
 from libs.contrib.auth.models import Group
 from libs.contrib.auth.serializers import (
     GroupSerializer,
-    GroupUserSerializer,
+    UserIDsSerializer,
     UserSerializer,
 )
 from libs.contrib.auth.utils import (
@@ -42,6 +42,7 @@ class TokenObtainReq(BaseModel):
         username (str): The username of the user trying to obtain a token.
         password (str): The password of the user trying to obtain a token.
     """
+
     username: str
     password: str
 
@@ -149,6 +150,7 @@ class PasswordUpdate(BaseModel):
         old_password (str): The user's current password.
         new_password (str): The new password the user wants to set.
     """
+
     old_password: str
     new_password: str
 
@@ -245,7 +247,8 @@ class GroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
         serializer_class (Serializer): The serializer class to be used for serializing
                                        and deserializing Group instances.
     """
-    queryset = Group.objects.all()
+
+    queryset = Group
     serializer_class = GroupSerializer
 
     @action(detail=True, methods=["get"], url_path="user")
@@ -287,7 +290,7 @@ class GroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
         group = await self.get_object()
 
         try:
-            serializer = GroupUserSerializer.model_validate(await request.data)
+            serializer = UserIDsSerializer.model_validate(await request.data)
             users = await User.objects.filter(id__in=serializer.user_ids)
             await group.user_set.add(*users)
             return JSONResponse(
@@ -317,7 +320,7 @@ class GroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
         group = await self.get_object()
 
         try:
-            serializer = GroupUserSerializer.model_validate(await request.data)
+            serializer = UserIDsSerializer.model_validate(await request.data)
 
             users = await User.objects.filter(id__in=serializer.user_ids)
             await group.user_set.remove(*users)
