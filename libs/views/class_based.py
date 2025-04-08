@@ -167,7 +167,7 @@ class View:
         self.args = args
         self.kwargs = kwargs
 
-    def dispatch(self, request: DjangoStyleRequest, *args, **kwargs):
+    async def dispatch(self, request: DjangoStyleRequest, *args, **kwargs):
         # Try to dispatch to the right method; if a method doesn't exist,
         # defer to the error handler. Also defer to the error handler if the
         # request method isn't on the approved list.
@@ -177,7 +177,7 @@ class View:
             )
         else:
             handler = self.http_method_not_allowed
-        return handler(request, *args, **kwargs)
+        return await handler(request, *args, **kwargs)
 
     async def http_method_not_allowed(
         self, request: DjangoStyleRequest, *args, **kwargs
