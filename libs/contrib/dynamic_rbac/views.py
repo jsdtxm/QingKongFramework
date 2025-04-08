@@ -1,6 +1,7 @@
 from starlette import status
 
 from libs.contrib.auth.mixins import SuperUserRequiredMixin
+from libs.contrib.auth.utils import CurrentUser
 from libs.contrib.auth.views import GroupViewSet
 from libs.contrib.dynamic_rbac.models import DynamicPermission
 from libs.contrib.dynamic_rbac.serializers import (
@@ -8,8 +9,11 @@ from libs.contrib.dynamic_rbac.serializers import (
     PermIDsSerializer,
 )
 from libs.responses import JSONResponse
+from libs.router import APIRouter
 from libs.views import viewsets
 from libs.views.decorators import action
+
+dynamic_rbac_router = APIRouter(tags=["Dynamic RBAC"])
 
 
 class DynamicPermissionViewSet(SuperUserRequiredMixin, viewsets.ReadOnlyModelViewSet):
@@ -61,3 +65,14 @@ class GroupWithDynamicPermissionViewSet(GroupViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
+
+@dynamic_rbac_router.get("/permissions/")
+async def user_permissions(user: CurrentUser):
+    perms = await DynamicPermission.objects.filter(groups__user=user)
+
+    serializer = viewsets.ListSerializerWrapper(
+        [DynamicPermissionSerializer.model_validate(x) for x in perms]
+    )
+
+    return JSONResponse(serializer.model_dump())
