@@ -1,14 +1,14 @@
 from pathlib import Path
 from typing import Any, List
 
-from libs.conf import BaseSettings
+from fastapp.conf import BaseSettings
 
 
 class Settings(BaseSettings):
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
     INSTALLED_APPS: List[str] = [
-        "libs.contrib.auth",
+        "fastapp.contrib.auth",
         "apps.main",
         "apps.fake",
     ]

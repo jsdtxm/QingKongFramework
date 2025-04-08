@@ -1,4 +1,4 @@
-from libs.apps.config import AppConfig
+from fastapp.apps.config import AppConfig
 
 
 class MainAppConfig(AppConfig):

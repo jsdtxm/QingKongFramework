@@ -53,7 +53,7 @@ RUN remove-dev-requirements requirements.txt requirements.txt.clean && \
     find /usr/local/lib/python3.12 -type d -name '__pycache__' -exec rm -r {} + && \
     rm requirements.txt.clean
 
-COPY ./libs /app/libs
+COPY ./fastapp /app/fastapp
 COPY ./common /app/common
 COPY ./manage.py /app/
 

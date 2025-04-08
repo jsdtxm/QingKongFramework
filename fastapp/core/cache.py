@@ -1,0 +1,1 @@
+from fastapp.cache import caches as cache  # type: ignore # django

@@ -1,4 +1,4 @@
-from libs.models import Model, fields, BaseMeta
+from fastapp.models import Model, fields, BaseMeta
 
 class Tournament(Model):
     # Defining `id` field is optional, it will be defined automatically
