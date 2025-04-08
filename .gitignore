@@ -2,3 +2,6 @@
 *.pyi
 db.sqlite3*
 service_ports.json
+build
+dist
+fastapp.egg-info
