@@ -5,8 +5,10 @@ from starlette import status
 from starlette.exceptions import HTTPException
 from tortoise.exceptions import DoesNotExist as DoesNotExist  # noqa
 from tortoise.exceptions import IntegrityError as IntegrityError  # noqa
+from tortoise.exceptions import ValidationError as ValidationError  # noqa
 
 ObjectDoesNotExist = DoesNotExist
+
 
 class ImproperlyConfigured(Exception):
     """Django is somehow improperly configured"""
