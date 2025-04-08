@@ -50,7 +50,6 @@ etcd3-py==0.1.6
 
 # Migrate
 sqlglot==26.10.1
-sqlglotrs==0.4.0
 
 # Dev
 mypy==1.13.0
