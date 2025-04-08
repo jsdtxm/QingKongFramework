@@ -55,3 +55,5 @@ sqlglotrs==0.4.0
 # Dev
 mypy==1.13.0
 types-pytz==2024.2.0.20241221
+build==1.2.2
+nuitka==2.6.9
