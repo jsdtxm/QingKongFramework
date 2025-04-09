@@ -1,7 +1,7 @@
 import json
 from typing import TYPE_CHECKING
 
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
 from tortoise.exceptions import DoesNotExist, IntegrityError, ValidationError
 
