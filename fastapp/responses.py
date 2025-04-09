@@ -78,6 +78,7 @@ class HttpResponse(ResponseHeaderOperatorsMixin, Response):
         self,
         content: typing.Any = None,
         status_code: int = 200,
+        status: typing.Optional[int] = None,
         headers: typing.Mapping[str, str] | None = None,
         content_type: str | None = None,
         background: BackgroundTask | None = None,
@@ -85,7 +86,7 @@ class HttpResponse(ResponseHeaderOperatorsMixin, Response):
     ) -> None:
         self.charset = charset
 
-        super().__init__(content, status_code, headers, content_type, background)
+        super().__init__(content, status or status_code, headers, content_type, background)
 
 
 class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
@@ -93,6 +94,7 @@ class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
         self,
         path: IOBase | str | os.PathLike[str],
         status_code: int = 200,
+        status: typing.Optional[int] = None,
         headers: typing.Mapping[str, str] | None = None,
         media_type: str = "application/octet-stream",
         content_type: typing.Optional[str] = None,
@@ -115,7 +117,7 @@ class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
 
         super().__init__(
             path,
-            status_code,
+            status or status_code,
             headers,
             content_type or media_type,
             background,
