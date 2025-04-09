@@ -16,6 +16,7 @@ from typing import (
     Union,
 )
 
+from tortoise import connections
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 from tortoise.fields import relational
@@ -137,9 +138,9 @@ class QuerySet(TortoiseQuerySet[MODEL]):
             force_indexes=self._force_indexes,
             use_indexes=self._use_indexes,
         )
-    
-    def using(self, _db: Optional[BaseDBAsyncClient]) -> "QuerySet[MODEL]":
-        return self.using_db(_db)
+
+    def using(self, name: str) -> "QuerySet[MODEL]":
+        return self.using_db(connections.get(name))
 
     if TYPE_CHECKING:
 
