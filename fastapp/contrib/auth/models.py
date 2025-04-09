@@ -90,7 +90,7 @@ class Group(models.Model, LoadPermissionBackendMixin):
         verbose_name="permissions",
         blank=True,
         related_name="group_set",
-        through="qingkong_auth_group_permissions",
+        through=f"{settings.INTERNAL_APP_PREFIX}_auth_group_permissions",
     )
 
     class Meta:
@@ -156,7 +156,7 @@ class AbstractUser(models.Model, LoadPermissionBackendMixin):
         ),
         related_name="user_set",
         related_query_name="user",
-        through="qingkong_auth_user_groups",
+        through=f"{settings.INTERNAL_APP_PREFIX}_auth_user_groups",
     )
     user_permissions = models.ManyToManyField(
         Permission,
@@ -165,7 +165,7 @@ class AbstractUser(models.Model, LoadPermissionBackendMixin):
         help_text="Specific permissions for this user.",
         related_name="user_set",
         related_query_name="user",
-        through="qingkong_auth_user_permissions",
+        through=f"{settings.INTERNAL_APP_PREFIX}_auth_user_permissions",
     )
 
     objects: Union[UserManager[Self], QuerySet[Self]]

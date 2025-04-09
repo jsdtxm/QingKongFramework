@@ -47,3 +47,5 @@ class BaseSettings(PydanticBaseSettings):
     AUTH_PERMISSION_BACKEND: str = (
         "fastapp.contrib.auth.backends.permission.ModelPermissionBackend"
     )
+
+    INTERNAL_APP_PREFIX: str = "qingkong"

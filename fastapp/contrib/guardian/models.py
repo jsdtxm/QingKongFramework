@@ -1,3 +1,4 @@
+from common.settings import settings
 from fastapp import models
 from fastapp.contrib.auth import get_user_model
 from fastapp.contrib.auth.models import Group, Permission
@@ -15,11 +16,12 @@ class UserObjectPermission(models.Model):
     objects = BaseObjectPermissionManager()
 
     class Meta:
-        db_table = "qingkong_user_object_permissions"
+        db_table = f"{settings.INTERNAL_APP_PREFIX}_user_object_permissions"
         unique_together = ["user", "permission", "object_id"]
         indexes = [
             models.Index(
-                fields=("content_type_id", "object_id"), name="user_object_permissions_idx"
+                fields=("content_type_id", "object_id"),
+                name="user_object_permissions_idx",
             ),
         ]
         manager = BaseObjectPermissionManager()
@@ -38,7 +40,7 @@ class GroupObjectPermission(models.Model):
     objects = BaseObjectPermissionManager()
 
     class Meta:
-        db_table = "qingkong_group_object_permissions"
+        db_table = f"{settings.INTERNAL_APP_PREFIX}_group_object_permissions"
         unique_together = ["group", "permission", "object_id"]
         indexes = [
             models.Index(

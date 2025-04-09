@@ -1,5 +1,7 @@
-from fastapp import models
 from typing import Self
+
+from common.settings import settings
+from fastapp import models
 
 
 class ContentType(models.Model):
@@ -9,7 +11,7 @@ class ContentType(models.Model):
     class Meta:
         verbose_name = "content type"
         verbose_name_plural = "content types"
-        db_table = "qingkong_content_type"
+        db_table = f"{settings.INTERNAL_APP_PREFIX}_content_type"
         unique_together = [["app_label", "model"]]
 
     @classmethod
