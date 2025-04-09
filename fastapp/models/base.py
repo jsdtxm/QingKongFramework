@@ -186,7 +186,10 @@ class Manager(Generic[MODEL], TortoiseManager):
         return self._queryset_class(self._model)
 
     def __getattr__(self, item):
-        return getattr(self.get_queryset(), item, getattr(self._model, item))
+        attr = getattr(self.get_queryset(), item, None)
+        if attr is None:
+            return getattr(self._model, item)
+        return attr
 
     if TYPE_CHECKING:
 
