@@ -137,6 +137,9 @@ class QuerySet(TortoiseQuerySet[MODEL]):
             force_indexes=self._force_indexes,
             use_indexes=self._use_indexes,
         )
+    
+    def using(self, _db: Optional[BaseDBAsyncClient]) -> "QuerySet[MODEL]":
+        return self.using_db(_db)
 
     if TYPE_CHECKING:
 
