@@ -180,7 +180,7 @@ class Manager(Generic[MODEL], TortoiseManager):
 
     def get_queryset(self) -> QuerySet[MODEL]:
         return self._queryset_class(self._model)
-    
+
     def __getattr__(self, item):
         return getattr(self.get_queryset(), item, getattr(self._model, item))
 
@@ -195,6 +195,7 @@ class Manager(Generic[MODEL], TortoiseManager):
 class BaseMeta:
     # manager = Manager()   # 先注释掉，观察一下
     external: bool = False
+    managed: bool = True
     ignore_schema: Optional[bool] = None
     app: str = "none"
 
@@ -206,8 +207,10 @@ class ModelMetaClass(TortoiseModelMeta):
             meta_class = attrs.get("Meta", type("Meta", (BaseMeta,), {}))
             abstract = getattr(meta_class, "abstract", False)
 
-            if getattr(meta_class, "ignore_schema", None) is None and getattr(
-                meta_class, "external", False
+            if (
+                getattr(meta_class, "ignore_schema", None) is None
+                and getattr(meta_class, "external", False)
+                and not getattr(meta_class, "managed", True)
             ):
                 meta_class.ignore_schema = True
 

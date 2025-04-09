@@ -119,7 +119,7 @@ def get_create_schema_sql(
         if hypertable := getattr(model.Meta, "hypertable", None):
             extra_sql.append(generate_hypertable_sql(model._meta.db_table, hypertable))
 
-        if not model._meta.external:
+        if model._meta.is_managed:
             tables_to_create.append(data)
 
     if not tables_to_create:
@@ -143,8 +143,8 @@ def get_create_schema_sql(
             raise ConfigurationError("Can't create schema due to cyclic fk references")
         tables_to_create.remove(next_table_for_create)
         created_tables.add(next_table_for_create["table"])
-        if (model := next_table_for_create["model"]) and not getattr(
-            getattr(model, "_meta", None), "external", False
+        if (model := next_table_for_create["model"]) and getattr(
+            getattr(model, "_meta", None), "is_managed", True
         ):
             ordered_tables_for_create.append(
                 next_table_for_create["table_creation_string"]

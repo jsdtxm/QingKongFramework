@@ -182,7 +182,7 @@ async def async_auto_migrate(apps: list[str]):
 
     for app in process_apps:
         for model in Tortoise.apps[app].values():
-            if model._meta.external:  # pylint: disable=W0212
+            if not model._meta.is_managed:  # pylint: disable=W0212
                 continue
 
             table = model._meta.db_table  # pylint: disable=W0212
