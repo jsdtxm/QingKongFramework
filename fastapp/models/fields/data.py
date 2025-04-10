@@ -11,22 +11,34 @@ except Exception:
 
 # Integer
 class SmallIntegerField(tortoise_data_fields.SmallIntField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 class IntegerField(tortoise_data_fields.IntField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 class PositiveIntegerField(tortoise_data_fields.IntField):
     SQL_TYPE = "INT UNSIGNED"
 
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
     @property
@@ -44,8 +56,12 @@ class PositiveIntegerField(tortoise_data_fields.IntField):
 class PositiveSmallIntegerField(tortoise_data_fields.SmallIntField):
     SQL_TYPE = "SMALLINT UNSIGNED"
 
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
     @property
@@ -61,8 +77,12 @@ class PositiveSmallIntegerField(tortoise_data_fields.SmallIntField):
 
 
 class BigIntegerField(tortoise_data_fields.BigIntField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
@@ -83,27 +103,43 @@ class BigAutoField(BigIntegerField):
 
 # Float
 class FloatField(tortoise_data_fields.FloatField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 class DecimalField(tortoise_data_fields.DecimalField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 # String
 class CharField(tortoise_data_fields.CharField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 class TextField(tortoise_data_fields.TextField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
@@ -115,14 +151,22 @@ class EmailField(CharField):
 
 # Time
 class TimeField(tortoise_data_fields.TimeField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 class DateField(tortoise_data_fields.DateField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
@@ -130,43 +174,68 @@ class DateTimeField(tortoise_data_fields.DatetimeField):
     def __init__(
         self,
         verbose_name=None,
+        db_column=None,
         auto_now: bool = False,
         auto_now_add: bool = False,
         **kwargs: Any,
     ) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(auto_now, auto_now_add, **kwargs)
 
 
 class TimeDeltaField(tortoise_data_fields.TimeDeltaField):
     # Django don't support this field
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 # Others
 class BooleanField(tortoise_data_fields.BooleanField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 class BinaryField(tortoise_data_fields.BinaryField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 class JSONField(tortoise_data_fields.JSONField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
 
 class UUIDField(tortoise_data_fields.UUIDField):
-    def __init__(self, verbose_name=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+
+        if db_column:
+            kwargs["source_field"] = db_column
+
         super().__init__(**kwargs)
 
     def to_python_value(self, value: Any) -> Optional[UUID]:
