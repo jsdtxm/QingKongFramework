@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Optional
 
 from fastapi import Request, Response
 from pydantic import BaseModel, field_validator
@@ -6,9 +7,12 @@ from starlette import status
 
 from common.settings import settings
 from fastapp.contrib.auth import authenticate_user
+from fastapp.contrib.auth.filters import UserFilterSet
 from fastapp.contrib.auth.mixins import SuperUserRequiredMixin
-from fastapp.contrib.auth.models import Group
+from fastapp.contrib.auth.models import AbstractUser, Group
 from fastapp.contrib.auth.serializers import (
+    AdminPasswordChangeSerializer,
+    AdminUserCreateSerializer,
     GroupSerializer,
     UserIDsSerializer,
     UserSerializer,
@@ -22,6 +26,7 @@ from fastapp.contrib.auth.utils import (
 )
 from fastapp.django.hashers import make_password
 from fastapp.exceptions import HTTPException
+from fastapp.filters import FilterBackend
 from fastapp.responses import JSONResponse
 from fastapp.router import APIRouter
 from fastapp.security.jwt import create_token
@@ -233,7 +238,55 @@ async def logout(user: CurrentUser, request: Request, response: Response):
     return {"msg": "Logout successfully"}
 
 
-class GroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
+class AdminUserViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
+    """
+    ViewSet for managing admin-level user operations.
+
+    This viewset provides CRUD operations for user management, including creating, updating, deleting, and changing passwords.
+    """
+
+    queryset = User
+    serializer_class = UserSerializer
+    filter_backends = [FilterBackend]
+    filterset_class = UserFilterSet
+
+    create_user_seralizer_class = AdminUserCreateSerializer
+    change_password_serializer_class = AdminPasswordChangeSerializer
+
+    def get_serializer_class(self, override_action: Optional[str] = None):
+        current_action = override_action or self.action
+        if current_action == "create":
+            return self.create_user_seralizer_class
+        return self.serializer_class
+
+    @action(detail=True, methods=["post"], url_path="change-password")
+    async def change_password(self, request, pk=None):
+        user: AbstractUser = await self.get_object()
+
+        data = await request.json()
+        try:
+            serializer = self.change_password_serializer_class.model_validate(data)
+
+            user.set_password(serializer.new_password)
+            await user.save()
+
+            return JSONResponse(
+                {"status": "password changed"}, status_code=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return JSONResponse(str(e), status_code=status.HTTP_400_BAD_REQUEST)
+
+    async def perform_create(self, serializer):
+        if await User.filter(email=serializer.email).exists():
+            raise ValueError("This email has already been registered")
+
+        return await serializer.save()
+
+    async def perform_destroy(self, instance):
+        await instance.delete()
+
+
+class AdminGroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
     """
     A viewset for handling Group model operations.
 
