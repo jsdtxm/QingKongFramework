@@ -250,13 +250,13 @@ class AdminUserViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
     filter_backends = [FilterBackend]
     filterset_class = UserFilterSet
 
-    create_user_seralizer_class = AdminUserCreateSerializer
+    create_user_serializer_class = AdminUserCreateSerializer
     change_password_serializer_class = AdminPasswordChangeSerializer
 
     def get_serializer_class(self, override_action: Optional[str] = None):
         current_action = override_action or self.action
         if current_action == "create":
-            return self.create_user_seralizer_class
+            return self.create_user_serializer_class
         return self.serializer_class
 
     @action(detail=True, methods=["post"], url_path="change-password")
