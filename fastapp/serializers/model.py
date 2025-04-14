@@ -30,6 +30,12 @@ from fastapp.utils.functional import copy_method_signature
 class ModelSerializerPydanticModel(PydanticModel):
     _instance: Optional[BaseDBModel] = None
 
+    def __init__(self, /, null: bool = False, **data: Any) -> None:
+        super().__init__(**data)
+
+        self._field_config = {}  # store property config when serializer as a field
+        self._field_config["null"] = null
+
     @model_serializer(mode="wrap")
     def serialize(
         self, original_serializer: Callable[[Self], dict[str, Any]]

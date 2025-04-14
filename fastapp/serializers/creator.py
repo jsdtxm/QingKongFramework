@@ -460,10 +460,14 @@ def pydantic_model_creator(
 
     for k, v in extra_fields.items():
         if isinstance(v, BaseModel):
+            # FIXME 这里不可以使用fconfig，因为fconfig是上面循环留下来的
             # 这里用来处理嵌套的字段
             if isinstance(v, PydanticModel):
                 # 这里姑且认为是ModelSerializer
-                properties[k] = (type(v), Field(**fconfig))
+                if getattr(v, "_field_config", {}).get("null"):
+                    properties[k] = (type(v), Field(json_schema_extra={'nullable': True}, default=None))
+                else:
+                    properties[k] = (type(v), Field(json_schema_extra={}))
             else:
                 # TODO 不知道干嘛的
                 properties[k] = (v, Field(**fconfig))
