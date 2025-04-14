@@ -128,15 +128,34 @@ def create_new_headers(headers):
     return new_headers
 
 
+def parse_forwarded_for(request: aiohttp.web.Request):
+    peername = request.transport.get_extra_info("peername")
+
+    client_ip = peername[0] if peername else "unknown"
+    # 处理X-Forwarded-For头部
+    headers = request.headers.copy()
+    xff = headers.get("X-Forwarded-For", "")
+    if xff:
+        xff += ", " + client_ip
+    else:
+        xff = client_ip
+    headers["X-Forwarded-For"] = xff
+
+    return headers
+
+
 def handler_factory(proxy_loc: ProxyLocation):
     async def handler(request: aiohttp.web.Request):
         async with aiohttp.ClientSession() as session:
             request_url = proxy_loc.construct_target_url(request.path_qs)
             request_content = await request.read()
+
+            headers = parse_forwarded_for(request)
+
             async with session.request(
                 method=request.method,
                 url=request_url,
-                headers=request.headers,
+                headers=headers,
                 allow_redirects=False,
                 data=request_content,
             ) as response:
@@ -156,7 +175,7 @@ def handler_factory(proxy_loc: ProxyLocation):
                                     fragment=parsed_url.fragment,
                                     params=parsed_url.params,
                                 ).geturl(),
-                                headers=request.headers,
+                                headers=headers,
                                 allow_redirects=False,
                                 data=await request.read(),
                             )
