@@ -116,7 +116,8 @@ class GenericViewSetWrapper(ViewWrapper):
     return view_wrapper"""
 
         # HACK for get_serializer_class
-        route.serializer_class = self.view_class.serializer_class
+        for k in filter(lambda x: x.endswith("serializer_class"), dir(self.view_class)):
+            setattr(route, k, getattr(self.view_class, k))
 
         local_env = {}
         exec(
