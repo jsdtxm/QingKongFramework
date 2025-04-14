@@ -253,7 +253,7 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
 
             pydantic_model = pydantic_model_creator(
                 meta.model,
-                name=name,
+                name=f"{attrs['__module__']}.{name}",
                 bases=ModelSerializerPydanticModel,
                 extra_fields=extra_fields,
                 include=fields,
