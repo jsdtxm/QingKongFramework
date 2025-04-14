@@ -2,12 +2,12 @@ import logging
 import logging.config
 import os
 import re
+from asyncio.exceptions import CancelledError
 from collections import Counter
 from functools import lru_cache
 from urllib.parse import urlparse
 
 import aiohttp
-import aiohttp.client_exceptions
 import aiohttp.web
 import click
 import uvloop
@@ -159,60 +159,87 @@ def handler_factory(proxy_loc: ProxyLocation):
                 allow_redirects=False,
                 data=request_content,
             ) as response:
-                content = await response.read()
+                if response.content_type == "text/event-stream":
+                    # SSE
+                    sse_response = aiohttp.web.StreamResponse(
+                        status=response.status, headers=response.headers
+                    )
+                    sse_response.content_type = "text/event-stream"
 
-                if response.status == 307:
-                    if location := response.headers.get("Location"):
-                        parsed_url = urlparse(location)
+                    await sse_response.prepare(request)
 
-                        if proxy_loc.fastapi_redirect:
-                            parsed_request_url = urlparse(request_url)
-                            response = await session.request(
-                                method=request.method,
-                                url=parsed_request_url._replace(
-                                    path=parsed_url.path,
-                                    query=parsed_url.query,
-                                    fragment=parsed_url.fragment,
-                                    params=parsed_url.params,
-                                ).geturl(),
-                                headers=headers,
-                                allow_redirects=False,
-                                data=await request.read(),
-                            )
+                    try:
+                        # 实时转发数据块
+                        async for chunk in response.content.iter_any():
+                            await sse_response.write(chunk)
 
-                            content = await response.read()
-                        else:
-                            parsed_url = parsed_url._replace(
-                                path=f"/{proxy_loc.prefix}" + parsed_url.path
-                            )
+                    except (ConnectionResetError, CancelledError) as e:
+                        # 处理客户端断开连接
+                        request.app.logger.info(f"Client disconnected: {e}")
 
-                            headers = create_new_headers(response.headers)
-                            headers["Location"] = parsed_url.geturl()
+                    finally:
+                        # 确保关闭连接
+                        await sse_response.write_eof()
 
-                            return aiohttp.web.Response(
-                                body=content, status=response.status, headers=headers
-                            )
+                    return sse_response
 
-                content = swagger_proxy_middleware(proxy_loc, request, content)
+                else:
+                    content = await response.read()
 
-                headers = create_new_headers(response.headers)
+                    if response.status == 307:
+                        if location := response.headers.get("Location"):
+                            parsed_url = urlparse(location)
 
-                if settings.ADD_CORS_HEADERS:
-                    origin = request.headers.get("Origin", "")
-                    referer = request.headers.get("Referer", "")
+                            if proxy_loc.fastapi_redirect:
+                                parsed_request_url = urlparse(request_url)
+                                response = await session.request(
+                                    method=request.method,
+                                    url=parsed_request_url._replace(
+                                        path=parsed_url.path,
+                                        query=parsed_url.query,
+                                        fragment=parsed_url.fragment,
+                                        params=parsed_url.params,
+                                    ).geturl(),
+                                    headers=headers,
+                                    allow_redirects=False,
+                                    data=await request.read(),
+                                )
 
-                    if check_origin(origin, referer):
-                        headers["Access-Control-Allow-Origin"] = origin or referer
-                        headers["Access-Control-Allow-Credentials"] = "true"
-                        headers["Access-Control-Allow-Headers"] = "Content-Type"
+                                content = await response.read()
+                            else:
+                                parsed_url = parsed_url._replace(
+                                    path=f"/{proxy_loc.prefix}" + parsed_url.path
+                                )
 
-                if debug_flag:
-                    print(request_content)
-                    print(content)
+                                headers = create_new_headers(response.headers)
+                                headers["Location"] = parsed_url.geturl()
 
-                return aiohttp.web.Response(
-                    body=content, status=response.status, headers=headers
-                )
+                                return aiohttp.web.Response(
+                                    body=content,
+                                    status=response.status,
+                                    headers=headers,
+                                )
+
+                    content = swagger_proxy_middleware(proxy_loc, request, content)
+
+                    headers = create_new_headers(response.headers)
+
+                    if settings.ADD_CORS_HEADERS:
+                        origin = request.headers.get("Origin", "")
+                        referer = request.headers.get("Referer", "")
+
+                        if check_origin(origin, referer):
+                            headers["Access-Control-Allow-Origin"] = origin or referer
+                            headers["Access-Control-Allow-Credentials"] = "true"
+                            headers["Access-Control-Allow-Headers"] = "Content-Type"
+
+                    if debug_flag:
+                        print(request_content)
+                        print(content)
+
+                    return aiohttp.web.Response(
+                        body=content, status=response.status, headers=headers
+                    )
 
     return handler
 
