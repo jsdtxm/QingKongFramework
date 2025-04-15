@@ -82,7 +82,7 @@ class UpdateModelMixin:
 
         return JSONResponse(
             (
-                await self.get_serializer(instance, override_action="retrieve")
+                await self.get_serializer(serializer._instance, override_action="retrieve")
             ).model_dump(),
             status_code=status.HTTP_200_OK,
         )
