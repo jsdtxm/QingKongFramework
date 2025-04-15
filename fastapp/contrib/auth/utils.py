@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from enum import Enum
 from typing import Annotated, Awaitable, Callable, Optional, Type
 
@@ -82,6 +84,7 @@ def get_current_user_factory(
     raw: bool = False,
     raise_exception: bool = True,
     extra_action: Optional[Callable] = None,
+    version_checker: Optional[Callable] = None,
 ):
     async def get_current_user(
         token: Annotated[str, Depends(global_bearer_token_header)],
@@ -105,6 +108,10 @@ def get_current_user_factory(
             user = await get_user(username=username)
             if user is None or user.is_active is False:
                 raise credentials_exception
+
+            if version_checker:
+                if not version_checker(user, payload.get("ver")):
+                    raise credentials_exception
         except (InvalidTokenError, HTTPException):
             if raise_exception:
                 raise credentials_exception
@@ -117,6 +124,15 @@ def get_current_user_factory(
         return (payload, user) if raw else user
 
     return get_current_user
+
+
+def default_version_checker(user: UserProtocol, ver: str):
+    return (
+        base64.b85encode(hashlib.blake2s(user.password.encode()).digest()).decode(
+            "utf-8"
+        )
+        == ver
+    )
 
 
 def is_superuser(
@@ -138,16 +154,44 @@ def is_superuser(
 
 
 CurrentUser = Annotated[
-    UserProtocol, Depends(get_current_user_factory(TokenTypeEnum.ACCESS))
+    UserProtocol,
+    Depends(
+        get_current_user_factory(
+            TokenTypeEnum.ACCESS, version_checker=default_version_checker
+        )
+    ),
 ]
 CurrentSuperUser = Annotated[
-    UserProtocol, Depends(get_current_user_factory(TokenTypeEnum.ACCESS, extra_action=is_superuser))
+    UserProtocol,
+    Depends(
+        get_current_user_factory(
+            TokenTypeEnum.ACCESS,
+            extra_action=is_superuser,
+            version_checker=default_version_checker,
+        )
+    ),
 ]
 OptionalCurrentUser = Annotated[
     Optional[UserProtocol],
-    Depends(get_current_user_factory(TokenTypeEnum.ACCESS, raise_exception=False)),
+    Depends(
+        get_current_user_factory(
+            TokenTypeEnum.ACCESS,
+            raise_exception=False,
+            version_checker=default_version_checker,
+        )
+    ),
 ]
 RefreshTokenUser = Annotated[
-    UserProtocol, Depends(get_current_user_factory(TokenTypeEnum.REFRESH))
+    UserProtocol,
+    Depends(
+        get_current_user_factory(
+            TokenTypeEnum.REFRESH, version_checker=default_version_checker
+        )
+    ),
 ]
-RawToken = Annotated[UserProtocol, Depends(get_current_user_factory(raw=True))]
+RawToken = Annotated[
+    UserProtocol,
+    Depends(
+        get_current_user_factory(raw=True, version_checker=default_version_checker)
+    ),
+]

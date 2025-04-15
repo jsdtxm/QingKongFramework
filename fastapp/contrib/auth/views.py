@@ -74,10 +74,12 @@ async def token_obtain(req: TokenObtainReq):
     access_token = create_token(
         {"typ": TokenTypeEnum.ACCESS.value, "sub": user.username},
         timedelta(seconds=settings.ACCESS_TOKEN_LIFETIME),
+        version_key=user.password,
     )
     refresh_token = create_token(
         {"typ": TokenTypeEnum.REFRESH.value, "sub": user.username},
         timedelta(seconds=settings.REFRESH_TOKEN_LIFETIME),
+        version_key=user.password,
     )
 
     return {
@@ -100,13 +102,13 @@ async def token_refresh(user: RefreshTokenUser):
     Raises:
         HTTPException: If the user is inactive or the provided credentials are invalid.
     """
-    # TODO 如果用户修改密码，这里实际上不能处理好
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid login credentials")
 
     access_token = create_token(
         {"typ": TokenTypeEnum.ACCESS.value, "sub": user.username},
         timedelta(seconds=settings.ACCESS_TOKEN_LIFETIME),
+        version_key=user.password,
     )
 
     return {
