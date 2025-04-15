@@ -134,7 +134,7 @@ async def _loaddata(file_path):
                 filter(lambda x: x.startswith("apps"), settings.INSTALLED_APPS),
             )
         )
-        files = sorted(get_all_fixtures(app_dirs), key=lambda x: os.path.basename(x))
+        files = sorted(get_all_fixtures(app_dirs), key=lambda x: (int(os.path.basename(x).split("_", 1)[0]), os.path.basename(x)))
         for file in files:
             print(file)
             await _loaddata_inner(file)
