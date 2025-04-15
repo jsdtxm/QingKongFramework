@@ -95,10 +95,10 @@ def get_current_user_factory(
             payload: dict[str, str] = jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[ALGORITHM]
             )
-            if token_type is not None and payload.get("type") != token_type.value:
+            if token_type is not None and payload.get("typ") != token_type.value:
                 raise credentials_exception
 
-            username = payload.get("username")
+            username = payload.get("sub")
             if username is None:
                 raise credentials_exception
 
