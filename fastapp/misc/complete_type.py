@@ -9,6 +9,45 @@ from fastapp.utils.module_loading import import_module
 from fastapp.utils.typing import type_to_str
 
 
+def remove_meta_class(code_lines):
+    """
+    删除嵌套在类中的 Meta 类及其内容。
+
+    :param code_lines: 一个包含 Python 代码的行列表
+    :return: 处理后的代码行列表
+    """
+    cleaned_code = []  # 存储清理后的代码
+    class_stack = []  # 用于跟踪当前嵌套的类及其缩进
+    inside_meta = False  # 标记是否在 Meta 类中
+
+    for line in code_lines:
+        stripped_line = line.lstrip()  # 去掉左侧空白以获取实际内容
+        indent = line[: len(line) - len(stripped_line)]  # 获取当前行的缩进
+
+        # 检测类定义
+        if stripped_line.startswith("class "):
+            class_name = (
+                stripped_line.split("class ")[1].split("(")[0].split(":")[0].strip()
+            )
+            class_stack.append((class_name, indent))  # 将当前类名和缩进压入栈
+
+        # 如果检测到 Meta 类的定义
+        if "class Meta" in stripped_line and class_stack:
+            inside_meta = True  # 进入 Meta 类
+
+        # 如果不在 Meta 类中，则保留代码
+        if not inside_meta:
+            cleaned_code.append(line)
+
+        # 检测类结束（通过缩进减少）
+        if class_stack and len(indent) < len(class_stack[-1][1]):
+            if inside_meta:
+                inside_meta = False  # 退出 Meta 类
+            class_stack.pop()  # 退出当前类
+
+    return cleaned_code
+
+
 def complete(module_name: str):
     file_path = module_name.replace(".", "/") + ".pyi"
     module = import_module(module_name)
@@ -68,7 +107,7 @@ def complete(module_name: str):
                 ptype = field["python_type"].__name__
                 if field["nullable"] is True:
                     ptype = f"typing.Optional[{ptype}]"
-                
+
                 if ptype == "User":
                     ptype = 'typing.Union["User", "UserProtocol"]'
 
@@ -78,7 +117,7 @@ def complete(module_name: str):
             ptype = desc["python_type"]
 
             ptype_str = type_to_str(ptype)
-            
+
             optional = desc.get("nullable")
 
             line_type_str = f"typing.Optional[{ptype_str}]" if optional else ptype_str
@@ -90,5 +129,6 @@ def complete(module_name: str):
         tmp_part.append(line)
 
     result_parts.append(tmp_part)
+    lines = remove_meta_class(chain(*result_parts))
     with open(file_path, "w", encoding="utf-8") as file:
-        file.writelines(chain(*result_parts))
+        file.writelines(lines)
