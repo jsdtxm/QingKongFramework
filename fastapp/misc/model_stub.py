@@ -82,7 +82,7 @@ def generate(module_name: str, mode: str):
             modified_lines.extend(
                 chain(
                     [
-                        f"    objects: typing.Type[{model_name}] # type: ignore\n\n",
+                        f"    objects: typing.Type[\"{model_name}\"] # type: ignore\n\n",
                     ],
                     map(
                         lambda x: f"{indent}@classmethod\n{indent}{x}\n{indent*2}...\n\n",
