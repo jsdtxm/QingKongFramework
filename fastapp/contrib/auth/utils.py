@@ -18,8 +18,8 @@ ANONYMOUS_USERNAME = "anonymous"
 
 
 class TokenTypeEnum(Enum):
-    ACCESS = "access"
-    REFRESH = "refresh"
+    ACCESS = "acc"
+    REFRESH = "ref"
 
 
 decode = jwt.decode
