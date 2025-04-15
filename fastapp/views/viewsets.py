@@ -1,3 +1,4 @@
+import inspect
 import re
 from functools import update_wrapper
 from inspect import getmembers
@@ -31,6 +32,7 @@ from fastapp.responses import JSONResponse
 from fastapp.utils.functional import classonlymethod, copy_method_signature
 from fastapp.utils.module_loading import import_string
 from fastapp.utils.strings import BRACE_REGEX, split_camel_case
+from fastapp.utils.typing import type_to_str
 from fastapp.views import mixins
 from fastapp.views.class_based import View, ViewWrapper
 from fastapp.views.decorators import ActionMethodMapper
@@ -94,7 +96,17 @@ class GenericViewSetWrapper(ViewWrapper):
     def view(self, route: ViewSetRouteItem):  # type: ignore
         matches = re.findall(BRACE_REGEX, route.url)
 
-        extra_params = [f"{match}: int" for match in matches]
+        signature = inspect.signature(getattr(self.view_class, route.action))
+        parameters_annotations_map = {
+            k: v.annotation
+            for k, v in signature.parameters.items()
+            if k not in ("self", "request") and v.annotation is not inspect._empty
+        }
+
+        extra_params = [
+            f"{match}: {type_to_str(parameters_annotations_map.get(match, int))}"
+            for match in matches
+        ]
         if route.action in ("create", "update"):
             extra_params.append(
                 "body: "
