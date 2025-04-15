@@ -1,5 +1,6 @@
 import inspect
 import re
+import typing
 from functools import update_wrapper
 from inspect import getmembers
 from typing import (
@@ -135,6 +136,7 @@ class GenericViewSetWrapper(ViewWrapper):
         exec(
             function_definition,
             {
+                "typing": typing,
                 "Request": Request,
                 "SkipValidation": SkipValidation,
                 "OptionalCurrentUser": OptionalCurrentUser,
