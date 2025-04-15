@@ -93,6 +93,8 @@ class Group(models.Model, LoadPermissionBackendMixin):
         through=f"{settings.INTERNAL_APP_PREFIX}_auth_group_permissions",
     )
 
+    user_set: models.ManyToManyRelation["AbstractUser"]
+
     class Meta:
         verbose_name = "group"
         verbose_name_plural = "groups"
