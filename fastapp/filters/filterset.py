@@ -89,6 +89,6 @@ class BaseFilterSet:
             self._qs = self.filter_queryset(self.queryset.all())
         return self._qs
 
-
+# FIXME 不支持继承
 class FilterSet(BaseFilterSet, metaclass=FilterSetMetaclass):
     pass
