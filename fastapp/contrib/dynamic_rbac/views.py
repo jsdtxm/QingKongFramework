@@ -2,7 +2,7 @@ from starlette import status
 
 from fastapp.contrib.auth.mixins import SuperUserRequiredMixin
 from fastapp.contrib.auth.utils import CurrentUser
-from fastapp.contrib.auth.views import GroupViewSet
+from fastapp.contrib.auth.views import AdminGroupViewSet
 from fastapp.contrib.dynamic_rbac.models import DynamicPermission
 from fastapp.contrib.dynamic_rbac.serializers import (
     DynamicPermissionSerializer,
@@ -21,7 +21,7 @@ class DynamicPermissionViewSet(SuperUserRequiredMixin, viewsets.ReadOnlyModelVie
     serializer_class = DynamicPermissionSerializer
 
 
-class GroupWithDynamicPermissionViewSet(GroupViewSet):
+class AdminGroupWithDynamicPermissionViewSet(AdminGroupViewSet):
     @action(detail=True, methods=["get"], url_path="dynamic_permission")
     async def list_dynamic_permission(self, request, id=None):
         group = await self.get_object()
