@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any, Awaitable, Callable, Optional
 
@@ -88,11 +90,26 @@ class GlobalBearerTokenHeader(APIKeyBase):
 global_bearer_token_header = GlobalBearerTokenHeader(auto_error=False)
 
 
-def create_token(data: dict, expires_delta: timedelta | None = None):
+def create_token(
+    data: dict,
+    expires_delta: timedelta | None = None,
+    version_key: Optional[str] = None,
+):
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
 
     to_encode = data.copy()
-    to_encode.update({"exp": expire})
+    to_encode.update(
+        {"exp": expire, "iss": settings.PROJECT_NAME or settings.BASE_DIR.name}
+    )
+
+    if version_key:
+        to_encode.update(
+            {
+                "ver": base64.b85encode(
+                    hashlib.blake2s(version_key.encode()).digest()
+                ).decode("utf-8")
+            }
+        )
 
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -141,4 +158,3 @@ def individual_jwt_auth_factory(inner: Callable[[Request, str], Awaitable]):
 
 
 IndividualJwtAuth = Annotated[dict, Depends(individual_jwt_auth_factory(jwt_validator))]
-
