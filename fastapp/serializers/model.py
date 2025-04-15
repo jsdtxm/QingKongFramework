@@ -29,6 +29,7 @@ from fastapp.utils.functional import copy_method_signature
 
 class ModelSerializerPydanticModel(PydanticModel):
     _instance: Optional[BaseDBModel] = None
+    _instance_processed: bool = False
 
     def __init__(self, /, null: bool = False, **data: Any) -> None:
         super().__init__(**data)
@@ -81,15 +82,34 @@ class ModelSerializerPydanticModel(PydanticModel):
         return cls.model_config["model_description"]
 
     def to_model(self, **extra_fields):
-        if self._instance:
+        if self._instance_processed:
             return self._instance
 
-        m2m_fields = self.model_description().get("m2m_fields", [])
-        backward_fk_fields = self.model_description().get("backward_fk_fields", [])
+        model_description = self.model_description()
+        data_fields = model_description.get("data_fields", [])
+        pk_field = model_description.get("pk_field", None)
+        raw_instance_fields = data_fields + (
+            [
+                pk_field,
+            ]
+            if pk_field
+            else []
+        )
 
-        return self.orig_model()(
+        m2m_fields = model_description.get("m2m_fields", [])
+        backward_fk_fields = model_description.get("backward_fk_fields", [])
+
+        self._instance = self.orig_model()(
             **(
-                self.model_dump(
+                (
+                    {
+                        x["name"]: getattr(self._instance, x["name"])
+                        for x in raw_instance_fields
+                    }
+                    if self._instance
+                    else {}
+                )
+                | self.model_dump(
                     exclude=self.read_only_fields()
                     + [x["name"] for x in m2m_fields]
                     + [x["name"] for x in backward_fk_fields],
@@ -99,6 +119,12 @@ class ModelSerializerPydanticModel(PydanticModel):
                 | extra_fields
             )  # type: ignore[call-arg]
         )
+        if self._instance.pk is not None:
+            self._instance._saved_in_db = True
+
+        self._instance_processed = True
+
+        return self._instance
 
     async def save(
         self,
@@ -112,23 +138,21 @@ class ModelSerializerPydanticModel(PydanticModel):
         m2m_fields = self.model_description().get("m2m_fields", [])
         backward_fk_fields = self.model_description().get("backward_fk_fields", [])
 
-        self._instance = self.to_model(**extra_fields)
+        instance = self.to_model(**extra_fields)
 
         transaction_context_manager = (
             BlankContextManager if is_in_transaction else in_transaction
         )
 
-        async with transaction_context_manager(self._instance.app.default_connection):
-            await self._instance.save(
-                using_db, update_fields, force_create, force_update
-            )
+        async with transaction_context_manager(instance.app.default_connection):
+            await instance.save(using_db, update_fields, force_create, force_update)
 
             m2m_objects = await self._build_related_objects(
                 m2m_fields, using_db=using_db
             )
 
             for f in m2m_fields:
-                field = getattr(self._instance, f["name"])
+                field = getattr(instance, f["name"])
                 await field.clear()
 
                 related_objects = m2m_objects.get(f["name"])
@@ -139,9 +163,9 @@ class ModelSerializerPydanticModel(PydanticModel):
                     await field.add(obj)
 
             await self._build_related_objects(
-                backward_fk_fields, related_pk=self._instance.id, using_db=using_db
+                backward_fk_fields, related_pk=instance.id, using_db=using_db
             )
-        return self._instance
+        return instance
 
     async def _build_related_objects(
         self, fields, related_pk=None, using_db: Optional[BaseDBAsyncClient] = None
@@ -274,6 +298,7 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
             return pydantic_model
 
         return super().__new__(mcs, name, bases, attrs)
+
 
 # FIXME 不支持继承
 class ModelSerializer(
