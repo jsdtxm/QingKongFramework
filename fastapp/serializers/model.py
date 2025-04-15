@@ -87,14 +87,14 @@ class ModelSerializerPydanticModel(PydanticModel):
 
         model_description = self.model_description()
         data_fields = model_description.get("data_fields", [])
-        pk_field = model_description.get("pk_field", None)
-        raw_instance_fields = data_fields + (
+        pk_fields = (
             [
                 pk_field,
             ]
-            if pk_field
+            if (pk_field := model_description.get("pk_field", None))
             else []
         )
+        raw_instance_fields = data_fields + pk_fields
 
         m2m_fields = model_description.get("m2m_fields", [])
         backward_fk_fields = model_description.get("backward_fk_fields", [])
@@ -112,7 +112,8 @@ class ModelSerializerPydanticModel(PydanticModel):
                 | self.model_dump(
                     exclude=self.read_only_fields()
                     + [x["name"] for x in m2m_fields]
-                    + [x["name"] for x in backward_fk_fields],
+                    + [x["name"] for x in backward_fk_fields]
+                    + pk_fields,
                     exclude_unset=True,
                     exclude_write_only=False,
                 )
