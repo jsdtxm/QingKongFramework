@@ -275,7 +275,7 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
 
         return super().__new__(mcs, name, bases, attrs)
 
-
+# FIXME 不支持继承
 class ModelSerializer(
     BaseSerializer, ModelSerializerPydanticModel, metaclass=ModelSerializerMetaclass
 ):
