@@ -465,7 +465,7 @@ def pydantic_model_creator(
             if isinstance(v, PydanticModel):
                 # 这里姑且认为是ModelSerializer
                 if getattr(v, "_field_config", {}).get("null"):
-                    properties[k] = (type(v), Field(json_schema_extra={'nullable': True}, default=None))
+                    properties[k] = (Optional[type(v)], Field(json_schema_extra={'nullable': True}, default=None))
                 else:
                     properties[k] = (type(v), Field(json_schema_extra={}))
             else:
