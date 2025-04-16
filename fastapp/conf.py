@@ -57,8 +57,12 @@ class BaseSettings(PydanticBaseSettings):
     EMAIL_HOST_USER: str = ""
     EMAIL_HOST_PASSWORD: str = ""
     EMAIL_FROM: str = ""
-    EMAIL_USE_SSL: bool = True
+    EMAIL_USE_SSL: bool = False
+    EMAIL_USE_TLS: bool = False
+    EMAIL_TIMEOUT: Optional[int] = None
     EMAIL_SUBJECT_PREFIX: str = "[FastAPP]"
+    EMAIL_SSL_CERTFILE: Optional[str] = None
+    EMAIL_SSL_KEYFILE: Optional[str] = None
 
 
 class LazySettings:
