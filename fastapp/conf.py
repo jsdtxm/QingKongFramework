@@ -49,3 +49,39 @@ class BaseSettings(PydanticBaseSettings):
     )
 
     INTERNAL_APP_PREFIX: str = "qingkong"
+class LazySettings:
+    """
+    A class for lazily loading settings.
+
+    This class provides a mechanism to load settings in a lazy manner.
+    It stores an instance of `BaseSettings` and loads it only when necessary.
+    It also allows accessing attributes of the settings object through itself.
+    """
+
+    settings: Optional[BaseSettings] = None
+
+    def __init__(self) -> None:
+        pass
+
+    def load_settings(self) -> BaseSettings:
+        """
+        Load and return an instance of BaseSettings.
+
+        If the settings have already been loaded, it returns the cached instance.
+        Otherwise, it imports the settings from `common.conf` and caches the instance.
+
+        Returns:
+            BaseSettings: An instance of the BaseSettings class containing application settings.
+        """
+        if self.settings is None:
+            from common.settings import settings as project_settings  # pylint: disable=import-outside-toplevel
+
+            self.settings = project_settings
+
+        return self.settings
+
+    def __getattr__(self, name: str) -> Any:
+        return self.load_settings().__getattribute__(name)
+
+
+settings = LazySettings()
