@@ -49,6 +49,18 @@ class BaseSettings(PydanticBaseSettings):
     )
 
     INTERNAL_APP_PREFIX: str = "qingkong"
+
+    # EMAIL
+    EMAIL_BACKEND: str = "fastapp.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST: str = "smtp.example.com"
+    EMAIL_PORT: int = 465
+    EMAIL_HOST_USER: str = ""
+    EMAIL_HOST_PASSWORD: str = ""
+    EMAIL_FROM: str = ""
+    EMAIL_USE_SSL: bool = True
+    EMAIL_SUBJECT_PREFIX: str = "[FastAPP]"
+
+
 class LazySettings:
     """
     A class for lazily loading settings.
@@ -84,4 +96,4 @@ class LazySettings:
         return self.load_settings().__getattribute__(name)
 
 
-settings = LazySettings()
+settings: BaseSettings = LazySettings()  # type: ignore
