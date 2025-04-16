@@ -53,9 +53,13 @@ class EmailBackend(BaseEmailBackend):
 
     @property
     def connection_class(self):
+        """
+        Return the appropriate SMTP connection class based on the configuration.
+        If `use_ssl` is True, return `smtplib.SMTP_SSL`; otherwise, return `smtplib.SMTP`.
+        """
         return smtplib.SMTP_SSL if self.use_ssl else smtplib.SMTP
 
-    def open(self):
+    async def open(self):
         """
         Ensure an open connection to the email server. Return whether or not a
         new connection was required (True or False) or None if an exception
@@ -95,7 +99,7 @@ class EmailBackend(BaseEmailBackend):
             if not self.fail_silently:
                 raise
 
-    def close(self):
+    async def close(self):
         """Close the connection to the email server."""
         if self.connection is None:
             return
@@ -114,7 +118,7 @@ class EmailBackend(BaseEmailBackend):
         finally:
             self.connection = None
 
-    def send_messages(self, email_messages):
+    async def send_messages(self, email_messages):
         """
         Send one or more EmailMessage objects and return the number of email
         messages sent.
@@ -122,21 +126,21 @@ class EmailBackend(BaseEmailBackend):
         if not email_messages:
             return 0
         with self._lock:
-            new_conn_created = self.open()
+            new_conn_created = await self.open()
             if not self.connection or new_conn_created is None:
                 # We failed silently on open().
                 # Trying to send would be pointless.
                 return 0
             num_sent = 0
             for message in email_messages:
-                sent = self._send(message)
+                sent = await self._send(message)
                 if sent:
                     num_sent += 1
             if new_conn_created:
-                self.close()
+                await self.close()
         return num_sent
 
-    def _send(self, email_message):
+    async def _send(self, email_message):
         """A helper method that does the actual sending."""
         if not email_message.recipients():
             return False
