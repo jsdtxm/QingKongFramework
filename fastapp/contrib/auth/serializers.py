@@ -4,7 +4,8 @@ from pydantic import field_validator
 
 from fastapp import serializers
 from fastapp.contrib.auth.models import Group
-from fastapp.contrib.auth.utils import get_user_model, validate_password_format
+from fastapp.contrib.auth.utils import get_user_model
+from fastapp.contrib.auth.validators import validate_password_format
 
 User = get_user_model()
 
