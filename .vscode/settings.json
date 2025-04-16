@@ -3,6 +3,7 @@
         "aiohttp",
         "classonlymethod",
         "fastapi",
+        "fastapp",
         "healthz",
         "pydantic",
         "qingkong",
