@@ -24,8 +24,6 @@ class BaseSettings(PydanticBaseSettings):
     DATABASES: dict[str, dict[str, Any]]
     CACHES: dict[str, dict[str, Any]] = {}
 
-    AUTH_USER_MODEL: str | None = None
-
     EXTRA_PROXY: List[Tuple[str, str]] = []
 
     RATE_LIMITER_CLASS: str = "fastapp.contrib.limiter.RedisRateLimiter"
@@ -63,6 +61,10 @@ class BaseSettings(PydanticBaseSettings):
     EMAIL_SUBJECT_PREFIX: str = "[FastAPP]"
     EMAIL_SSL_CERTFILE: Optional[str] = None
     EMAIL_SSL_KEYFILE: Optional[str] = None
+    DEFAULT_FROM_EMAIL: str = "webmaster@localhost"
+    SERVER_EMAIL: str = "root@localhost"
+
+    ADMINS: List[str] = []
 
 
 class LazySettings:
@@ -90,7 +92,9 @@ class LazySettings:
             BaseSettings: An instance of the BaseSettings class containing application settings.
         """
         if self.settings is None:
-            from common.settings import settings as project_settings  # pylint: disable=import-outside-toplevel
+            from common.settings import (
+                settings as project_settings,  # pylint: disable=import-outside-toplevel
+            )
 
             self.settings = project_settings
 
