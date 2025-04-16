@@ -1,11 +1,13 @@
-import re
-
 from pydantic import field_validator
 
 from fastapp import serializers
 from fastapp.contrib.auth.models import Group
 from fastapp.contrib.auth.utils import get_user_model
-from fastapp.contrib.auth.validators import validate_password_format
+from fastapp.contrib.auth.validators import (
+    email_validator,
+    password_validator,
+    username_validator,
+)
 
 User = get_user_model()
 
@@ -58,24 +60,17 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
     @field_validator("username")
     @classmethod
     def validate_username(cls, v):
-        # 检查是否为空以及是否符合用户名格式
-        if v and not re.match(r"^[a-zA-Z0-9_]{3,20}$", v):
-            raise ValueError(
-                "Invalid username format. Username must be 3-20 characters long and can only contain letters, numbers, and underscores."
-            )
-        return v
+        return username_validator(v)
 
     @field_validator("password")
     @classmethod
     def validate_password(cls, v):
-        return validate_password_format(v)
+        return password_validator(v)
 
     @field_validator("email")
     @classmethod
     def validate_email(cls, v):
-        if v and not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", v):
-            raise ValueError("Invalid email format")
-        return v
+        return email_validator(v)
 
     class Meta:
         model = User
