@@ -51,6 +51,9 @@ etcd3-py==0.1.6
 # Migrate
 sqlglot==26.10.1
 
+# Email
+aiosmtplib==4.0.0
+
 # Dev
 mypy==1.13.0
 types-pytz==2024.2.0.20241221
