@@ -22,10 +22,10 @@ from pydantic.main import IncEx
 from pydantic_core import CoreSchema
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields.base import Field as TortoiseField
+from tortoise.queryset import QuerySet as TortoiseQuerySet
 
 from fastapp.serializers.fields import DateTimeField
 from fastapp.utils.functional import classproperty, copy_method_signature
-from tortoise.queryset import QuerySet as TortoiseQuerySet
 
 
 class EmptyModelMetaclass(ModelMetaclass):
@@ -330,13 +330,17 @@ class SerializerMetaclass(ABCMeta):
                     field_default = fdesc.get("default")
                     ptype = fdesc["python_type"]
 
-                    if field_default is not None or fdesc.get("nullable"):
+                    if fdesc.get("nullable"):
                         fields_map[key] = (
                             Optional[ptype],
-                            Field(default=field.default),
+                            Field(
+                                default=field_default
+                                if field_default
+                                else field.default
+                            ),
                         )
                     else:
-                        fields_map[key] = (ptype, Field(default=field.default))
+                        fields_map[key] = (ptype, Field())
                 elif (
                     isinstance(field, type) and issubclass(field, BaseModel)
                 ) or isinstance(field, BaseModel):
