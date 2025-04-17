@@ -306,6 +306,9 @@ class AdminGroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
     queryset = Group
     serializer_class = GroupSerializer
 
+    async def filter_queryset(self, queryset):
+        return (await super().filter_queryset(queryset)).order_by("id")
+
     @action(detail=True, methods=["get"], url_path="user")
     async def list_users(self, request, id=None):
         """
