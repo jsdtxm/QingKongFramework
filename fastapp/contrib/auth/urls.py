@@ -4,5 +4,5 @@ from fastapp.router import include, path
 
 urlpatterns = [
     path("", include(token_router)),
-    path("group", views.GroupViewSet.as_view()),
+    path("group", views.AdminGroupViewSet.as_view()),
 ]
