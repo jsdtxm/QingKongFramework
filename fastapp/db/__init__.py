@@ -17,7 +17,7 @@ class ConnectionsWrapper:
 
         return conn
 
-    def get(self, key):
+    def get(self, key) -> BaseDBAsyncClient:
         return self.connections.get(key)
 
     def keys(self):
