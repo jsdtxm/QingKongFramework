@@ -256,7 +256,7 @@ class EmailMessage:
         self.connection = connection
 
     def get_connection(self, fail_silently=False):
-        from django.core.mail import get_connection
+        from fastapp.core.mail import get_connection
 
         if not self.connection:
             self.connection = get_connection(fail_silently=fail_silently)
@@ -296,13 +296,13 @@ class EmailMessage:
         """
         return [email for email in (self.to + self.cc + self.bcc) if email]
 
-    def send(self, fail_silently=False):
+    async def send(self, fail_silently=False):
         """Send the email message."""
         if not self.recipients():
             # Don't bother creating the network connection if there's nobody to
             # send to.
             return 0
-        return self.get_connection(fail_silently).send_messages([self])
+        return await self.get_connection(fail_silently).send_messages([self])
 
     def attach(self, filename=None, content=None, mimetype=None):
         """

@@ -8,6 +8,7 @@ from fastapp.conf import settings
 from fastapp.core.mail.backends.base import BaseEmailBackend
 from fastapp.core.mail.message import sanitize_address
 from fastapp.core.mail.utils import DNS_NAME
+from fastapp.utils.functional import cached_property
 
 
 class EmailBackend(BaseEmailBackend):
@@ -59,6 +60,15 @@ class EmailBackend(BaseEmailBackend):
         """
         return smtplib.SMTP_SSL if self.use_ssl else smtplib.SMTP
 
+    @cached_property
+    def ssl_context(self):
+        if self.ssl_certfile or self.ssl_keyfile:
+            ssl_context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS_CLIENT)
+            ssl_context.load_cert_chain(self.ssl_certfile, self.ssl_keyfile)
+            return ssl_context
+        else:
+            return ssl.create_default_context()
+
     async def open(self):
         """
         Ensure an open connection to the email server. Return whether or not a
@@ -75,12 +85,7 @@ class EmailBackend(BaseEmailBackend):
         if self.timeout is not None:
             connection_params["timeout"] = self.timeout
         if self.use_ssl:
-            connection_params.update(
-                {
-                    "keyfile": self.ssl_keyfile,
-                    "certfile": self.ssl_certfile,
-                }
-            )
+            connection_params["context"] = self.ssl_context
         try:
             self.connection = self.connection_class(
                 self.host, self.port, **connection_params
@@ -89,9 +94,7 @@ class EmailBackend(BaseEmailBackend):
             # TLS/SSL are mutually exclusive, so only attempt TLS over
             # non-secure connections.
             if not self.use_ssl and self.use_tls:
-                self.connection.starttls(
-                    keyfile=self.ssl_keyfile, certfile=self.ssl_certfile
-                )
+                self.connection.starttls(context=self.ssl_context)
             if self.username and self.password:
                 self.connection.login(self.username, self.password)
             return True
@@ -132,12 +135,14 @@ class EmailBackend(BaseEmailBackend):
                 # Trying to send would be pointless.
                 return 0
             num_sent = 0
-            for message in email_messages:
-                sent = await self._send(message)
-                if sent:
-                    num_sent += 1
-            if new_conn_created:
-                await self.close()
+            try:
+                for message in email_messages:
+                    sent = await self._send(message)
+                    if sent:
+                        num_sent += 1
+            finally:
+                if new_conn_created:
+                    await self.close()
         return num_sent
 
     async def _send(self, email_message):

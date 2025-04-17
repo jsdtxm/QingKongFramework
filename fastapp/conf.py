@@ -61,10 +61,12 @@ class BaseSettings(PydanticBaseSettings):
     EMAIL_SUBJECT_PREFIX: str = "[FastAPP]"
     EMAIL_SSL_CERTFILE: Optional[str] = None
     EMAIL_SSL_KEYFILE: Optional[str] = None
+    EMAIL_USE_LOCALTIME: bool = False
     DEFAULT_FROM_EMAIL: str = "webmaster@localhost"
     SERVER_EMAIL: str = "root@localhost"
 
     ADMINS: List[str] = []
+    DEFAULT_CHARSET: str = "utf-8"
 
 
 class LazySettings:
