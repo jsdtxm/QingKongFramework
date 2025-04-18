@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional, Any
 from fastapp.datastructures import FileFormData, UploadFile, StringFormData
 from starlette.datastructures import UploadFile as StarletteUploadFile
 from starlette.datastructures import QueryParams
+from starlette.requests import parse_options_header
 from fastapp.utils.base import class_override
 
 if TYPE_CHECKING:
@@ -25,6 +26,9 @@ class DjangoStyleRequest:
         self.user = user
 
         self._data = Empty
+
+        content_type, _ = parse_options_header(self.headers.get("Content-Type"))
+        self.content_type = content_type
 
     @property
     def GET(self):
