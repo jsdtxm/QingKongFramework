@@ -15,7 +15,7 @@ from starlette.responses import JSONResponse as StarletteJSONResponse  # noqa
 from starlette.responses import PlainTextResponse as PlainTextResponse  # noqa
 from starlette.responses import RedirectResponse as RedirectResponse  # noqa
 from starlette.responses import Response as Response  # noqa
-from starlette.responses import StreamingResponse as StreamingResponse  # noqa
+from starlette.responses import StreamingResponse as StarletteStreamingResponse  # noqa
 
 from fastapp.utils.json import JSONEncoder, default_datetime_format, replace_nan
 
@@ -37,7 +37,9 @@ class JSONResponse(StarletteJSONResponse):
         self.orjson_parse_datetime = orjson_parse_datetime
         self.json_replace_nan = json_replace_nan
 
-        super().__init__(content, status or status_code, headers, media_type, background)
+        super().__init__(
+            content, status or status_code, headers, media_type, background
+        )
 
     def render(self, content: typing.Any) -> bytes:
         if content is None:
@@ -86,7 +88,9 @@ class HttpResponse(ResponseHeaderOperatorsMixin, Response):
     ) -> None:
         self.charset = charset
 
-        super().__init__(content, status or status_code, headers, content_type, background)
+        super().__init__(
+            content, status or status_code, headers, content_type, background
+        )
 
 
 class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
@@ -111,7 +115,7 @@ class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
 
             if path is None:
                 raise Exception("Not support this type")
-            
+
         if as_attachment is not None and as_attachment is False:
             content_disposition_type = "inline"
 
@@ -128,21 +132,22 @@ class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
         )
 
 
+class StreamingResponse(ResponseHeaderOperatorsMixin, StarletteStreamingResponse):
+    pass
+
+
 class HttpResponseNotAllowed(HttpResponse):
     def __init__(self, permitted_methods, status_code: int = 405, **kwargs) -> None:
         super().__init__(
             None, status_code, headers={"Allow": ", ".join(permitted_methods)}, **kwargs
         )
 
+
 class HttpResponseForbidden(HttpResponse):
     def __init__(self, content=None, status_code: int = 403, **kwargs) -> None:
-        super().__init__(
-            content, status_code, **kwargs
-        )
+        super().__init__(content, status_code, **kwargs)
 
 
 class JsonResponseForbidden(JsonResponse):
     def __init__(self, content=None, status_code: int = 403, **kwargs) -> None:
-        super().__init__(
-            content or {"error": "Forbidden"}, status_code, **kwargs
-        )
+        super().__init__(content or {"error": "Forbidden"}, status_code, **kwargs)
