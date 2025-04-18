@@ -216,7 +216,7 @@ async def change_password(user: CurrentUser, req: PasswordUpdate):
     user.password = make_password(req.new_password)
     await user.save()
 
-    return {"msg": "Password updated successfully"}
+    return {"message": "Password updated successfully"}
 
 
 @token_router.post("/logout/")
@@ -237,7 +237,7 @@ async def logout(user: CurrentUser, request: Request, response: Response):
     for key in cookies.keys():
         response.delete_cookie(key=key)
 
-    return {"msg": "Logout successfully"}
+    return {"message": "Logout successfully"}
 
 
 class AdminUserViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
@@ -266,17 +266,14 @@ class AdminUserViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
         user: AbstractUser = await self.get_object()
 
         data = await request.json()
-        try:
-            serializer = self.change_password_serializer_class.model_validate(data)
+        serializer = self.change_password_serializer_class.model_validate(data)
 
-            user.set_password(serializer.new_password)
-            await user.save()
+        user.set_password(serializer.new_password)
+        await user.save()
 
-            return JSONResponse(
-                {"status": "password changed"}, status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            return JSONResponse(str(e), status_code=status.HTTP_400_BAD_REQUEST)
+        return JSONResponse(
+            {"message": "password changed"}, status_code=status.HTTP_200_OK
+        )
 
     async def perform_create(self, serializer):
         if await User.filter(email=serializer.email).exists():
@@ -353,7 +350,7 @@ class AdminGroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
             await group.user_set.add(*users)
             return JSONResponse(
                 {
-                    "msg": "ok",
+                    "message": "ok",
                 },
                 status=status.HTTP_201_CREATED,
             )
@@ -384,7 +381,7 @@ class AdminGroupViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
             await group.user_set.remove(*users)
             return JSONResponse(
                 {
-                    "msg": "ok",
+                    "message": "ok",
                 },
                 status=status.HTTP_200_OK,
             )

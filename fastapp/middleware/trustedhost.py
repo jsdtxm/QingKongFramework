@@ -38,6 +38,6 @@ class TrustedHostMiddleware(StarletteTrustedHostMiddleware):
                 response = RedirectResponse(url=str(redirect_url))
             else:
                 response = JSONResponse({
-                    "msg": "Invalid host header"
+                    "message": "Invalid host header"
                 }, status_code=400)
             await response(scope, receive, send)

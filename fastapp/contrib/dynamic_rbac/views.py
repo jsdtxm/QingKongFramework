@@ -73,7 +73,7 @@ class AdminGroupWithDynamicPermissionViewSet(AdminGroupViewSet):
         await group.dynamic_permissions.add(*dynamic_permissions)
         return JSONResponse(
             {
-                "msg": "ok",
+                "message": "ok",
             },
             status=status.HTTP_201_CREATED,
         )
@@ -100,7 +100,7 @@ class AdminGroupWithDynamicPermissionViewSet(AdminGroupViewSet):
         await group.dynamic_permissions.remove(*dynamic_permissions)
         return JSONResponse(
             {
-                "msg": "ok",
+                "message": "ok",
             },
             status=status.HTTP_200_OK,
         )

@@ -24,7 +24,7 @@ async def http_default_callback(
         HTTP_429_TOO_MANY_REQUESTS,
         detail={
             "action": exception.action,
-            "msg": exception.message,
+            "message": exception.message,
             "track_id": exception.track_id,
         },
     )
