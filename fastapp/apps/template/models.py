@@ -1,11 +1,10 @@
 from fastapp import models
-from tortoise import fields
 
 
 class Tournament(models.Model):
     name = models.CharField(max_length=255)
 
-    events: fields.ReverseRelation["Event"]
+    events: models.ReverseRelation["Event"]
 
     def __str__(self):
         return self.name
@@ -14,7 +13,7 @@ class Tournament(models.Model):
 class Team(models.Model):
     name = models.CharField(max_length=255)
 
-    events: fields.ReverseRelation["Event"]
+    events: models.ReverseRelation["Event"]
 
     def __str__(self):
         return self.name
