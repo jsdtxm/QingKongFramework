@@ -83,8 +83,8 @@ class QueryParamsWrap:
     def __init__(self, query_params: QueryParams):
         self.inner = query_params
 
-    def get(self, key: typing.Any):
-        return self.inner.get(key)
+    def get(self, key: typing.Any, default: Optional[typing.Any] = None):
+        return self.inner.get(key, default=default)
 
     def getlist(self, key: typing.Any):
         return self.inner.getlist(key)
