@@ -1,57 +1,121 @@
-import json
 from typing import TYPE_CHECKING
 
-from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi.exception_handlers import websocket_request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError, WebSocketRequestValidationError
+from fastapi.utils import is_body_allowed_for_status_code
 from pydantic import ValidationError as PydanticValidationError
-from tortoise.exceptions import DoesNotExist, IntegrityError, ValidationError
+from starlette import status
+from starlette.exceptions import HTTPException
+from starlette.responses import JSONResponse, Response
+from tortoise.exceptions import DoesNotExist, OperationalError
+from tortoise.exceptions import ValidationError as TortoiseValidationError
 
 if TYPE_CHECKING:
     from fastapi import Request
 
 
-def add_tortoise_exception_handler(app):
-    @app.exception_handler(DoesNotExist)
-    async def doesnotexist_exception_handler(request: "Request", exc: DoesNotExist):
-        return JSONResponse(status_code=404, content={"detail": str(exc)})
-
-    @app.exception_handler(IntegrityError)
-    async def integrityerror_exception_handler(request: "Request", exc: IntegrityError):
-        return JSONResponse(
-            status_code=422,
-            content={
-                "detail": [{"loc": [], "msg": str(exc), "type": "IntegrityError"}]
-            },
-        )
-
-    @app.exception_handler(ValidationError)
-    async def validationError_exception_handler(
-        request: "Request", exc: ValidationError
-    ):
-        return JSONResponse(
-            status_code=422,
-            content={
-                "detail": [{"loc": [], "msg": str(exc), "type": "ValidationError"}]
-            },
-        )
+async def http_exception_handler(request: "Request", exc: HTTPException) -> Response:
+    headers = getattr(exc, "headers", None)
+    if not is_body_allowed_for_status_code(exc.status_code):
+        return Response(status_code=exc.status_code, headers=headers)
+    return JSONResponse(
+        {
+            "error": exc.__class__.__name__,
+            "message": exc.detail,
+            "detail": exc.detail,
+        },
+        status_code=exc.status_code,
+        headers=headers,
+    )
 
 
-def add_pydantic_validation_exception_handler(app):
-    @app.exception_handler(PydanticValidationError)
-    async def pydantic_validation_exception_handler(
-        request: "Request", exc: PydanticValidationError
-    ):
-        return JSONResponse(
-            status_code=422,
-            content={
-                "detail": json.loads(exc.json(include_url=False, include_input=False))
-            },
-        )
+async def request_validation_exception_handler(
+    request: "Request", exc: RequestValidationError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": exc.__class__.__name__,
+            "message": "Invalid request data",
+            "detail": jsonable_encoder(exc.errors()),
+        },
+    )
 
 
-def add_valueerror_exception_handler(app):
-    @app.exception_handler(ValueError)
-    async def valueerror_exception_handler(request: "Request", exc: ValueError):
-        return JSONResponse(
-            status_code=422,
-            content={"detail": [{"loc": [], "msg": str(exc), "type": "ValueError"}]},
-        )
+async def tortoise_operation_exception_handler(
+    request: "Request", exc: OperationalError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": exc.__class__.__name__,
+            "message": str(exc),
+            "detail": str(exc),
+        },
+    )
+
+
+async def tortoise_doesnotexist_exception_handler(
+    request: "Request", exc: DoesNotExist
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={
+            "error": exc.__class__.__name__,
+            "message": str(exc),
+            "detail": str(exc),
+        },
+    )
+
+
+async def tortoise_validation_exception_handler(
+    request: "Request", exc: TortoiseValidationError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": exc.__class__.__name__,
+            "message": str(exc),
+            "detail": str(exc),
+        },
+    )
+
+
+async def pydantic_validation_exception_handler(
+    request: "Request", exc: PydanticValidationError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": exc.__class__.__name__,
+            "message": "Invalid request data",
+            "detail": jsonable_encoder(exc.errors()),
+        },
+    )
+
+
+async def valueerror_exception_handler(
+    request: "Request", exc: ValueError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": exc.__class__.__name__,
+            "message": str(exc),
+            "detail": str(exc),
+        },
+    )
+
+
+def get_default_exception_handlers():
+    return {
+        HTTPException: http_exception_handler,
+        RequestValidationError: request_validation_exception_handler,
+        WebSocketRequestValidationError: websocket_request_validation_exception_handler,
+        OperationalError: tortoise_operation_exception_handler,
+        DoesNotExist: tortoise_doesnotexist_exception_handler,
+        TortoiseValidationError: tortoise_validation_exception_handler,
+        PydanticValidationError: pydantic_validation_exception_handler,
+        ValueError: valueerror_exception_handler,
+    }

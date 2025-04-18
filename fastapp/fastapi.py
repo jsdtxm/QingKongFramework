@@ -18,11 +18,7 @@ import fastapp.patchs.fastapi.encoders as _
 import fastapp.patchs.starlette.requests as _
 from common.settings import settings
 from fastapp.cache import connections
-from fastapp.exception_handlers import (
-    add_pydantic_validation_exception_handler,
-    add_tortoise_exception_handler,
-    add_valueerror_exception_handler,
-)
+from fastapp.exception_handlers import get_default_exception_handlers
 from fastapp.initialize.apps import init_apps
 from fastapp.initialize.cache import init_cache
 from fastapp.initialize.db import async_init_db, get_tortoise_config, init_models
@@ -98,7 +94,7 @@ class FastAPI(RawFastAPI):
             redirect_slashes=redirect_slashes,
             default_response_class=default_response_class,
             docs_url=None,
-            **kwargs,
+            **({"exception_handlers": get_default_exception_handlers()} | kwargs),
         )
 
         if include_healthz:
@@ -128,7 +124,3 @@ class FastAPI(RawFastAPI):
         self.add_route("/docs", custom_swagger_ui_html, include_in_schema=False)
 
         add_pagination(self)
-
-        add_tortoise_exception_handler(self)
-        add_pydantic_validation_exception_handler(self)
-        add_valueerror_exception_handler(self)
