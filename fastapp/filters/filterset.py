@@ -48,8 +48,8 @@ class FilterSetMetaclass(type):
         # 收集继承的字段
         combined_attrs = {}
         for ancestor in reversed(new_class.__mro__):
-            if filters := getattr(ancestor, "filters", None):
-                combined_attrs |= filters
+            if ancestor_filters := getattr(ancestor, "filters", None):
+                combined_attrs |= ancestor_filters
 
         if meta := attrs.get("Meta"):
             if model := getattr(meta, "model", None):
