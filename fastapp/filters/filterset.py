@@ -57,6 +57,7 @@ class FilterSetMetaclass(type):
         if meta := attrs.get("Meta"):
             if model := getattr(meta, "model", None):
                 fields_map = model._meta.fields_map
+                m2m_fields = model._meta.m2m_fields
 
                 fields = getattr(meta, "fields", None)
                 exclude = getattr(meta, "exclude", [])
@@ -123,6 +124,12 @@ class FilterSetMetaclass(type):
                                         **(kwargs | {"lookup_expr": lookup_expr}),
                                     )
                                 )
+
+                    if m2m_fields:
+                        for field_name in m2m_fields:
+                            new_attrs[f"{field_name}_id"] = filter_class(
+                                field_name=field_name,
+                            )
 
                 new_class = super().__new__(
                     cls, name, bases, new_attrs | combined_attrs
