@@ -69,11 +69,11 @@ class FilterSetMetaclass(type):
                     field_filter_dict = {
                         x: ["exact"] for x in set(non_related_fields_map.keys())
                     }
-                elif isinstance(fields, list):
+                elif isinstance(fields, list) or isinstance(fields, tuple):
                     field_filter_dict = {x: ["exact"] for x in set(fields)}
                 elif isinstance(fields, dict):
                     field_filter_dict = {
-                        k: (v if isinstance(v, Sequence) else [v])
+                        k: (v if isinstance(v, list) or isinstance(v, tuple) else [v])
                         for k, v in fields.items()
                     }
 
@@ -114,9 +114,11 @@ class FilterSetMetaclass(type):
                                     **kwargs,
                                 )
                             else:
-                                new_attrs[f"{field_name}__{lookup_expr}"] = filter_class(
-                                    field_name=field_name,
-                                    **(kwargs | {"lookup_expr": lookup_expr}),
+                                new_attrs[f"{field_name}__{lookup_expr}"] = (
+                                    filter_class(
+                                        field_name=field_name,
+                                        **(kwargs | {"lookup_expr": lookup_expr}),
+                                    )
                                 )
 
                 new_class = super().__new__(
