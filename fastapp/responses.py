@@ -4,6 +4,7 @@ except ImportError:
     orjson = None
     import json
 
+import decimal
 import os
 import typing
 from io import IOBase
@@ -18,6 +19,12 @@ from starlette.responses import Response as Response  # noqa
 from starlette.responses import StreamingResponse as StarletteStreamingResponse  # noqa
 
 from fastapp.utils.json import JSONEncoder, default_datetime_format, replace_nan
+
+
+def orjson_default_decimal(obj):
+    if isinstance(obj, decimal.Decimal):
+        return str(obj)
+    raise TypeError
 
 
 class JSONResponse(StarletteJSONResponse):
@@ -48,7 +55,7 @@ class JSONResponse(StarletteJSONResponse):
         if orjson:
             if self.orjson_parse_datetime:
                 content = default_datetime_format(content)
-            return orjson.dumps(content)
+            return orjson.dumps(content, default=orjson_default_decimal)
 
         if self.json_replace_nan:
             content = replace_nan(content)
