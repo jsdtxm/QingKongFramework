@@ -6,7 +6,7 @@ from tortoise.fields.base import Field as TortoiseField
 from tortoise.fields.relational import RelationalField
 
 from fastapp.filters import filters
-from fastapp.filters.filters import Filter
+from fastapp.filters.filters import Filter, LookupExprEnum
 from fastapp.models import QuerySet
 from fastapp.models.fields import DecimalField, JSONField
 from fastapp.requests import QueryParamsWrap
@@ -98,9 +98,26 @@ class FilterSetMetaclass(type):
                         )
 
                     kwargs = get_field_to_filter_kwargs(field)
-                    new_attrs[field_name] = filter_class(
-                        field_name=field_name, **kwargs
-                    )
+                    if len(field_filter_dict[field_name]) <= 1:
+                        new_attrs[field_name] = filter_class(
+                            field_name=field_name,
+                            **(
+                                kwargs
+                                | {"lookup_expr": field_filter_dict[field_name][0]}
+                            ),
+                        )
+                    else:
+                        for lookup_expr in field_filter_dict[field_name]:
+                            if lookup_expr == LookupExprEnum.exact.value:
+                                new_attrs[field_name] = filter_class(
+                                    field_name=field_name,
+                                    **kwargs,
+                                )
+                            else:
+                                new_attrs[f"{field_name}__{lookup_expr}"] = filter_class(
+                                    field_name=field_name,
+                                    **(kwargs | {"lookup_expr": lookup_expr}),
+                                )
 
                 new_class = super().__new__(
                     cls, name, bases, new_attrs | combined_attrs
