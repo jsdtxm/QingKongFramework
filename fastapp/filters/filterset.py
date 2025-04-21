@@ -61,12 +61,12 @@ class FilterSetMetaclass(type):
         # combined_filter_sets
         for k, v in combined_filter_sets.items():
             for attr, nested_filter in v.filters.items():
-                combined_filters[f"{k}__{attr}"] = nested_filter
-
-        # FilterSet
-        for attr in combined_filters:
-            if isinstance(attr, BaseFilterSet):
-                print(attr)
+                combined_filters[f"{k}__{attr}"] = nested_filter.__class__(
+                    **(
+                        nested_filter.__dict__
+                        | {"field_name": f"{k}__{nested_filter.field_name}"}
+                    )
+                )
 
         if meta := attrs.get("Meta"):
             if model := getattr(meta, "model", None):
