@@ -171,12 +171,20 @@ class BaseFilterSet:
         filters: Dict[str, Filter]
         PydanticModel: Type[BaseModel]
 
-    def __init__(self, data: QueryParamsWrap, queryset, *, request=None, **kwargs):
+    def __init__(
+        self,
+        data: Optional[QueryParamsWrap] = None,
+        queryset=None,
+        *,
+        request=None,
+        **kwargs,
+    ):
         self.data = data
         self.queryset = queryset
         self.request = request
 
-        self.model_fields_map = queryset.model._meta.fields_map
+        if queryset:
+            self.model_fields_map = queryset.model._meta.fields_map
 
     def filter_queryset(self, queryset):
         params = self.PydanticModel.model_validate(self.data.to_dict())
