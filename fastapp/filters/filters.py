@@ -58,6 +58,9 @@ class LookupExprEnum(Enum):
     trigram_similar = "trigram_similar"  # 三元相似度搜索
 
 
+LookupExprEnumValues = {item.value for item in LookupExprEnum}
+
+
 class Filter(Generic[VALUE]):
     def __init__(
         self,
@@ -75,6 +78,9 @@ class Filter(Generic[VALUE]):
 
         if lookup_expr is None:
             lookup_expr = LookupExprEnum.exact.value
+        if lookup_expr not in LookupExprEnumValues:
+            raise ValueError(f"Invalid lookup_expr: {lookup_expr}")
+
         self.field_name = field_name
         self.lookup_expr = lookup_expr
 
