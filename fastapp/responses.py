@@ -23,7 +23,7 @@ from fastapp.utils.json import JSONEncoder, default_datetime_format, replace_nan
 
 def orjson_default_decimal(obj):
     if isinstance(obj, decimal.Decimal):
-        return str(obj)
+        return f"{obj:f}"
     raise TypeError
 
 
