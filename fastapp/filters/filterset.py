@@ -50,9 +50,23 @@ class FilterSetMetaclass(type):
 
         # 收集继承的字段
         combined_filters = {}
+        combined_filter_sets = {}
         for ancestor in reversed(new_class.__mro__):
             if ancestor_filters := getattr(ancestor, "filters", None):
-                combined_attrs |= ancestor_filters
+                combined_filters |= ancestor_filters
+            for attr_name, attr_value in ancestor.__dict__.items():
+                if isinstance(attr_value, BaseFilterSet):
+                    combined_filter_sets[attr_name] = attr_value
+
+        # combined_filter_sets
+        for k, v in combined_filter_sets.items():
+            for attr, nested_filter in v.filters.items():
+                combined_filters[f"{k}__{attr}"] = nested_filter
+
+        # FilterSet
+        for attr in combined_filters:
+            if isinstance(attr, BaseFilterSet):
+                print(attr)
 
         if meta := attrs.get("Meta"):
             if model := getattr(meta, "model", None):
