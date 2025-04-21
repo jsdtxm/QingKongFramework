@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Dict, Optional, Type
 
 from pydantic import BaseModel, Field, create_model
@@ -9,6 +8,7 @@ from fastapp.filters import filters
 from fastapp.filters.filters import Filter, LookupExprEnum
 from fastapp.models import QuerySet
 from fastapp.models.fields import DecimalField, JSONField
+from fastapp.models.fields.data import PositiveIntegerField, PositiveSmallIntegerField
 from fastapp.requests import QueryParamsWrap
 
 
@@ -18,7 +18,10 @@ class FieldToFilter:
     @classmethod
     def get(cls, field, default=None) -> Optional[Type[Filter]]:
         if cls._dict is None:
-            cls._dict = {}
+            cls._dict = {
+                PositiveIntegerField: filters.IntegerFilter,
+                PositiveSmallIntegerField: filters.SmallIntegerFilter,
+            }
             for obj in filters.__dict__.values():
                 if not (
                     isinstance(obj, type)
