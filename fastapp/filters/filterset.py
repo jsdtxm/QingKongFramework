@@ -49,7 +49,7 @@ class FilterSetMetaclass(type):
         new_class = super().__new__(cls, name, bases, attrs)
 
         # 收集继承的字段
-        combined_attrs = {}
+        combined_filters = {}
         for ancestor in reversed(new_class.__mro__):
             if ancestor_filters := getattr(ancestor, "filters", None):
                 combined_attrs |= ancestor_filters
@@ -68,15 +68,13 @@ class FilterSetMetaclass(type):
                     if not isinstance(v, RelationalField)
                 }
 
-                field_filter_dict = {}
-                if fields is None:
-                    field_filter_dict = {
-                        x: ["exact"] for x in set(non_related_fields_map.keys())
-                    }
-                elif isinstance(fields, list) or isinstance(fields, tuple):
-                    field_filter_dict = {x: ["exact"] for x in set(fields)}
+                field_filter_dict = {
+                    x: ["exact"] for x in set(non_related_fields_map.keys())
+                }
+                if isinstance(fields, list) or isinstance(fields, tuple):
+                    field_filter_dict |= {x: ["exact"] for x in set(fields)}
                 elif isinstance(fields, dict):
-                    field_filter_dict = {
+                    field_filter_dict |= {
                         k: (v if isinstance(v, list) or isinstance(v, tuple) else [v])
                         for k, v in fields.items()
                     }
@@ -132,13 +130,13 @@ class FilterSetMetaclass(type):
                             )
 
                 new_class = super().__new__(
-                    cls, name, bases, new_attrs | combined_attrs
+                    cls, name, bases, new_attrs | combined_filters
                 )
-                combined_attrs = new_attrs | combined_attrs
+                combined_filters = new_attrs | combined_filters
 
         # 获取所有声明的过滤器字段
         declared_filters: Dict[str, Filter] = {
-            k: v for k, v in combined_attrs.items() if isinstance(v, Filter)
+            k: v for k, v in combined_filters.items() if isinstance(v, Filter)
         }
         model_fields = {}
 
