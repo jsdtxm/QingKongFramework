@@ -1,11 +1,43 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Dict, Optional, Type
 
 from pydantic import BaseModel, Field, create_model
+from tortoise.fields.base import Field as TortoiseField
+from tortoise.fields.relational import RelationalField
 
+from fastapp.filters import filters
 from fastapp.filters.filters import Filter
 from fastapp.models import QuerySet
-from fastapp.models.fields import JSONField
+from fastapp.models.fields import DecimalField, JSONField
 from fastapp.requests import QueryParamsWrap
+
+
+class FieldToFilter:
+    _dict: Optional[dict] = None
+
+    @classmethod
+    def get(cls, field, default=None) -> Optional[Type[Filter]]:
+        if cls._dict is None:
+            cls._dict = {}
+            for obj in filters.__dict__.values():
+                if not (
+                    isinstance(obj, type)
+                    and issubclass(obj, Filter)
+                    and obj is not Filter
+                ):
+                    continue
+                related_field = next(
+                    filter(lambda x: issubclass(x, TortoiseField), obj.__bases__), None
+                )
+                cls._dict[related_field] = obj
+        return cls._dict.get(field, default)
+
+
+def get_field_to_filter_kwargs(field):
+    if isinstance(field, DecimalField):
+        return {"max_digits": field.max_digits, "decimal_places": field.decimal_places}
+
+    return {}
 
 
 class FilterSetMetaclass(type):
@@ -13,9 +45,71 @@ class FilterSetMetaclass(type):
         # 创建原始类
         new_class = super().__new__(cls, name, bases, attrs)
 
+        # 收集继承的字段
+        combined_attrs = {}
+        for ancestor in reversed(new_class.__mro__):
+            if filters := getattr(ancestor, "filters", None):
+                combined_attrs |= filters
+
+        if meta := attrs.get("Meta"):
+            if model := getattr(meta, "model", None):
+                fields_map = model._meta.fields_map
+
+                fields = getattr(meta, "fields", None)
+                exclude = getattr(meta, "exclude", [])
+
+                non_related_fields_map = {
+                    k: v
+                    for k, v in fields_map.items()
+                    if not isinstance(v, RelationalField)
+                }
+
+                field_filter_dict = {}
+                if fields is None:
+                    field_filter_dict = {
+                        x: ["exact"] for x in set(non_related_fields_map.keys())
+                    }
+                elif isinstance(fields, list):
+                    field_filter_dict = {x: ["exact"] for x in set(fields)}
+                elif isinstance(fields, dict):
+                    field_filter_dict = {
+                        k: (v if isinstance(v, Sequence) else [v])
+                        for k, v in fields.items()
+                    }
+
+                if exclude:
+                    for field_name in exclude:
+                        if field_name in field_filter_dict:
+                            field_filter_dict.pop(field_name)
+
+                # 构建新的类
+                new_attrs = {k: v for k, v in attrs.items() if k.startswith("__")}
+                for field_name in field_filter_dict:
+                    if field_name not in non_related_fields_map:
+                        raise ValueError(
+                            f"Field '{field_name}' does not exist in model '{model.__name__}'"
+                        )
+
+                    field = non_related_fields_map[field_name]
+                    filter_class = FieldToFilter.get(field.__class__)
+                    if filter_class is None:
+                        raise ValueError(
+                            f"Field '{field_name}' does not support filtering"
+                        )
+
+                    kwargs = get_field_to_filter_kwargs(field)
+                    new_attrs[field_name] = filter_class(
+                        field_name=field_name, **kwargs
+                    )
+
+                new_class = super().__new__(
+                    cls, name, bases, new_attrs | combined_attrs
+                )
+                combined_attrs = new_attrs | combined_attrs
+
         # 获取所有声明的过滤器字段
         declared_filters: Dict[str, Filter] = {
-            k: v for k, v in attrs.items() if isinstance(v, Filter)
+            k: v for k, v in combined_attrs.items() if isinstance(v, Filter)
         }
         model_fields = {}
 
@@ -88,6 +182,7 @@ class BaseFilterSet:
         if not hasattr(self, "_qs"):
             self._qs = self.filter_queryset(self.queryset.all())
         return self._qs
+
 
 # FIXME 不支持继承
 class FilterSet(BaseFilterSet, metaclass=FilterSetMetaclass):
