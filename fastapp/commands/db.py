@@ -214,10 +214,10 @@ async def async_auto_migrate(apps: list[str]):
             old_schema = parse_sql(res, True, dialect.lower())
             new_schema = parse_sql(sql["table_creation_string"], True, dialect.lower())
 
-            changes = generate_diff_sql(old_schema, new_schema)[0]
+            changes = generate_diff_sql(old_schema, new_schema)
 
-            if changes:
-                alert_sql = "\n".join(changes)
+            if changes and changes[0]:
+                alert_sql = "\n".join(changes[0])
                 print("-- 数据库变更脚本")
                 print(alert_sql)
         # await conn.execute_query()
