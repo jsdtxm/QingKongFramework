@@ -3,6 +3,8 @@ import os
 import time
 from typing import Optional
 
+from fastapp.utils.temp import get_temp_directory
+
 
 class FileLock:
     """
@@ -19,14 +21,16 @@ class FileLock:
     ```
     """
 
-    def __init__(self, name: str, dir: str = "/tmp", timeout: Optional[float] = 5):
+    def __init__(
+        self, name: str, dir: Optional[str] = None, timeout: Optional[float] = 5
+    ):
         """
         基于文件的锁，支持 with 语法
         :param name: 锁文件名（例如 "mylock.lock"）
         :param dir: 锁文件目录，默认为 /tmp
         :param timeout: 超时时间（秒），超时后抛出 TimeoutError
         """
-        self.lock_file = os.path.join(dir, name)
+        self.lock_file = os.path.join(dir or get_temp_directory(), name)
         self.timeout = timeout
         self.fd = None
 
