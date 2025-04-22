@@ -39,7 +39,6 @@ NUMBER_TYPE_SET = {
 }
 
 
-
 def merge_and_sort_columns(data):
     grouped = {}
     for item in data:
@@ -123,7 +122,7 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
                 col_type = generator.datatype_sql(col_kind)
                 constraints = []
                 default = None
-                
+
                 # 处理列约束（NOT NULL、DEFAULT 等）
                 for constraint in col_def.args.get("constraints", []):
                     if isinstance(constraint, exp.NotNullColumnConstraint):
@@ -152,7 +151,7 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
                     columns = [col.name for col in constraint.find_all(exp.Identifier)]
                     indexes.append({"name": name, "columns": columns, "type": "UNIQUE"})
 
-            tables[table_name] = {"columns": columns, "indexes": indexes}
+            tables[table_name] = {"columns": columns, "indexes": indexes, "stmt": stmt}
 
         # 处理独立的 CREATE INDEX 语句
         elif isinstance(stmt, exp.Create) and isinstance(stmt.this, exp.Index):
@@ -331,6 +330,13 @@ def generate_diff_sql(old_schema, new_schema):
 
     res = []
     for table_name in table_name_set:
+        if table_name not in old_schema:
+            res.append(
+                [
+                    new_schema[table_name]["stmt"].sql(),
+                ]
+            )
+            continue
         alter_scripts = generate_alter_statements(
             old_schema[table_name], new_schema[table_name], table_name
         )
