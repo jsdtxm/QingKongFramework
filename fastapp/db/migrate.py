@@ -52,7 +52,7 @@ def merge_and_sort_columns(data):
 
     result = []
     for name, info in grouped.items():
-        sorted_columns = sorted(info["columns"])
+        sorted_columns = sorted(list(set(info["columns"])))
         result.append({"name": name, "columns": sorted_columns, "type": info["type"]})
 
     return result
