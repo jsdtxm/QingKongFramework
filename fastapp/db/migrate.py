@@ -194,7 +194,7 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
             data = {
                 "name": index_name,
                 "columns": sorted(columns),
-                "type": "INDEX",
+                "type": "BTREE",  # TODO
             }
 
             if data not in tables[table_name]["indexes"]:
