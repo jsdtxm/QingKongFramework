@@ -68,6 +68,8 @@ class BaseSettings(PydanticBaseSettings):
     ADMINS: List[str] = []
     DEFAULT_CHARSET: str = "utf-8"
 
+    ENABLE_PORT_MAP_FILE: bool = True
+
 
 class LazySettings:
     """

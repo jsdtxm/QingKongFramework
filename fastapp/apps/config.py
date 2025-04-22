@@ -45,20 +45,23 @@ class AppConfig(metaclass=AppConfigMeta):
 
         from common.settings import settings
 
-        with FileLock(
-            name=f"{settings.PROJECT_NAME or settings.BASE_DIR.name}_choice_port.lock",
-            timeout=5,
-        ):
-            if self.port:
-                write_port_to_json(name, self.port, address="127.0.0.1")
-            elif self.has_module("urls"):
-                if name not in settings.NO_EXPORT_APPS:
-                    exists_config = read_port_from_json(name)
-                    if exists_config and (p := exists_config.get("port")):
-                        self.port = p
-                    else:
-                        self.port = find_free_port(exclude_ports=get_existed_ports())
-                        write_port_to_json(name, self.port, address="127.0.0.1")
+        if settings.ENABLE_PORT_MAP_FILE:
+            with FileLock(
+                name=f"{settings.PROJECT_NAME or settings.BASE_DIR.name}_choice_port.lock",
+                timeout=5,
+            ):
+                if self.port:
+                    write_port_to_json(name, self.port, address="127.0.0.1")
+                elif self.has_module("urls"):
+                    if name not in settings.NO_EXPORT_APPS:
+                        exists_config = read_port_from_json(name)
+                        if exists_config and (p := exists_config.get("port")):
+                            self.port = p
+                        else:
+                            self.port = find_free_port(
+                                exclude_ports=get_existed_ports()
+                            )
+                            write_port_to_json(name, self.port, address="127.0.0.1")
 
     def __str__(self):
         return f"<QingKongFramework.AppConfig {self.name}>"
