@@ -347,7 +347,7 @@ def generate_alter_statements(old_schema, new_schema, table_name):
     return alter_ops
 
 
-def generate_diff_sql(old_schema, new_schema):
+def generate_diff_sql(old_schema, new_schema, dialect):
     table_name_set = set(old_schema.keys()) | set(new_schema.keys())
 
     res = []
@@ -355,7 +355,7 @@ def generate_diff_sql(old_schema, new_schema):
         if table_name not in old_schema:
             res.append(
                 [
-                    new_schema[table_name]["stmt"].sql(),
+                    new_schema[table_name]["stmt"].sql(dialect),
                 ]
             )
             continue

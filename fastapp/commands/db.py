@@ -214,7 +214,7 @@ async def async_auto_migrate(apps: list[str]):
             old_schema = parse_sql(res, True, dialect.lower())
             new_schema = parse_sql(sql["table_creation_string"], True, dialect.lower())
 
-            changes = generate_diff_sql(old_schema, new_schema)
+            changes = generate_diff_sql(old_schema, new_schema, dialect.lower())
 
             if changes and changes[0]:
                 alert_sql = "\n".join(changes[0])
