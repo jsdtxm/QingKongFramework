@@ -73,6 +73,7 @@ class FastAPI(RawFastAPI):
         redirect_slashes=True,
         middleware: Sequence[Middleware] = [],
         default_response_class=JsonResponse,
+        auto_load_urls=True,
         **kwargs,
     ):
         apps = init_apps(settings.INSTALLED_APPS)
@@ -100,7 +101,8 @@ class FastAPI(RawFastAPI):
         if include_healthz:
             self.include_router(import_string("fastapp.contrib.healthz.views.router"))
 
-        create_task(load_url_module(self, apps, package))
+        if auto_load_urls:
+            create_task(load_url_module(self, apps, package))
 
         # static assets
         async def custom_swagger_ui_html(req: Request) -> HTMLResponse:
