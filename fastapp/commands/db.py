@@ -166,7 +166,7 @@ def reverse_generation(connection, db, table):
 
 
 @async_init_qingkong
-async def async_auto_migrate(apps: list[str]):
+async def async_auto_migrate(apps: list[str], guided: bool = True):
     """
     异步自动迁移数据库的函数。
 
@@ -180,6 +180,7 @@ async def async_auto_migrate(apps: list[str]):
         if not apps or app in apps:
             process_apps.append(app)
 
+    alert_sql_list = []
     for app in process_apps:
         for model in Tortoise.apps[app].values():
             if not model._meta.is_managed:  # pylint: disable=W0212
@@ -218,13 +219,46 @@ async def async_auto_migrate(apps: list[str]):
 
             if changes and changes[0]:
                 alert_sql = "\n".join(changes[0])
-                print("-- 数据库变更脚本")
-                print(alert_sql)
-        # await conn.execute_query()
+                alert_sql_list.append(alert_sql)
+
+    for alert_sql in alert_sql_list:
+        if not alert_sql:
+            continue
+
+        print(alert_sql)
+
+        user_input = "Y"
+        try:
+            while guided:
+                user_input = (
+                    input(
+                        "Please enter '[Y]' to execute the sql, 'N' to skip the sql, or 'Q' to quit: "
+                    )
+                    .strip()
+                    .upper()
+                )
+                if user_input == "":
+                    user_input = "Y"
+                    break
+                elif user_input not in ("Y", "N", "Q"):
+                    print(f"Invalid input '{user_input}'")
+                    continue
+                else:
+                    break
+        except KeyboardInterrupt:
+            return
+
+        if user_input == "Y":
+            await conn.execute_query(alert_sql)
+        elif user_input == "N":
+            continue
+        elif user_input == "Q":
+            return
 
 
 @click.option("--apps", multiple=True)
-def auto_migrate(apps):
+@click.option("--guided", default=True)
+def auto_migrate(apps, guided):
     """
     自动迁移数据库的函数。
 
@@ -233,4 +267,4 @@ def auto_migrate(apps):
     Args:
         apps (list[str]): 要处理的应用列表。
     """
-    uvloop.run(async_auto_migrate(apps))
+    uvloop.run(async_auto_migrate(apps, guided))
