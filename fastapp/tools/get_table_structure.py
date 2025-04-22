@@ -132,6 +132,13 @@ class AsyncmyDumper(BaseSchemaDumper):
         ddls = []
         conn = connections[self.conn_name]
         for table in self.tables:
+            # 检查表是否存在
+            exists = await conn.execute_query_dict(
+                f"SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END AS 'exists' FROM information_schema.tables WHERE table_name = '{table}'"
+            )
+            if not (exists and exists[0]["exists"] == 1):
+                continue
+
             # 获取表结构
             table_result = await conn.execute_query_dict(f"SHOW CREATE TABLE {table}")
             ddl = table_result[0]["Create Table"]
