@@ -122,3 +122,16 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
     # Wait for all processes to complete
     for process in processes:
         process.join()
+
+
+def serve_app_aio(host: str = "127.0.0.1", port: int = 8080, workers=1, reload=False):
+    uvicorn.run(
+        "fastapp.serve.aio:asgi_app",
+        host=host,
+        port=port,
+        log_level="info",
+        workers=workers,
+        reload=reload,
+        reload_dirs=[] if reload else None,
+        log_config=log_config_template,
+    )

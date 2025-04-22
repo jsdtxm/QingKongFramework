@@ -3,8 +3,8 @@ import click
 from fastapp.commands.utils import parse_dict
 from fastapp.misc.ascii_art import print_logo
 from fastapp.misc.gateway import run_gateway
+from fastapp.misc.serve import serve_app, serve_app_aio, serve_apps
 from fastapp.misc.serve_static import run_static_server
-from fastapp.misc.serve import serve_app, serve_apps
 
 
 @click.argument("app", default="all", type=click.STRING)
@@ -18,6 +18,14 @@ def runserver(app, host, exclude, workers, reload):
         serve_apps(host, workers, reload, exclude)
     else:
         serve_app(app, host, workers, reload)
+
+
+@click.option("--host", default="127.0.0.1", type=click.STRING)
+@click.option("--port", default=8080, type=click.INT)
+@click.option("--reload", is_flag=True)
+def runserver_aio(host, port, reload):
+    print_logo()
+    serve_app_aio(host, port, reload)
 
 
 @click.option("--host", default="127.0.0.1", type=click.STRING)
