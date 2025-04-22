@@ -11,17 +11,12 @@
 2. 从数据库表结构反向生成 Django 模型
 3. 自动生成数据库变更脚本
 4. 处理与内容类型、权限相关的数据库初始化
-
-依赖：
-- Tortoise ORM 用于数据库操作
-- Click 用于命令行接口
-- uvloop 用于异步事件循环优化
 """
 
+import asyncio
 from itertools import chain
 
 import click
-import uvloop
 
 from common.settings import settings
 from fastapp.commands.decorators import async_init_qingkong
@@ -121,7 +116,7 @@ def migrate(safe=True, guided=True, apps=None):
     """
     if apps is None:
         apps = []
-    uvloop.run(async_migrate(safe, guided, apps))
+    asyncio.run(async_migrate(safe, guided, apps))
 
 
 async def print_result(func, *args, **kwargs):
@@ -150,7 +145,7 @@ def reverse_generation(connection, db, table):
     """
     db_config = settings.DATABASES[connection]
 
-    uvloop.run(
+    asyncio.run(
         print_result(
             table_to_django_model,
             {
@@ -267,4 +262,4 @@ def auto_migrate(apps, guided):
     Args:
         apps (list[str]): 要处理的应用列表。
     """
-    uvloop.run(async_auto_migrate(apps, guided))
+    asyncio.run(async_auto_migrate(apps, guided))

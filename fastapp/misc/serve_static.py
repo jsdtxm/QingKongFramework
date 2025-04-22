@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -5,7 +6,6 @@ from pathlib import Path
 import aiohttp
 import aiohttp.web
 import click
-import uvloop
 from aiohttp.web_exceptions import HTTPNotFound
 
 from fastapp.misc.aiohttp_utils import (
@@ -77,7 +77,7 @@ def run_static_server(
     if api_prefix and api_target:
         app.router.add_route(
             "*",
-            api_prefix+"/{path:.*}",
+            api_prefix + "/{path:.*}",
             handler_factory(
                 ProxyLocation.prefix_proxy(
                     api_prefix[1:],
@@ -98,6 +98,6 @@ def run_static_server(
         app,
         host=host,
         port=port,
-        loop=uvloop.new_event_loop(),
+        loop=asyncio.new_event_loop(),
         print=aiohttp_print_override,
     )

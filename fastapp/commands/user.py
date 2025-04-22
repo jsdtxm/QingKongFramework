@@ -1,7 +1,7 @@
+import asyncio
 import getpass
 
 import click
-import uvloop
 
 from common.settings import settings
 from fastapp.contrib.auth import get_user_model
@@ -46,4 +46,4 @@ async def _createsuperuser():
 
 
 def createsuperuser():
-    uvloop.run(_createsuperuser())
+    asyncio.run(_createsuperuser())

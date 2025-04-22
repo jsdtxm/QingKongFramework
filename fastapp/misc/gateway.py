@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import logging.config
 import os
@@ -10,7 +11,6 @@ from urllib.parse import urlparse
 import aiohttp
 import aiohttp.web
 import click
-import uvloop
 
 from common.settings import settings
 from fastapp.initialize.apps import init_apps
@@ -310,7 +310,7 @@ def run_gateway(
         proxy_app,
         host=host,
         port=port,
-        loop=uvloop.new_event_loop(),
+        loop=asyncio.new_event_loop(),
         print=aiohttp_print_override,
     )
 

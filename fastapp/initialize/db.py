@@ -1,9 +1,8 @@
+import asyncio
 import inspect
 import re
 from importlib import import_module
 from typing import Any
-
-import uvloop
 
 from fastapp.apps import Apps
 from fastapp.models.base import TortoiseModel
@@ -99,4 +98,4 @@ async def async_init_db(config: dict):
 
 
 def init_db(config: dict):
-    uvloop.run(async_init_db(config))
+    asyncio.run(async_init_db(config))

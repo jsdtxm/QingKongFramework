@@ -8,7 +8,6 @@ fastapi-cli==0.0.5
 fastapi-pagination==0.12.31
 
 uvicorn==0.32.0
-uvloop==0.21.0
 
 orjson==3.10.15
 
@@ -59,3 +58,6 @@ mypy==1.13.0
 types-pytz==2024.2.0.20241221
 build==1.2.2
 nuitka==2.6.9
+
+# Accelerate
+uvloop==0.21.0

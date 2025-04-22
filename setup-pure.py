@@ -11,7 +11,6 @@ setup(
         "fastapi-cli==0.0.5",
         "fastapi-pagination==0.12.31",
         "uvicorn==0.32.0",
-        "uvloop==0.21.0",
         "orjson==3.10.15",
         "tortoise-orm==0.21.7",
         "aiohttp==3.10.10",
