@@ -141,15 +141,25 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
             for constraint in stmt.find_all(exp.Constraint):
                 kind = constraint.args.get("kind")
                 if kind == "PRIMARY KEY":
-                    columns = [col.name for col in constraint.find_all(exp.Identifier)]
+                    index_columns = [
+                        col.name for col in constraint.find_all(exp.Identifier)
+                    ]
                     indexes.append(
-                        {"name": "PRIMARY", "columns": columns, "type": "PRIMARY KEY"}
+                        {
+                            "name": "PRIMARY",
+                            "columns": index_columns,
+                            "type": "PRIMARY KEY",
+                        }
                     )
                 elif kind == "UNIQUE":
                     name = constraint.args.get("name")
                     name = name.name if name else None
-                    columns = [col.name for col in constraint.find_all(exp.Identifier)]
-                    indexes.append({"name": name, "columns": columns, "type": "UNIQUE"})
+                    index_columns = [
+                        col.name for col in constraint.find_all(exp.Identifier)
+                    ]
+                    indexes.append(
+                        {"name": name, "columns": index_columns, "type": "UNIQUE"}
+                    )
 
             tables[table_name] = {"columns": columns, "indexes": indexes, "stmt": stmt}
 
