@@ -160,7 +160,7 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
             table_name = index.args["table"].name
             index_name = index.name
             columns = [x.name for x in index.args["params"].find_all(exp.Identifier)]
-            index_type = "UNIQUE" if stmt.args.get("unique") else "INDEX"
+            index_type = "UNIQUE" if stmt.args.get("unique") else "BTREE"
 
             if table_name in tables:
                 tables[table_name]["indexes"].append(
