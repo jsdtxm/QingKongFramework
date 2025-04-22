@@ -16,6 +16,17 @@ from fastapp.logging import log_config_template
 from fastapp.patchs.uvicorn.subprocess import subprocess_started
 from fastapp.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
 
+try:
+    import uvloop
+except ImportError:
+    uvloop = None
+
+if uvloop is not None:
+    uvloop.install()
+    print("uvloop installed.")
+else:
+    print("uvloop not available, using default asyncio.")
+
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     apps = init_apps(settings.INSTALLED_APPS)
