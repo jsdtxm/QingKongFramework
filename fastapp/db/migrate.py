@@ -166,27 +166,29 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
                     {"name": index_name, "columns": columns, "type": index_type}
                 )
 
-    if not table_name:
-        raise ValueError("没有找到有效的 CREATE TABLE 语句")
-
-    # 合并同名index字段
-    tables[table_name]["indexes"] = merge_and_sort_columns(
-        tables[table_name]["indexes"]
-    )
-    for index_name, columns in unique_key_dict.items():
-        if next(
-            filter(lambda x: x["name"] == index_name, tables[table_name]["indexes"]),
-            None,
-        ):
+        if not table_name:
             continue
-        data = {
-            "name": index_name,
-            "columns": sorted(columns),
-            "type": "INDEX",
-        }
 
-        if data not in tables[table_name]["indexes"]:
-            tables[table_name]["indexes"].append(data)
+        # 合并同名index字段
+        tables[table_name]["indexes"] = merge_and_sort_columns(
+            tables[table_name]["indexes"]
+        )
+        for index_name, columns in unique_key_dict.items():
+            if next(
+                filter(
+                    lambda x: x["name"] == index_name, tables[table_name]["indexes"]
+                ),
+                None,
+            ):
+                continue
+            data = {
+                "name": index_name,
+                "columns": sorted(columns),
+                "type": "INDEX",
+            }
+
+            if data not in tables[table_name]["indexes"]:
+                tables[table_name]["indexes"].append(data)
 
     return tables
 
@@ -263,21 +265,31 @@ def generate_alter_statements(old_schema, new_schema, table_name):
             or old_def["default"] != new_def["default"]
             or old_def["constraints"] != new_def["constraints"]
         ):
-            if old_def["type"] != new_def["type"] and "kind" in old_def and "kind" in new_def:
+            if (
+                old_def["type"] != new_def["type"]
+                and "kind" in old_def
+                and "kind" in new_def
+            ):
                 old_kind, new_kind = old_def["kind"], new_def["kind"]
 
                 if old_kind.this == new_kind.this and new_kind.this in NUMBER_TYPE_SET:
                     if not new_kind.expressions and old_kind.expressions:
                         # 跳过new_schema没有数字类型长度的问题
                         continue
-                
-                if str(old_kind).upper() == "TINYINT(1)" and str(new_def["kind"]).upper() == "BOOLEAN":
+
+                if (
+                    str(old_kind).upper() == "TINYINT(1)"
+                    and str(new_def["kind"]).upper() == "BOOLEAN"
+                ):
                     continue
 
-                if str(old_kind).upper() == "TEXT" and str(new_def["kind"]).upper() == "JSON":
+                if (
+                    str(old_kind).upper() == "TEXT"
+                    and str(new_def["kind"]).upper() == "JSON"
+                ):
                     # TODO这边似乎是mysql的锅
                     continue
-            
+
             constraints = " ".join(new_def["constraints"])
             default_clause = (
                 f" DEFAULT {new_def['default']}"
