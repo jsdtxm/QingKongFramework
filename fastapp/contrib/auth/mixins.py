@@ -60,7 +60,7 @@ class CreatorMixin:
             setattr(serializer, self.creator_field, self.request.user.id)  # type: ignore[attr-defined]
         else:
             setattr(serializer, self.creator_field, None)  # type: ignore[attr-defined]
-        return await serializer.save()
+        return await super().perform_create(serializer)
 
 
 class CreatorWithFilterMixin(LoginRequiredMixin, CreatorMixin):
@@ -68,6 +68,6 @@ class CreatorWithFilterMixin(LoginRequiredMixin, CreatorMixin):
         assert self.request.user
         if self.request.user.is_superuser:
             return queryset
-        
+
         queryset = queryset.filter(**{self.creator_field: self.request.user.id})
         return queryset
