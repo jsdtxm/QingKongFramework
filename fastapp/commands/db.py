@@ -79,8 +79,12 @@ async def async_migrate(safe, guided, apps):
     # TODO object permission anonymous user
 
     if content_type_app_enabled:
-        for x in chain.from_iterable(
-            sub_dict.values() for sub_dict in Tortoise.apps.values()
+        # TODO 如果新建模型，不能自动添加content_type
+        for x in sorted(
+            chain.from_iterable(
+                sub_dict.values() for sub_dict in Tortoise.apps.values()
+            ),
+            key=lambda x: x._meta.app_config.label,
         ):
             content_type, _ = await ContentType.get_or_create(
                 app_label=x._meta.app_config.label, model=x.__name__
