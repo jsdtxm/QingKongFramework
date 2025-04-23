@@ -337,6 +337,7 @@ def generate_alter_statements(old_schema, new_schema, table_name):
                 else idx["columns"]
             )
             index_type = idx["type"].replace("_", " ").upper()
+            # TODO fixme the columns may empty
             alter_ops.append(
                 f"CREATE {index_type} IF NOT EXISTS {idx['name']} ON {table_name} ({columns});"
             )
