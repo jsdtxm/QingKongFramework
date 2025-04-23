@@ -51,12 +51,18 @@ class FilterSetMetaclass(type):
         # 收集继承的字段
         combined_filters = {}
         combined_filter_sets = {}
-        for ancestor in reversed(new_class.__mro__):
+        for ancestor in reversed(new_class.__mro__[1:]):
             if ancestor_filters := getattr(ancestor, "filters", None):
                 combined_filters |= ancestor_filters
             for attr_name, attr_value in ancestor.__dict__.items():
                 if isinstance(attr_value, BaseFilterSet):
                     combined_filter_sets[attr_name] = attr_value
+
+        self_declared_filters: Dict[str, Filter] = {
+            k: v for k, v in attrs.items() if isinstance(v, Filter)
+        }
+        if self_declared_filters:
+            combined_filters |= self_declared_filters
 
         # combined_filter_sets
         for k, v in combined_filter_sets.items():
