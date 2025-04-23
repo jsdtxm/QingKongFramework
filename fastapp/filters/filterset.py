@@ -5,7 +5,7 @@ from tortoise.fields.base import Field as TortoiseField
 from tortoise.fields.relational import RelationalField
 
 from fastapp.filters import filters
-from fastapp.filters.filters import Filter, LookupExprEnum
+from fastapp.filters.filters import BigIntegerFilter, Filter, LookupExprEnum
 from fastapp.models import QuerySet
 from fastapp.models.fields import DecimalField, JSONField
 from fastapp.models.fields.data import PositiveIntegerField, PositiveSmallIntegerField
@@ -139,7 +139,8 @@ class FilterSetMetaclass(type):
 
                     if m2m_fields:
                         for field_name in m2m_fields:
-                            new_attrs[f"{field_name}_id"] = filter_class(
+                            # TODO Non ID association is not supported yet
+                            new_attrs[f"{field_name}_id"] = BigIntegerFilter(
                                 field_name=field_name,
                             )
 
