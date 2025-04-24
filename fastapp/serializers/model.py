@@ -24,6 +24,7 @@ from pydantic.main import IncEx
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields import Field
+from tortoise.fields.relational import BackwardFKRelation
 from tortoise.transactions import in_transaction
 
 from fastapp.models.base import BaseModel as BaseDBModel
@@ -217,12 +218,15 @@ class ModelSerializerPydanticModel(PydanticModel):
                     await field.add(obj)
 
             await self._build_related_objects(
-                backward_fk_fields, related_pk=instance.id, using_db=using_db
+                backward_fk_fields, related_instance=instance, using_db=using_db
             )
         return instance
 
     async def _build_related_objects(
-        self, fields, related_pk=None, using_db: Optional[BaseDBAsyncClient] = None
+        self,
+        fields,
+        related_instance=None,
+        using_db: Optional[BaseDBAsyncClient] = None,
     ):
         result = defaultdict(list)
         for field in fields:
@@ -235,6 +239,8 @@ class ModelSerializerPydanticModel(PydanticModel):
             allow_nested_create = getattr(self._meta, "allow_nested_create", False)
 
             if isinstance(value, Iterable) and len(value):
+                model_field_type = self.orig_model()._meta.fields_map[field["name"]]
+
                 related_objects = []
                 for sub_value in value:
                     if isinstance(sub_value, ModelSerializerPydanticModel):
@@ -246,16 +252,13 @@ class ModelSerializerPydanticModel(PydanticModel):
                                     f"Field '{field['name']}' not allow nested create"
                                 )
 
-                            if related_pk:
-                                relation_field = (
-                                    self.orig_model()
-                                    ._meta.fields_map[field["name"]]
-                                    .relation_field
-                                )
+                            if related_instance:
                                 related_object = sub_value.save(
                                     using_db=using_db,
                                     is_in_transaction=True,
-                                    **{relation_field: related_pk},
+                                    **{
+                                        model_field_type.relation_field: related_instance.id
+                                    },
                                 )
                             else:
                                 related_object = sub_value.save(
@@ -281,13 +284,23 @@ class ModelSerializerPydanticModel(PydanticModel):
                             )
                         )
 
-                result[field["name"]] = await asyncio.gather(*related_objects)
+                all_related_objects = await asyncio.gather(*related_objects)
+                result[field["name"]] = all_related_objects
+
+                if isinstance(model_field_type, BackwardFKRelation):
+                    model_field = getattr(related_instance, field["name"], None)
+                    await (
+                        model_field.all()
+                        .exclude(id__in=[x.id for x in all_related_objects])
+                        .delete()
+                    )
 
         return result
 
     def update(self, data: dict) -> Self:
         new_data = self.model_dump() | data
         new_serializer = self.__class__(**new_data)
+
         for key in data:
             setattr(self, key, getattr(new_serializer, key))
 
