@@ -138,7 +138,8 @@ class FolderFilterSet(filters.FilterSet):
             "created_at": [LookupExprEnum.gte.value, LookupExprEnum.lte.value], # Support multiple lookup expressions.
         }
         # Optional, if you want to specify fields to exclude, you can add below lines.
-        exclude = []    # All fields will be enabled if you don't specify here.
+        # You should exclude TextField.
+        exclude = ("description",)    # All fields will be enabled if you don't specify here.
 
 ```
 
