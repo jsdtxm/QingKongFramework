@@ -142,6 +142,33 @@ class FolderFilterSet(filters.FilterSet):
 
 ```
 
+## fixtures example
+### File place in project_folder/apps/{app_name}/fixtures/{fixture_order}_{fixture_name}.json
+```json
+[
+  {
+    "model": "misc.Tag",
+    "pk": 1,
+    "fields": {
+      "namespace": "warehouse",
+      "key": "transfer",
+      "label": "中转",
+      "created_by_id": 1    // ForeignKeyField should add _id suffix.
+    }
+  },
+  {
+    "model": "misc.Tag",
+    "pk": 2,
+    "fields": {
+      "namespace": "warehouse",
+      "key": "sample",
+      "label": "取样",
+      "created_by_id": 1
+    }
+  }
+]
+```
+
 ## framework cli
 - help: `python manage.py --help`
 - startapp: `python manage.py startapp {app_name}`
