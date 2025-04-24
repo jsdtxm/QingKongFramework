@@ -31,6 +31,8 @@ class ModelSerializerPydanticModel(PydanticModel):
     _instance: Optional[BaseDBModel] = None
     _instance_processed: bool = False
 
+    _meta = None
+
     def __init__(self, /, null: bool = False, **data: Any) -> None:
         super().__init__(**data)
 
@@ -295,6 +297,8 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
                 validators=validators_map | serializers_map,
                 depth=getattr(meta, "depth", 0),
             )
+
+            pydantic_model._meta = meta
 
             return pydantic_model
 
