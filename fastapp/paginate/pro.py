@@ -5,8 +5,8 @@ from fastapp.utils.sql import get_limit_offset
 
 
 class ProTableFilter(BaseModel):
-    page_size: int = Field(alias="pageSize")
-    current: int
+    page_size: int = Field(default=20, alias="pageSize")
+    current: int = Field(default=1)
 
 
 class ProPaginateMixin:
