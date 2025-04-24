@@ -1,4 +1,4 @@
-# If you will create new new FilterSet, you should follow this class template.
+# If you will create new FilterSet, you should follow this class template.
 ```
 from fastapp import filters
 from apps.{package_name}.models import ModuleAction
@@ -27,4 +27,4 @@ class ModuleActionViewSet(ModelViewSet):
 ## before you add filterset to a ViewSet, you should take a look at what's in the filters.py in the corresponding app directory.
 
 
-# The code should be placed in the filters. py file in the corresponding app directory.
+# The code should be placed in the filters.py file in the corresponding app directory.
