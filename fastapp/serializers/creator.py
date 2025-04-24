@@ -1,7 +1,7 @@
 from base64 import b32encode
 from datetime import datetime
 from hashlib import sha3_224
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 from pydantic import (
     BaseModel,
@@ -376,6 +376,7 @@ def pydantic_model_creator(
         elif field_type is ListSerializer:
             # TODO 这里不受depth控制
             field_pydantic_type = fdesc.get("pydantic_type")
+            allow_primary_key = fdesc.get("allow_primary_key", False)
 
             child = fdesc.get("child")
 
@@ -388,7 +389,11 @@ def pydantic_model_creator(
                     child, "pydantic_type", getattr(child, "field_type", type(child))
                 )
 
-            properties[fname] = field_pydantic_type[child_type]
+            properties[fname] = (
+                field_pydantic_type[child_type]
+                if not allow_primary_key or child_type is int
+                else field_pydantic_type[Union[child_type, int]]
+            )
 
         # Backward FK and ManyToMany fields are list of embedded schemas
         elif (
@@ -465,7 +470,10 @@ def pydantic_model_creator(
             if isinstance(v, PydanticModel):
                 # 这里姑且认为是ModelSerializer
                 if getattr(v, "_field_config", {}).get("null"):
-                    properties[k] = (Optional[type(v)], Field(json_schema_extra={'nullable': True}, default=None))
+                    properties[k] = (
+                        Optional[type(v)],
+                        Field(json_schema_extra={"nullable": True}, default=None),
+                    )
                 else:
                     properties[k] = (type(v), Field(json_schema_extra={}))
             else:

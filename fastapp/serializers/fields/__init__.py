@@ -162,10 +162,19 @@ class NestedField(Field):
     pass
 
 
-class ListSerializer(SerializerMixin[list], NestedField, list):
-    def __init__(self, child, **kwargs: Any):
+class ListSerializer(SerializerMixin[list], NestedField, list):  # type: ignore[misc]
+    def __init__(
+        self,
+        child,
+        allow_primary_key: bool = False,
+        writable: bool = False,
+        **kwargs: Any,
+    ):
         super().__init__(**({"default": []} | kwargs))
         self.child = child
+        self.allow_primary_key = allow_primary_key
+        self.writable = writable
+
         if isinstance(child, Field):
             child_desc = child.describe(serializable=False)
             child_type = child_desc["python_type"]
@@ -177,6 +186,9 @@ class ListSerializer(SerializerMixin[list], NestedField, list):
         desc = super().describe(serializable)
         desc["child"] = self.child
         desc["pydantic_type"] = self.pydantic_type
+        desc["allow_primary_key"] = self.allow_primary_key
+        desc["writable"] = self.writable
+
         return desc
 
     @property
