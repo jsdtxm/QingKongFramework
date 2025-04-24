@@ -110,24 +110,40 @@ class Document(models.Model):
 from apps.document.models import Document, Folder
 from fastapp import filters
 from fastapp.filters import LookupExprEnum
+from pydantic import field_validator
+
 class FolderFilterSet(filters.FilterSet):
-    """
-    Filter set for Folder.
-    """
+
+    # Optional, if you want to add custom field level validation, you can add below lines.
+    @field_validator("name")
+    def validate_name(cls, value):
+        if len(name) < 2:
+            raise ValueError("Invalid name.")
+
+        return value
+
+    # Optional, if you want to add custom model level validation, you can add below lines.
+    @model_validator(mode="after")
+    def check_username_or_email_or_phone(self):
+        if not self.username and not self.email and not self.phone:
+            raise ValueError("At least one of username, email, or phone is required")
+        return self
 
     class Meta:
         model = Folder
+        # Optional, if you want to specify filter method.
         fields = {
             "name": LookupExprEnum.contains.value,  # Default is "exact".
             "created_at": [LookupExprEnum.gte.value, LookupExprEnum.lte.value], # Support multiple lookup expressions.
         }
+        # Optional, if you want to specify fields to exclude, you can add below lines.
         exclude = []    # All fields will be enabled if you don't specify here.
 
 ```
 
 ## framework cli
-- help: `python manage.py help`
-- startapp: `python manage.py startapp`
+- help: `python manage.py --help`
+- startapp: `python manage.py startapp {app_name}`
 
 ### cli with single process mode
 > Note: This mode is only recommended for develop use.
@@ -137,6 +153,19 @@ class FolderFilterSet(filters.FilterSet):
 - runserver: `python manage.py runserver`
 - gateway: `python manage.py gateway`
 
+
+## How to start a new app?
+### Step 1: Create a new app
+```
+python manage.py startapp {app_name}
+```
+### Step 2: Add the app to the INSTALLED_APPS in settings.py
+```python
+INSTALLED_APPS = [
+    # ...
+    "apps.{app_name}",
+]
+```
 
 # Documentation
 - You should add class docstring to your model, serializer, filterset, and viewset.
