@@ -183,7 +183,7 @@ class FolderFilterSet(filters.FilterSet):
 
 
 ## Model with enum field
-> models.py
+### add enum field to model.py follow below code.
 ```python
 from enum import Enum
 class SeverityLevel(Enum):
@@ -197,7 +197,7 @@ SeverityLevelValues = [item.value for item in SeverityLevel]
 class Document(models.Model):
     level = models.CharField(max_length=20, default=SeverityLevel.MEDIUM.value)
 ```
-
+### then you should add enum validator to the field in serializer.py, follow below code.
 > serializer.py
 ```python
 from apps.document.models import SeverityLevelValues
