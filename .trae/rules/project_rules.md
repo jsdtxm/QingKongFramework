@@ -200,6 +200,7 @@ class Document(models.Model):
 ### then you should add enum validator to the field in serializer.py, follow below code.
 > serializer.py
 ```python
+from pydantic import field_validator
 from apps.document.models import SeverityLevelValues
 
 class DocumentSerializer(serializers.ModelSerializer):
