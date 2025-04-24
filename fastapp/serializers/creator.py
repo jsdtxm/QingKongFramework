@@ -511,6 +511,7 @@ def pydantic_model_creator(
 
     # model_description
     model.model_config["model_description"] = model_description
+    model.model_config["field_map"] = field_map
 
     # Store the base class
     model.model_config["orig_model"] = cls  # type: ignore

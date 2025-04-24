@@ -131,11 +131,16 @@ class ModelSerializerPydanticModel(PydanticModel):
     def model_description(cls) -> Dict[str, Any]:
         return cls.model_config["model_description"]
 
+    @classmethod
+    def field_map(cls) -> Dict[str, Any]:
+        return cls.model_config["field_map"]
+
     def to_model(self, **extra_fields):
         if self._instance_processed:
             return self._instance
 
         model_description = self.model_description()
+
         data_fields = model_description.get("data_fields", [])
         pk_fields = (
             [
@@ -228,15 +233,17 @@ class ModelSerializerPydanticModel(PydanticModel):
         related_instance=None,
         using_db: Optional[BaseDBAsyncClient] = None,
     ):
+        # TODO 不支持嵌套的更新
+        field_map = self.field_map()
         result = defaultdict(list)
         for field in fields:
             value = getattr(self, field["name"], None)
-            related_model: BaseDBModel = field["python_type"]
 
             if value is None:
                 continue
 
-            allow_nested_create = getattr(self._meta, "allow_nested_create", False)
+            related_model: BaseDBModel = field["python_type"]
+            field_desc = field_map.get(field["name"])
 
             if isinstance(value, Iterable) and len(value):
                 model_field_type = self.orig_model()._meta.fields_map[field["name"]]
@@ -247,7 +254,7 @@ class ModelSerializerPydanticModel(PydanticModel):
                         sub_model_id = getattr(sub_value, "id", None)
 
                         if not sub_model_id:
-                            if not allow_nested_create:
+                            if not field_desc.get("writable", False):
                                 raise ValueError(
                                     f"Field '{field['name']}' not allow nested create"
                                 )
