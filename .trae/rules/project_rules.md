@@ -145,11 +145,12 @@ class FolderFilterSet(filters.FilterSet):
 
 ## fixtures example
 ### File place in project_folder/apps/{app_name}/fixtures/{fixture_order}_{fixture_name}.json
+#### filename example: `01_tags.json`, `20_users.json`, small number will be executed first.
 ```json
 [
   {
     "model": "misc.Tag",
-    "pk": 1,
+    "pk": 1,    // From 1 self increase
     "fields": {
       "namespace": "warehouse",
       "key": "transfer",
@@ -159,7 +160,7 @@ class FolderFilterSet(filters.FilterSet):
   },
   {
     "model": "misc.Tag",
-    "pk": 2,
+    "pk": 2,    // From 1 self increase
     "fields": {
       "namespace": "warehouse",
       "key": "sample",
