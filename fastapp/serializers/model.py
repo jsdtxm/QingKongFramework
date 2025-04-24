@@ -1,7 +1,18 @@
 import asyncio
 from collections import defaultdict
 from datetime import date, datetime
-from typing import Any, Callable, Dict, Iterable, Optional, Self, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Self,
+    Tuple,
+    Type,
+    Union,
+)
 
 from pydantic import (
     BaseModel,
@@ -16,6 +27,7 @@ from tortoise.fields import Field
 from tortoise.transactions import in_transaction
 
 from fastapp.models.base import BaseModel as BaseDBModel
+from fastapp.models.base import QuerySet
 from fastapp.serializers.base import (
     BaseSerializer,
     get_serializer_map,
@@ -25,6 +37,41 @@ from fastapp.serializers.base import (
 from fastapp.serializers.creator import pydantic_model_creator
 from fastapp.utils.context import BlankContextManager
 from fastapp.utils.functional import copy_method_signature
+
+
+def _get_fetch_fields(
+    pydantic_class: "Type[PydanticModel]", model_class: "Type[BaseDBModel]"
+) -> List[str]:
+    """
+    Recursively collect fields needed to fetch
+    :param pydantic_class: The pydantic model class
+    :param model_class: The tortoise model class
+    :return: The list of fields to be fetched
+    """
+    fetch_fields = []
+    for field_name, field_type in pydantic_class.__annotations__.items():
+        origin = getattr(field_type, "__origin__", None)
+        if origin in (list, List, Union):
+            field_type = field_type.__args__[0]
+
+        # noinspection PyProtectedMember
+        sub_origin = getattr(field_type, "__origin__", None)
+        if sub_origin is Union:
+            field_type = field_type.__args__[0]
+
+        if field_name in model_class._meta.fetch_fields and issubclass(
+            field_type, PydanticModel
+        ):
+            subclass_fetch_fields = _get_fetch_fields(
+                field_type, field_type.model_config["orig_model"]
+            )
+            if subclass_fetch_fields:
+                fetch_fields.extend(
+                    [field_name + "__" + f for f in subclass_fetch_fields]
+                )
+            else:
+                fetch_fields.append(field_name)
+    return fetch_fields
 
 
 class ModelSerializerPydanticModel(PydanticModel):
@@ -245,6 +292,49 @@ class ModelSerializerPydanticModel(PydanticModel):
             setattr(self, key, getattr(new_serializer, key))
 
         return self
+
+    @classmethod
+    async def from_tortoise_orm(cls, obj: "BaseDBModel") -> Self:
+        """
+        Returns a serializable pydantic model instance built from the provided model instance.
+
+        .. note::
+
+            This will prefetch all the relations automatically. It is probably what you want.
+
+            If you don't want this, or require a ``sync`` method, look to using ``.from_orm()``.
+
+            In that case you'd have to manage  prefetching yourself,
+            or exclude relational fields from being part of the model using
+            :class:`tortoise.contrib.pydantic.creator.PydanticMeta`, or you would be
+            getting ``OperationalError`` exceptions.
+
+            This is due to how the ``asyncio`` framework forces I/O to happen in explicit ``await``
+            statements. Hence we can only do lazy-fetching during an awaited method.
+
+        :param obj: The Model instance you want serialized.
+        """
+        # Get fields needed to fetch
+        fetch_fields = _get_fetch_fields(cls, cls.model_config["orig_model"])  # type: ignore
+        # Fetch fields
+        await obj.fetch_related(*fetch_fields)
+        return cls.model_validate(obj)
+
+    @classmethod
+    async def from_queryset(cls, queryset: "QuerySet") -> List[Self]:
+        """
+        Returns a serializable pydantic model instance that contains a list of models,
+        from the provided queryset.
+
+        This will prefetch all the relations automatically.
+
+        :param queryset: a queryset on the model this PydanticModel is based on.
+        """
+        fetch_fields = _get_fetch_fields(cls, cls.model_config["orig_model"])  # type: ignore
+        return [
+            cls.model_validate(e)
+            for e in await queryset.prefetch_related(*fetch_fields)
+        ]
 
     class Config:
         @staticmethod
