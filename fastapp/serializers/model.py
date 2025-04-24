@@ -239,7 +239,11 @@ class ModelSerializerPydanticModel(PydanticModel):
         return result
 
     def update(self, data: dict) -> Self:
-        self.__dict__.update(data)
+        new_data = self.model_dump() | data
+        new_serializer = self.__class__(**new_data)
+        for key in data:
+            setattr(self, key, getattr(new_serializer, key))
+
         return self
 
     class Config:
