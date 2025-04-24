@@ -185,35 +185,56 @@ class ModelSerializerPydanticModel(PydanticModel):
             if value is None:
                 continue
 
-            if isinstance(value, Iterable) and len(value):
-                if isinstance(value[0], ModelSerializerPydanticModel):
-                    if related_pk:
-                        relation_field = (
-                            self.orig_model()
-                            ._meta.fields_map[field["name"]]
-                            .relation_field
-                        )
+            allow_nested_create = getattr(self._meta, "allow_nested_create", False)
 
-                    related_objects = []
-                    for sub_value in value:
-                        if related_pk:
-                            related_object = sub_value.save(
-                                using_db=using_db,
-                                is_in_transaction=True,
-                                **{relation_field: related_pk},
-                            )
+            if isinstance(value, Iterable) and len(value):
+                related_objects = []
+                for sub_value in value:
+                    if isinstance(sub_value, ModelSerializerPydanticModel):
+                        sub_model_id = getattr(sub_value, "id", None)
+
+                        if not sub_model_id:
+                            if not allow_nested_create:
+                                raise ValueError(
+                                    f"Field '{field['name']}' not allow nested create"
+                                )
+
+                            if related_pk:
+                                relation_field = (
+                                    self.orig_model()
+                                    ._meta.fields_map[field["name"]]
+                                    .relation_field
+                                )
+                                related_object = sub_value.save(
+                                    using_db=using_db,
+                                    is_in_transaction=True,
+                                    **{relation_field: related_pk},
+                                )
+                            else:
+                                related_object = sub_value.save(
+                                    using_db=using_db, is_in_transaction=True
+                                )
                         else:
-                            related_object = sub_value.save(
-                                using_db=using_db, is_in_transaction=True
-                            )
+                            related_object = await related_model.objects.get(
+                                id=sub_model_id
+                            ).using_db(using_db)
 
                         related_objects.append(related_object)
+                    else:
+                        if isinstance(sub_value, dict):
+                            if sub_object_id := sub_value.get("id", None):
+                                sub_value = sub_object_id
+                            else:
+                                raise ValueError(
+                                    f"Not support this value '{sub_value}'"
+                                )
+                        related_objects.append(
+                            await related_model.objects.get(id=sub_value).using_db(
+                                using_db
+                            )
+                        )
 
-                    result[field["name"]] = await asyncio.gather(*related_objects)
-                else:
-                    result[field["name"]] = await related_model.objects.filter(
-                        id__in=value
-                    ).using_db(using_db)
+                result[field["name"]] = await asyncio.gather(*related_objects)
 
         return result
 
