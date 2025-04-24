@@ -182,6 +182,42 @@ class FolderFilterSet(filters.FilterSet):
 - gateway: `python manage.py gateway`
 
 
+## Model with enum field
+> models.py
+```python
+from enum import Enum
+class SeverityLevel(Enum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+SeverityLevelValues = [item.value for item in SeverityLevel]
+
+class Document(models.Model):
+    level = models.CharField(max_length=20, default=SeverityLevel.MEDIUM.value)
+```
+
+> serializer.py
+```python
+from apps.document.models import SeverityLevelValues
+
+class DocumentSerializer(serializers.ModelSerializer):
+    # Maintain the original code
+
+    @field_validator("level")
+    @classmethod
+    def validate_level(cls, value):
+        if value not in SeverityLevelValues:
+            raise ValueError(
+                f"Invalid level '{value}'. It must be one of {SeverityLevelValues}."
+            )
+        return value
+    
+    # Maintain the original code
+```
+
+
 ## How to start a new app?
 ### Step 1: Create a new app
 ```
