@@ -167,6 +167,7 @@ def ForeignKeyField(
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
     null: bool = False,
+    db_column: Optional[str] = None,
     **kwargs: Any,
 ) -> "ForeignKeyRelation[MODEL] | ForeignKeyNullableRelation[MODEL]":
     """
@@ -207,6 +208,9 @@ def ForeignKeyField(
         Controls whether or not a constraint should be created in the database for this foreign key.
         The default is True, and that's almost certainly what you want; setting this to False can be very bad for data integrity.
     """
+
+    if db_column:
+        kwargs["source_field"] = db_column
 
     return ForeignKeyFieldInstance(
         utils.model_name_preprocess(model_name),
