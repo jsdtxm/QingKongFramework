@@ -17,6 +17,7 @@ from apps.document.filters import FolderFilterSet
 class FolderViewSet(SuperUserRequiredMixin, CreatorMixin, ModelViewSet):
     queryset = Folder
     serializer_class = FolderSerializer
+    # Optional, add below lines to enable filter
     filter_backends = [FilterBackend]
     filterset_class = FolderFilterSet
 
