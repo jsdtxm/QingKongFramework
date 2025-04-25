@@ -156,6 +156,14 @@ class ModelSerializerPydanticModel(PydanticModel):
         fk_fields = model_description.get("fk_fields", [])
         backward_fk_fields = model_description.get("backward_fk_fields", [])
 
+        exclude_fields = set(
+            self.read_only_fields()
+            + [x["name"] for x in m2m_fields]
+            + [x["name"] for x in o2o_fields]
+            + [x["name"] for x in fk_fields]
+            + [x["name"] for x in backward_fk_fields]
+        ) - {"id"}
+
         self._instance = self.orig_model()(
             **(
                 (
@@ -167,18 +175,14 @@ class ModelSerializerPydanticModel(PydanticModel):
                     else {}
                 )
                 | self.model_dump(
-                    exclude=self.read_only_fields()
-                    + [x["name"] for x in m2m_fields]
-                    + [x["name"] for x in o2o_fields]
-                    + [x["name"] for x in fk_fields]
-                    + [x["name"] for x in backward_fk_fields]
-                    + pk_fields,
+                    exclude=exclude_fields,
                     exclude_unset=True,
                     exclude_write_only=False,
                 )  # type: ignore[call-arg]
                 | extra_fields
             )  # type: ignore[call-arg]
         )
+
         if self._instance.pk is not None:
             self._instance._saved_in_db = True
 
@@ -205,6 +209,7 @@ class ModelSerializerPydanticModel(PydanticModel):
         )
 
         async with transaction_context_manager(instance.app.default_connection):
+            # TODO 这里需要识别创建的情况
             await instance.save(using_db, update_fields, force_create, force_update)
 
             m2m_objects = await self._build_related_objects(
@@ -243,7 +248,6 @@ class ModelSerializerPydanticModel(PydanticModel):
                 continue
 
             related_model: BaseDBModel = field["python_type"]
-            related_model_desc = related_model.describe(serializable=False)
             field_desc = field_map.get(field["name"])
 
             if isinstance(value, Iterable) and len(value):
@@ -273,34 +277,9 @@ class ModelSerializerPydanticModel(PydanticModel):
                                     using_db=using_db, is_in_transaction=True
                                 )
                         else:
-                            # May be update
-                            related_object: BaseDBModel = (
-                                await related_model.objects.get(
-                                    id=sub_model_id
-                                ).using_db(using_db)
+                            related_object = sub_value.save(
+                                using_db=using_db, is_in_transaction=True
                             )
-
-                            # TODO 或许给describe添加缓存
-
-                            # 讲道理不对劲啊，应该支持嵌套更新
-                            value_data_fields_dict = sub_value.model_dump(
-                                include=[
-                                    x["name"] for x in related_model_desc["data_fields"]
-                                ],  # type: ignore[arg-type]
-                                exclude_unset=True,
-                            )
-                            has_update = False
-                            for k, v in value_data_fields_dict.items():
-                                current_value = getattr(related_object, k, None)
-                                if current_value != v:
-                                    print(k, current_value, v)
-                                    setattr(related_object, k, v)
-                                    has_update = True
-
-                            if has_update:
-                                await related_object.save(
-                                    using_db=using_db,
-                                )
 
                         related_objects.append(related_object)
                     else:
