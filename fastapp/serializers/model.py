@@ -81,8 +81,16 @@ class ModelSerializerPydanticModel(PydanticModel):
 
     _meta = None
 
+    def __new__(cls, *args, null: bool = False, **kwargs):
+        if null:
+            return cls.model_construct()
+
+        instance = super().__new__(cls, *args, **kwargs)  # 创建实例
+        return instance
+
     def __init__(self, /, null: bool = False, **data: Any) -> None:
-        super().__init__(**data)
+        if not null:
+            super().__init__(**data)
 
         self._field_config = {}  # store property config when serializer as a field
         self._field_config["null"] = null
