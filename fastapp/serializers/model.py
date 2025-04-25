@@ -243,6 +243,7 @@ class ModelSerializerPydanticModel(PydanticModel):
                 continue
 
             related_model: BaseDBModel = field["python_type"]
+            related_model_desc = related_model.describe(serializable=False)
             field_desc = field_map.get(field["name"])
 
             if isinstance(value, Iterable) and len(value):
@@ -272,9 +273,34 @@ class ModelSerializerPydanticModel(PydanticModel):
                                     using_db=using_db, is_in_transaction=True
                                 )
                         else:
-                            related_object = await related_model.objects.get(
-                                id=sub_model_id
-                            ).using_db(using_db)
+                            # May be update
+                            related_object: BaseDBModel = (
+                                await related_model.objects.get(
+                                    id=sub_model_id
+                                ).using_db(using_db)
+                            )
+
+                            # TODO 或许给describe添加缓存
+
+                            # 讲道理不对劲啊，应该支持嵌套更新
+                            value_data_fields_dict = sub_value.model_dump(
+                                include=[
+                                    x["name"] for x in related_model_desc["data_fields"]
+                                ],  # type: ignore[arg-type]
+                                exclude_unset=True,
+                            )
+                            has_update = False
+                            for k, v in value_data_fields_dict.items():
+                                current_value = getattr(related_object, k, None)
+                                if current_value != v:
+                                    print(k, current_value, v)
+                                    setattr(related_object, k, v)
+                                    has_update = True
+
+                            if has_update:
+                                await related_object.save(
+                                    using_db=using_db,
+                                )
 
                         related_objects.append(related_object)
                     else:
