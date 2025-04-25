@@ -64,6 +64,12 @@ class FilterSetMetaclass(type):
         if self_declared_filters:
             combined_filters |= self_declared_filters
 
+        # 嵌套的BaseFilterSet
+        self_declared_filter_sets = {
+            k: v for k, v in attrs.items() if isinstance(v, BaseFilterSet)
+        }
+        combined_filter_sets |= self_declared_filter_sets
+
         # combined_filter_sets
         for k, v in combined_filter_sets.items():
             for attr, nested_filter in v.filters.items():
