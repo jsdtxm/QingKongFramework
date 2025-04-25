@@ -14,6 +14,7 @@ from uuid import UUID
 from pydantic import constr
 from tortoise.fields.base import Field
 
+from fastapp.models.fields import JSONField
 from fastapp.models.fields import data as models_data_fields
 
 DEFAULT_CHAR_LENGTH = 4096
@@ -97,7 +98,22 @@ class Filter(Generic[VALUE]):
         self.source_field = fields[0]
         self.nested_field = fields[1] if len(fields) > 1 else None
 
-    def filter(self, queryset, value):
+    def filter(self, queryset, value, model_field=None):
+        if model_field is not None:
+            fields = self.nested_field.split("__", 1)
+            if len(fields) > 1:
+                related_model_fields_map = model_field.related_model._meta.fields_map
+                if isinstance(related_model_fields_map[fields[0]], JSONField):
+                    sub_source_field = fields[0]
+                    sub_nested_field = fields[1] if len(fields) > 1 else None
+
+                    return self.jsonfield_filter(
+                        queryset,
+                        value,
+                        source_field=f"{self.source_field}__{sub_source_field}",
+                        nested_field=sub_nested_field,
+                    )
+
         lookup_expr = (
             "" if self.lookup_expr == LookupExprEnum.exact.value else self.lookup_expr
         )
@@ -106,10 +122,13 @@ class Filter(Generic[VALUE]):
             **{f"{self.field_name}{f'__{lookup_expr}' if lookup_expr else ''}": value}
         )
 
-    def jsonfield_filter(self, queryset, value):
+    def jsonfield_filter(self, queryset, value, source_field=None, nested_field=None):
+        source_field = source_field or self.source_field
+        nested_field = nested_field or self.nested_field
+
         if self.lookup_expr == LookupExprEnum.contains.value:
             return queryset.filter(
-                **{f"{self.source_field}__contains": {self.nested_field: value}}
+                **{f"{source_field}__contains": {nested_field: value}}
             )
 
         lookup_expr = (
@@ -118,8 +137,8 @@ class Filter(Generic[VALUE]):
 
         return queryset.filter(
             **{
-                f"{self.source_field}__filter": {
-                    f"{self.nested_field}{f'__{lookup_expr}' if lookup_expr else ''}": value
+                f"{source_field}__filter": {
+                    f"{nested_field}{f'__{lookup_expr}' if lookup_expr else ''}": value
                 }
             }
         )

@@ -213,13 +213,18 @@ class BaseFilterSet:
         for name, value in params.model_dump(exclude_unset=True).items():
             try:
                 filter_obj = self.filters[name]
-                if isinstance(
-                    self.model_fields_map[filter_obj.source_field],
-                    JSONField,
-                ):
+                model_field = self.model_fields_map[filter_obj.source_field]
+
+                if isinstance(model_field, JSONField):
                     queryset = filter_obj.jsonfield_filter(queryset, value)
                 else:
-                    queryset = filter_obj.filter(queryset, value)
+                    queryset = filter_obj.filter(
+                        queryset,
+                        value,
+                        model_field
+                        if isinstance(model_field, RelationalField)
+                        else None,
+                    )
 
                 assert isinstance(queryset, QuerySet), (
                     "Expected '%s.%s' to return a QuerySet, but got a %s instead."
