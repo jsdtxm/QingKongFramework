@@ -126,7 +126,10 @@ class Filter(Generic[VALUE]):
         source_field = source_field or self.source_field
         nested_field = nested_field or self.nested_field
 
-        if self.lookup_expr == LookupExprEnum.contains.value:
+        if self.lookup_expr in (
+            LookupExprEnum.contains.value,
+            LookupExprEnum.icontains.value,
+        ):
             return queryset.filter(
                 **{f"{source_field}__contains": {nested_field: value}}
             )
