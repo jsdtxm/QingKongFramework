@@ -32,6 +32,11 @@ async def init_cache():
 
         connections[alias] = conn
 
+        # HACK
+        if backend.endswith("DiskCache"):
+            caches[alias] = conn
+            continue
+
         if alias == "default":
             cache_class = FastAPICache
         else:
