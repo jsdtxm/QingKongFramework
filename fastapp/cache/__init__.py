@@ -5,4 +5,4 @@ try:
 except ImportError:
     pass
 from fastapp.cache.redis import get_redis_connection
-from fastapp.cache.states import caches, connections
+from fastapp.cache.states import cache, caches, connections
