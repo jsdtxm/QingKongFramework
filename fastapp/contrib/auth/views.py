@@ -276,10 +276,24 @@ class AdminUserViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
         )
 
     async def perform_create(self, serializer):
-        if await User.filter(email=serializer.email).exists():
+        if (
+            serializer.email
+            and await User.objects.filter(email=serializer.email).exists()
+        ):
             raise ValueError("This email has already been registered")
 
-        return await serializer.save()
+        return await super().perform_create(serializer)
+
+    async def perform_update(self, serializer):
+        obj = await self.get_object()
+        if serializer.email and (
+            await User.objects.filter(email=serializer.email)
+            .exclude(id=obj.id)
+            .exists()
+        ):
+            raise ValueError("This email has already been registered")
+
+        return await super().perform_update(serializer)
 
     async def perform_destroy(self, instance):
         await instance.delete()
