@@ -7,7 +7,7 @@ from fastapp.cache.base import DEFAULT_TIMEOUT, BaseCache
 from fastapp.utils.functional import cached_property
 
 
-class DiskCache(BaseCache):
+class DiskCacheBackend(BaseCache):
     """DiskCache is a simple in-memory cache implementation."""
 
     def __init__(self, directory=None, timeout=60, disk=diskcache.Disk, params={}):

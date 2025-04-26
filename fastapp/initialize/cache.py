@@ -15,9 +15,14 @@ async def init_cache():
 
             conn = aioredis.from_url(config["LOCATION"])
         elif backend.endswith("DiskCache"):
-            import diskcache
+            from fastapp.cache.disk import DiskCacheBackend
 
-            conn = diskcache.Cache(directory=config["DIRECTORY"])
+            conn = DiskCacheBackend(
+                directory=config["DIRECTORY"],
+                timeout=int(config.get("TIMEOUT", 60)),
+                disk=import_string(f"diskcache.{config.get('DISK', 'Disk')}"),
+                params=config.get("OPTIONS", {}),
+            )
         elif backend.endswith("PostgresBackend"):
             import asyncpg
 
