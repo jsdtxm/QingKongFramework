@@ -1,3 +1,4 @@
+import asyncio
 from typing import TYPE_CHECKING
 
 import diskcache
@@ -19,6 +20,8 @@ class DiskCache(BaseCache):
         self._disk = disk
         self._options = params.get("OPTIONS", {})
 
+        self.loop = asyncio.get_running_loop()
+
     @cached_property
     def _cache(self) -> diskcache.Cache:
         return self._class(self._directory, self._timeout, self._disk, **self._options)
@@ -30,27 +33,31 @@ class DiskCache(BaseCache):
 
     async def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_key(key, version=version)
-        return self._cache.add(key, value, self.get_backend_timeout(timeout))
+        return await self.loop.run_in_executor(
+            None, self._cache.add, key, value, self.get_backend_timeout(timeout)
+        )
 
     async def get(self, key, default=None, version=None):
         key = self.make_key(key, version=version)
-        return self._cache.get(key, default)
+        return await self.loop.run_in_executor(None, self._cache.get, key, default)
 
     async def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_key(key, version=version)
-        self._cache.set(key, value, self.get_backend_timeout(timeout))
+        await self.loop.run_in_executor(None, self._cache.set, key, value, timeout)
 
     async def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_key(key, version=version)
-        return self._cache.touch(key, self.get_backend_timeout(timeout))
+        return await self.loop.run_in_executor(
+            None, self._cache.touch, key, self.get_backend_timeout(timeout)
+        )
 
     async def delete(self, key, version=None):
         key = self.make_key(key, version=version)
-        return self._cache.delete(key)
+        return await self.loop.run_in_executor(None, self._cache.delete, key)
 
     async def incr(self, key, delta=1, version=None):
         key = self.make_key(key, version=version)
-        return self._cache.incr(key, delta)
+        return await self.loop.run_in_executor(None, self._cache.incr, key, delta)
 
     async def clear(self):
-        return self._cache.close()
+        return await self.loop.run_in_executor(None, self._cache.close)
