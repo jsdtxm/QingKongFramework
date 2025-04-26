@@ -20,5 +20,16 @@ class Settings(BaseSettings):
         },
     }
 
+    CACHES: dict[str, dict[str, Any]] = {
+        "default": {
+            "BACKEND": "RedisCache",
+            "LOCATION": "redis://[USERNAME]:[PASSWORD]@[IP]:[PORT]/[DB]",
+        },
+        "disk": {
+            "BACKEND": "DiskCache",
+            "DIRECTORY": "./.cache",
+        },
+    }
+
 
 settings = Settings()

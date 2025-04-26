@@ -32,6 +32,7 @@ asyncmy==0.2.9
 # Cache
 fastapi-cache2==0.2.2
 redis==4.6.0
+diskcache==5.6.3
 
 # Auth
 pyjwt==2.10.1

@@ -14,6 +14,10 @@ async def init_cache():
             from redis import asyncio as aioredis
 
             conn = aioredis.from_url(config["LOCATION"])
+        elif backend.endswith("DiskCache"):
+            import diskcache
+
+            conn = diskcache.Cache(directory=config["DIRECTORY"])
         elif backend.endswith("PostgresBackend"):
             import asyncpg
 
