@@ -85,7 +85,7 @@ class ModelSerializerPydanticModel(PydanticModel):
         if null:
             return cls.model_construct()
 
-        instance = super().__new__(cls, *args, **kwargs)  # 创建实例
+        instance = super().__new__(cls)
         return instance
 
     def __init__(self, /, null: bool = False, **data: Any) -> None:
