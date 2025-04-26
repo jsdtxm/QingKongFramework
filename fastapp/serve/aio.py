@@ -12,6 +12,7 @@ from fastapp.initialize.apps import init_apps
 from fastapp.router import router_convert
 
 
+# FIXME 会丢失app自己设置的lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     apps = init_apps(settings.INSTALLED_APPS)
