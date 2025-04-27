@@ -15,6 +15,7 @@ def about():
 
 @click.option("--mode", default="lite", type=click.STRING)
 def stubgen(mode="lite"):
+    # TODO 有bug，比如alert模型的外键会瞎设置
     apps = init_apps(settings.INSTALLED_APPS)
     init_models()
 
