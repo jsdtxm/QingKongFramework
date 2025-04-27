@@ -34,6 +34,21 @@ INTERNAL_AUTH_APP_LABEL = "fastapp.contrib.auth"
 INTERNAL_GUARDIAN_APP_LABEL = "fastapp.contrib.guardian"
 
 
+async def handle_single_app_content_type_migrate(
+    x, ContentType, DefaultPerms, Permission, auth_app_enabled
+):
+    content_type, _ = await ContentType.get_or_create(
+        app_label=x._meta.app_config.label, model=x.__name__
+    )
+
+    if auth_app_enabled:
+        tasks = []
+        for p in DefaultPerms:
+            tasks.append(Permission.get_or_create(content_type=content_type, perm=p))
+
+        await asyncio.gather(*tasks)
+
+
 async def async_migrate(safe, guided, apps):
     """
     此函数用于异步执行数据库迁移操作。
@@ -75,24 +90,29 @@ async def async_migrate(safe, guided, apps):
 
     if auth_app_enabled:
         from fastapp.contrib.auth.models import DefaultPerms, Permission
+    else:
+        DefaultPerms = None
+        Permission = None
 
     # TODO object permission anonymous user
 
     if content_type_app_enabled:
         # TODO 如果新建模型，不能自动添加content_type
+
+        tasks = []
         for x in sorted(
             chain.from_iterable(
                 sub_dict.values() for sub_dict in Tortoise.apps.values()
             ),
             key=lambda x: x._meta.app_config.label,
         ):
-            content_type, _ = await ContentType.get_or_create(
-                app_label=x._meta.app_config.label, model=x.__name__
+            tasks.append(
+                handle_single_app_content_type_migrate(
+                    x, ContentType, DefaultPerms, Permission, auth_app_enabled
+                )
             )
 
-            if auth_app_enabled:
-                for p in DefaultPerms:
-                    await Permission.get_or_create(content_type=content_type, perm=p)
+        await asyncio.gather(*tasks)
 
         conn = Tortoise.get_connection(ContentType._meta.default_connection)
         if "PostgreSQL" in conn.__class__.__name__:
