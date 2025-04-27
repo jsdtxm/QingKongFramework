@@ -8,13 +8,12 @@ from fastapp.utils.module_loading import import_string
 async def init_cache():
     for alias, config in settings.CACHES.items():
         backend: str = config["BACKEND"]
-        backend_class = import_string(backend)
 
         if backend.endswith("RedisCache"):
             from redis import asyncio as aioredis
 
             conn = aioredis.from_url(config["LOCATION"])
-        elif backend.endswith("DiskCache"):
+        elif backend.endswith("DiskCacheBackend"):
             from fastapp.cache.disk import DiskCacheBackend
 
             conn = DiskCacheBackend(
@@ -41,6 +40,8 @@ async def init_cache():
             cache_class = FastAPICache
         else:
             cache_class = type("", (FastAPICache,), {})
+
+        backend_class = import_string(backend)
 
         cache_class.init(
             backend_class(conn),
