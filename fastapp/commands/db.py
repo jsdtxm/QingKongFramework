@@ -19,7 +19,7 @@ from itertools import chain
 import click
 
 from common.settings import settings
-from fastapp.commands.decorators import async_init_qingkong
+from fastapp.commands.decorators import async_init_fastapp
 from fastapp.db import connections
 from fastapp.db.migrate import generate_diff_sql, parse_sql
 from fastapp.db.utils import generate_schemas
@@ -164,7 +164,7 @@ def reverse_generation(connection, db, table):
     )
 
 
-@async_init_qingkong
+@async_init_fastapp
 async def async_auto_migrate(apps: list[str], guided: bool = True):
     """
     异步自动迁移数据库的函数。

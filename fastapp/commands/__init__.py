@@ -1,7 +1,7 @@
 from .check import check
 from .create import startapp
 from .db import async_migrate, auto_migrate, migrate, reverse_generation
-from .decorators import async_init_qingkong
+from .decorators import async_init_fastapp
 from .group import Group
 from .load_data import loaddata
 from .misc import about, stubgen
