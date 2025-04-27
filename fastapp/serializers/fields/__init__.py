@@ -203,3 +203,9 @@ class ListSerializer(SerializerMixin[list], NestedField, list):  # type: ignore[
 
 
 ListField = ListSerializer
+
+
+class ExtendJsonField(
+    Field[Union[dict, list, int, float, bool, str]], dict, list, int, float, bool, str
+):
+    default_value = None
