@@ -349,6 +349,7 @@ def generate_alter_statements(old_schema, new_schema, table_name):
 
 
 def generate_diff_sql(old_schema, new_schema, dialect):
+    # FIXME 有问题，抓不到null的变更
     table_name_set = set(old_schema.keys()) | set(new_schema.keys())
 
     res = []
