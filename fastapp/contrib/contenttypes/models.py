@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, Type
 
 from common.settings import settings
 from fastapp import models
@@ -15,7 +15,7 @@ class ContentType(models.Model):
         unique_together = [["app_label", "model"]]
 
     @classmethod
-    async def from_model(cls, model: models.Model) -> Self:
+    async def from_model(cls, model: models.Model | Type[models.Model]) -> Self:
         if isinstance(model, type):
             return await cls.objects.get(
                 app_label=model._meta.app_config.label, model=model.__name__
