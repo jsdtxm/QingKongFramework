@@ -31,11 +31,10 @@ class DynamicPermissionMixin:
         if request.user is None or not request.user.is_authenticated:
             return self.handle_no_permission()
 
-        if request.user.is_superuser:
-            return super().dispatch(request, *args, **kwargs)
+        action = getattr(self, "action", None)
 
-        perm = self.get_action_permissions().get(
-            self.action,
+        perm = self.get_action_permissions_map().get(
+            action,
             {
                 "GET": "view",
                 "POST": "add",
@@ -46,11 +45,11 @@ class DynamicPermissionMixin:
         )
 
         has_perm = await DynamicPermission.objects.filter(
-            perm=perm, target=self.get_view_identifier(), groups__user=request.user
+            perm=perm, target=self.get_view_identifier(), groups__user_set=request.user
         ).exists()
 
         if not has_perm:
-            return self.handle_no_permission()
+            return self.permission_denied(request, message="Permission denied")
 
         return await super().dispatch(request, *args, **kwargs)
 
