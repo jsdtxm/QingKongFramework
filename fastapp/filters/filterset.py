@@ -210,13 +210,23 @@ class BaseFilterSet:
         self.queryset = queryset
         self.request = request
 
+        self._params = None
+
         if queryset:
             self.model_fields_map = queryset.model._meta.fields_map
 
-    def filter_queryset(self, queryset):
-        params = self.PydanticModel.model_validate(self.data.to_dict())
+    @property
+    def params(self):
+        if self._params is None:
+            data = self.data
+            if not isinstance(data, dict):
+                data = data.to_dict()
+            self._params = self.PydanticModel.model_validate(data)
 
-        for name, value in params.model_dump(exclude_unset=True).items():
+        return self._params
+
+    def filter_queryset(self, queryset):
+        for name, value in self.params.model_dump(exclude_unset=True).items():
             try:
                 filter_obj = self.filters[name]
                 model_field = self.model_fields_map[filter_obj.source_field]
