@@ -307,7 +307,7 @@ class GenericAPIView(Generic[MODEL], APIView):
             queryset = queryset.objects.all()
         elif isinstance(queryset, TortoiseQuerySet):
             queryset = queryset.all()
-        return queryset
+        return queryset.order_by("id")
 
     async def get_object(self):
         """
