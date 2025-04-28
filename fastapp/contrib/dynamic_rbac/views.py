@@ -117,7 +117,7 @@ async def user_permissions(user: CurrentUser):
     Returns:
         JSONResponse: A JSON response containing the list of dynamic permissions.
     """
-    perms = await DynamicPermission.objects.filter(groups__user=user)
+    perms = await DynamicPermission.objects.filter(groups__user_set=user)
 
     serializer = viewsets.ListSerializerWrapper(
         [DynamicPermissionSerializer.model_validate(x) for x in perms]
