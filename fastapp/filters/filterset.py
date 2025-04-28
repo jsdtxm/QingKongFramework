@@ -6,6 +6,7 @@ from tortoise.fields.relational import RelationalField
 
 from fastapp.filters import filters
 from fastapp.filters.filters import BigIntegerFilter, Filter, LookupExprEnum
+from fastapp.models import BaseModel as FastappBaseModel
 from fastapp.models import QuerySet
 from fastapp.models.fields import DecimalField, JSONField
 from fastapp.models.fields.data import PositiveIntegerField, PositiveSmallIntegerField
@@ -213,7 +214,12 @@ class BaseFilterSet:
         self._params = None
 
         if queryset:
-            self.model_fields_map = queryset.model._meta.fields_map
+            if (
+                isinstance(queryset, type) and issubclass(queryset, FastappBaseModel)
+            ) or isinstance(queryset, FastappBaseModel):
+                self.model_fields_map = queryset._meta.fields_map
+            else:
+                self.model_fields_map = queryset.model._meta.fields_map
 
     @property
     def params(self):
