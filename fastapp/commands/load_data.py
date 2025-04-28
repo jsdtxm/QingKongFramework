@@ -109,7 +109,14 @@ async def _loaddata_inner(file_path):
         for item in data:
             app, model_name = item["model"].split(".")
             model = Tortoise.apps.get(app, {}).get(model_name)
+
+            if item.get("pk", None) is None:
+                instance = model(**item["fields"])
+                await instance.save()
+                continue
+
             if await model.objects.filter(id=item["pk"]).exists():
+                # TODO 应该更新
                 continue
             instance = model(id=item["pk"], **item["fields"])
             await instance.save()
