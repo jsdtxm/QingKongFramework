@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+from fastapp.paginate.base import BasePaginate
 from fastapp.responses import JSONResponse
 from fastapp.utils.sql import get_limit_offset
 
@@ -24,3 +25,11 @@ class ProPaginateMixin:
 
     def get_paginated_response(self, data):
         return JSONResponse({"data": data, "total": self.total, "success": True})
+
+
+class ProPaginate(BasePaginate):
+    params_model = ProTableFilter
+
+    @classmethod
+    def get_paginated_response(cls, data, total=None):
+        return JSONResponse({"data": data, "total": total, "success": True})

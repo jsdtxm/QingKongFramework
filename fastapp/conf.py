@@ -70,6 +70,8 @@ class BaseSettings(PydanticBaseSettings):
 
     ENABLE_PORT_MAP_FILE: bool = True
 
+    DEFAULT_PAGINATION_CLASS: Optional[str] = None
+
 
 class LazySettings:
     """

@@ -24,9 +24,11 @@ from tortoise.queryset import MODEL
 from tortoise.queryset import QuerySet as TortoiseQuerySet
 
 from fastapp import exceptions, serializers
+from fastapp.conf import settings
 from fastapp.contrib.auth.utils import OptionalCurrentUser
 from fastapp.models import BaseModel as BaseDBModel
 from fastapp.models import Manager, Model, get_object_or_404
+from fastapp.paginate.base import BasePaginate
 from fastapp.permissions.base import BasePermission
 from fastapp.requests import DjangoStyleRequest
 from fastapp.responses import JSONResponse
@@ -42,6 +44,7 @@ DEFAULTS = {
     "DEFAULT_PERMISSION_CLASSES": [
         "fastapp.permissions.AllowAny",
     ],
+    "DEFAULT_PAGINATION_CLASS": settings.DEFAULT_PAGINATION_CLASS,
 }
 
 REST_ACTION_METHOD_MAPPING = {
@@ -186,6 +189,10 @@ def load_classes(classes_string_list: list[str]) -> list[Type[BasePermission]]:
     return [import_string(permission) for permission in classes_string_list]
 
 
+def load_class(class_string: Optional[str]) -> Type[BasePermission]:
+    return import_string(class_string) if class_string else None
+
+
 class APIView(View):
     permission_classes: list[Any] = load_classes(DEFAULTS["DEFAULT_PERMISSION_CLASSES"])
 
@@ -265,8 +272,8 @@ class GenericAPIView(Generic[MODEL], APIView):
     # filterset_class = FilterSet
 
     # The style to use for queryset pagination.
-    # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
-    pagination_class = None
+    pagination_class: Any = load_class(DEFAULTS["DEFAULT_PAGINATION_CLASS"])
+    total: Optional[int] = None
 
     # Cache
     _obj: Optional[MODEL] = None
@@ -443,30 +450,27 @@ class GenericAPIView(Generic[MODEL], APIView):
         """
         The paginator instance associated with the view, or `None`.
         """
-        if not hasattr(self, "_paginator"):
-            if self.pagination_class is None:
-                self._paginator = None
-            else:
-                self._paginator = self.pagination_class()
-        return self._paginator
+        return self.pagination_class
 
-    async def paginate_queryset(self, queryset):
+    async def paginate_queryset(self, queryset) -> Optional[BasePaginate]:
         """
         Return a single page of results, or `None` if pagination is disabled.
         """
-        # if self.paginator is None:
-        #     return None
-        # return self.paginator.paginate_queryset(queryset, self.request, view=self)
-        return None
+        if self.paginator is None:
+            return None
+
+        data = await self.paginator.paginate_queryset(queryset, self.request, view=self)
+
+        return data
 
     def get_paginated_response(self, data):
         """
         Return a paginated style `Response` object for the given output data.
         """
-        # assert self.paginator is not None
-        # return self.paginator.get_paginated_response(data)
+        if self.paginator is None:
+            return JSONResponse(data)
 
-        return JSONResponse(data)
+        return self.paginator.get_paginated_response(data, self.total)
 
 
 class GenericViewSet(GenericAPIView):
