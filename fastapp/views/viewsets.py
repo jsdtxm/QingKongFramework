@@ -187,7 +187,7 @@ def load_classes(classes_string_list: list[str]) -> list[Type[BasePermission]]:
 
 
 class APIView(View):
-    permission_classes = load_classes(DEFAULTS["DEFAULT_PERMISSION_CLASSES"])
+    permission_classes: list[Any] = load_classes(DEFAULTS["DEFAULT_PERMISSION_CLASSES"])
 
     def permission_denied(self, request: DjangoStyleRequest, message=None, code=None):
         """
