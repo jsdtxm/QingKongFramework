@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapp.contrib.dynamic_rbac.models import DynamicPermission
+from fastapp.exceptions import NotAuthenticated
 
 
 class DynamicPermissionMixin:
@@ -29,7 +30,10 @@ class DynamicPermissionMixin:
 
     async def dispatch(self, request, *args, **kwargs):
         if request.user is None or not request.user.is_authenticated:
-            return self.handle_no_permission()
+            raise NotAuthenticated()
+
+        if request.user.is_superuser:
+            return await super().dispatch(request, *args, **kwargs)
 
         action = getattr(self, "action", None)
 
