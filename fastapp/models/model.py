@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Type
+from typing import TYPE_CHECKING, Any, Type, Self
 
 from . import fields
 from .base import BaseMeta, BaseModel
@@ -14,6 +14,8 @@ class Model(BaseModel):
 
     if TYPE_CHECKING:
         # 避免子类 type hint 报错
+        objects: Type[Self] = None
+
         Meta: Type[Any]
         PydanticMeta: Type[Any]
         StubGenMeta: Type[Any]
