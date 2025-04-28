@@ -14,6 +14,7 @@ from starlette.responses import Response
 from starlette.routing import BaseRoute
 
 from fastapp.responses import JSONResponse
+from fastapp.router.utils import CURLY_BRACKET_WITH_TYPE_REGEX
 from fastapp.utils.strings import BRACE_REGEX, convert_url_format, extract_type_and_name
 from fastapp.views.class_based import ViewWrapper
 
@@ -133,15 +134,33 @@ def router_convert(urlpatterns: List[ApiPath]):
 
             if url.endpoint.__class__ is ViewWrapper:
                 # url 参数提取，排除viewset
-                url_curly_params = [
-                    (x, "int") for x in re.findall(BRACE_REGEX, url.path)
-                ]
-                url_angle_params = extract_type_and_name(url.path)
+
+                url.path = url.path.replace(" ", "")
+
+                url_curly_params = []
+                url_angle_params = []
+
+                if "<" in url.path:
+                    url_angle_params = extract_type_and_name(url.path)
+                    if url_angle_params:
+                        url.path = convert_url_format(url.path)
+                elif "{" in url.path:
+                    url_curly_params = [
+                        (x, "int") for x in re.findall(BRACE_REGEX, url.path)
+                    ]
+
+                    if not url_curly_params:
+                        url_curly_params = [
+                            x
+                            for x in re.findall(CURLY_BRACKET_WITH_TYPE_REGEX, url.path)
+                        ]
+
+                        if url_curly_params:
+                            url.path = re.sub(
+                                CURLY_BRACKET_WITH_TYPE_REGEX, r"{\1}", url.path
+                            )
 
                 url_params = list(chain(url_curly_params, url_angle_params))
-
-                if url_angle_params:
-                    url.path = convert_url_format(url.path)
 
                 if url_params:
                     router = url.endpoint.as_router(
