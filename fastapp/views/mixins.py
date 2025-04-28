@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from starlette import status
 
-from fastapp.models.base import BaseModel
+from fastapp.models.base import BaseModel, QuerySet
 from fastapp.requests import DjangoStyleRequest
 from fastapp.responses import JSONResponse
 from fastapp.serializers.model import ModelSerializer
@@ -27,7 +27,7 @@ class ListModelMixin:
     List a queryset.
     """
 
-    async def list(self: "GenericViewSet", request, *args, **kwargs):  # type: ignore
+    async def list(self: "GenericViewSet", request, *args, **kwargs) -> QuerySet:  # type: ignore
         queryset = await self.filter_queryset(self.get_queryset())
 
         page = await self.paginate_queryset(queryset)
@@ -82,7 +82,9 @@ class UpdateModelMixin:
 
         return JSONResponse(
             (
-                await self.get_serializer(serializer._instance, override_action="retrieve")
+                await self.get_serializer(
+                    serializer._instance, override_action="retrieve"
+                )
             ).model_dump(),
             status_code=status.HTTP_200_OK,
         )
