@@ -5,7 +5,7 @@ from tortoise.fields.base import Field as TortoiseField
 from tortoise.fields.relational import RelationalField
 
 from fastapp.filters import filters
-from fastapp.filters.filters import BigIntegerFilter, Filter, LookupExprEnum
+from fastapp.filters.filters import BigIntegerFilter, Filter, ListFilter, LookupExprEnum
 from fastapp.models import BaseModel as FastappBaseModel
 from fastapp.models import QuerySet
 from fastapp.models.fields import DecimalField, JSONField
@@ -135,6 +135,10 @@ class FilterSetMetaclass(type):
                             raise ValueError(
                                 f"Field '{field_name}' does not support filtering"
                             )
+
+                        if lookup_expr == LookupExprEnum.in_.value:
+                            kwargs |= {"child": filter_class()}
+                            filter_class = ListFilter
 
                         new_attrs[new_attr_name] = filter_class(
                             field_name=field_name,
