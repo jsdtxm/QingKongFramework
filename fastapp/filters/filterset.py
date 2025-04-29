@@ -120,35 +120,26 @@ class FilterSetMetaclass(type):
                         )
 
                     field = non_related_fields_map[field_name]
-                    filter_class = FieldToFilter.get(field.__class__)
-                    if filter_class is None:
-                        raise ValueError(
-                            f"Field '{field_name}' does not support filtering"
+                    kwargs = get_field_to_filter_kwargs(field)
+
+                    for lookup_expr in field_filter_dict[field_name]:
+                        new_attr_name = (
+                            field_name
+                            if lookup_expr == LookupExprEnum.exact.value
+                            or len(field_filter_dict[field_name]) == 1
+                            else f"{field_name}__{lookup_expr}"
                         )
 
-                    kwargs = get_field_to_filter_kwargs(field)
-                    if len(field_filter_dict[field_name]) <= 1:
-                        new_attrs[field_name] = filter_class(
+                        filter_class = FieldToFilter.get(field.__class__)
+                        if filter_class is None:
+                            raise ValueError(
+                                f"Field '{field_name}' does not support filtering"
+                            )
+
+                        new_attrs[new_attr_name] = filter_class(
                             field_name=field_name,
-                            **(
-                                kwargs
-                                | {"lookup_expr": field_filter_dict[field_name][0]}
-                            ),
+                            **(kwargs | {"lookup_expr": lookup_expr}),
                         )
-                    else:
-                        for lookup_expr in field_filter_dict[field_name]:
-                            if lookup_expr == LookupExprEnum.exact.value:
-                                new_attrs[field_name] = filter_class(
-                                    field_name=field_name,
-                                    **kwargs,
-                                )
-                            else:
-                                new_attrs[f"{field_name}__{lookup_expr}"] = (
-                                    filter_class(
-                                        field_name=field_name,
-                                        **(kwargs | {"lookup_expr": lookup_expr}),
-                                    )
-                                )
 
                     if m2m_fields:
                         for field_name in m2m_fields:
