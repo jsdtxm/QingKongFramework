@@ -94,9 +94,13 @@ class Filter(Generic[VALUE]):
         self.extra = kwargs
         self.extra.setdefault("required", False)
 
-        fields = self.field_name.split("__", 1)
-        self.source_field = fields[0]
-        self.nested_field = fields[1] if len(fields) > 1 else None
+        if self.field_name:
+            fields = self.field_name.split("__", 1)
+            self.source_field = fields[0]
+            self.nested_field = fields[1] if len(fields) > 1 else None
+        else:
+            self.source_field = None
+            self.nested_field = None
 
     def filter(self, queryset, value, model_field=None):
         if model_field is not None:
@@ -241,7 +245,7 @@ class NestedFilter(Field):
     pass
 
 
-class ListSerializer(Filter[list], NestedFilter, list):
+class ListFilter(Filter[list], NestedFilter, list):
     def __init__(self, child, **kwargs: Any):
         super().__init__(**({"default": []} | kwargs))
         self.child = child
