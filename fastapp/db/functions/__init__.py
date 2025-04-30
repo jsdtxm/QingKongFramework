@@ -1,5 +1,6 @@
 from tortoise.expressions import Function
-from . import pika
+import fastapp.db.functions.string as string
+
 
 class Right(Function):
     """
@@ -8,7 +9,7 @@ class Right(Function):
     :samp:`RIGHT("{FIELD_NAME}", {length})`
     """
 
-    database_func = pika.Right
+    database_func = string.Right
 
 
 class Instr(Function):
@@ -18,4 +19,4 @@ class Instr(Function):
     :samp:`INSTR("{FIELD_NAME}", {length})`
     """
 
-    database_func = pika.Instr
+    database_func = string.Instr
