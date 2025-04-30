@@ -17,6 +17,7 @@ from tortoise.filters import (
     insensitive_ends_with,
     insensitive_exact,
     insensitive_starts_with,
+    is_in,
     json_contained_by,
     json_contains,
     json_filter,
@@ -35,7 +36,16 @@ class MySQLSchemaGenerator(SchemaGeneratorMixin, schema_generator.MySQLSchemaGen
 def mysql_json_filter(field: Term, value: Dict) -> Criterion:
     ((key, filter_value),) = value.items()
     filter_value = _serialize_value(filter_value)
-    key_parts = [int(item) if item.isdigit() else str(item).replace("_\\_", "__") for item in key.split("__")]
+    key_parts = [
+        int(item) if item.isdigit() else str(item).replace("_\\_", "__")
+        for item in key.split("__")
+    ]
+
+    # HACK
+    if len(key_parts) == 2 and key_parts[1] == "in":
+        key_parts = key_parts[:-1]
+        return is_in(JSONExtract(field, key_parts), filter_value)
+
     operator_ = operator.eq
     if key_parts[-1] in operator_keywords:
         operator_ = operator_keywords[str(key_parts.pop(-1))]  # type: ignore
