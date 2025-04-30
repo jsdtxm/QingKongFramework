@@ -1,5 +1,5 @@
 from tortoise.expressions import Function
-import fastapp.db.functions.string as string
+import fastapp.db.functions.string as string_func
 
 
 class Right(Function):
@@ -9,7 +9,7 @@ class Right(Function):
     :samp:`RIGHT("{FIELD_NAME}", {length})`
     """
 
-    database_func = string.Right
+    database_func = string_func.Right
 
 
 class Instr(Function):
@@ -19,4 +19,4 @@ class Instr(Function):
     :samp:`INSTR("{FIELD_NAME}", {length})`
     """
 
-    database_func = string.Instr
+    database_func = string_func.Instr
