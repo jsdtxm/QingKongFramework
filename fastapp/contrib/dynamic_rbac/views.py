@@ -1,7 +1,6 @@
 from starlette import status
 
-from fastapp.contrib.auth.mixins import SuperUserRequiredMixin
-from fastapp.contrib.auth.utils import CurrentUser
+from fastapp.contrib.auth.mixins import LoginRequiredMixin, SuperUserRequiredMixin
 from fastapp.contrib.auth.views import AdminGroupViewSet
 from fastapp.contrib.dynamic_rbac.filters import DynamicPermissionFilterSet
 from fastapp.contrib.dynamic_rbac.models import DynamicPermission
@@ -10,6 +9,7 @@ from fastapp.contrib.dynamic_rbac.serializers import (
     PermIDsSerializer,
 )
 from fastapp.filters import FilterBackend
+from fastapp.requests import DjangoStyleRequest
 from fastapp.responses import JSONResponse
 from fastapp.router import APIRouter
 from fastapp.views import viewsets
@@ -112,21 +112,28 @@ class AdminGroupWithDynamicPermissionViewSet(AdminGroupViewSet):
         )
 
 
-@dynamic_rbac_router.get("/permissions/")
-async def user_permissions(user: CurrentUser):
+class CurrentUserDynamicPermissionView(LoginRequiredMixin, viewsets.APIView):
     """
-    Retrieve all dynamic permissions associated with a specific user.
-
-    Args:
-        user (CurrentUser): The current user instance.
-
-    Returns:
-        JSONResponse: A JSON response containing the list of dynamic permissions.
+    A view that requires the user to be logged in. It provides a GET method to retrieve
+    all dynamic permissions associated with the current user.
     """
-    perms = await DynamicPermission.objects.filter(groups__user_set=user)
 
-    serializer = viewsets.ListSerializerWrapper(
-        [DynamicPermissionSerializer.model_validate(x) for x in perms]
-    )
+    async def get(self, request: DjangoStyleRequest):
+        """
+        Retrieve all dynamic permissions associated with current user.
+        """
 
-    return JSONResponse(serializer.model_dump())
+        params = request.GET.to_dict()
+        print("params", params)
+
+        filter_set = DynamicPermissionFilterSet(params, DynamicPermission)
+
+        perms = await filter_set.filter_queryset(
+            DynamicPermission.objects.filter(groups__user_set=request.user)
+        )
+
+        serializer = viewsets.ListSerializerWrapper(
+            [DynamicPermissionSerializer.model_validate(x) for x in perms]
+        )
+
+        return JSONResponse(serializer.model_dump())
