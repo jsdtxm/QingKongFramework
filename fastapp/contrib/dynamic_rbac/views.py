@@ -3,11 +3,13 @@ from starlette import status
 from fastapp.contrib.auth.mixins import SuperUserRequiredMixin
 from fastapp.contrib.auth.utils import CurrentUser
 from fastapp.contrib.auth.views import AdminGroupViewSet
+from fastapp.contrib.dynamic_rbac.filters import DynamicPermissionFilterSet
 from fastapp.contrib.dynamic_rbac.models import DynamicPermission
 from fastapp.contrib.dynamic_rbac.serializers import (
     DynamicPermissionSerializer,
     PermIDsSerializer,
 )
+from fastapp.filters import FilterBackend
 from fastapp.responses import JSONResponse
 from fastapp.router import APIRouter
 from fastapp.views import viewsets
@@ -21,8 +23,11 @@ class DynamicPermissionViewSet(SuperUserRequiredMixin, viewsets.ReadOnlyModelVie
     A viewset that provides 'list' and 'retrieve' actions for DynamicPermission instances.
     Only superusers are allowed to access the views provided by this viewset.
     """
+
     queryset = DynamicPermission
     serializer_class = DynamicPermissionSerializer
+    filter_backends = [FilterBackend]
+    filterset_class = DynamicPermissionFilterSet
 
 
 class AdminGroupWithDynamicPermissionViewSet(AdminGroupViewSet):
@@ -31,6 +36,7 @@ class AdminGroupWithDynamicPermissionViewSet(AdminGroupViewSet):
     It inherits all the functionalities from `AdminGroupViewSet` and can be used to add
     custom actions related to dynamic permissions management for admin groups.
     """
+
     @action(detail=True, methods=["get"], url_path="dynamic_permission")
     async def list_dynamic_permission(self, request, id=None):
         """
