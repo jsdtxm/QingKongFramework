@@ -24,15 +24,6 @@ class Instr(Function):
     database_func = string_func.Instr
 
 
-class JsonExtract(Function):
-    """
-    JSON_EXTRACT
-    :samp:`JSON_EXTRACT("{FIELD_NAME}
-    """
-
-    database_func = json_func.JsonExtract
-
-
 class JsonUnquote(Function):
     """
     JSON_UNQUOTE
