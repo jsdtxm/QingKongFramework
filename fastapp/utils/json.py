@@ -5,6 +5,41 @@ import math
 import uuid
 
 
+def remove_comments(jsonc_content: str):
+    """移除JSONC内容中的注释"""
+
+    lines = jsonc_content.splitlines()
+    cleaned_lines = []
+    in_block_comment = False
+
+    for line in lines:
+        if not in_block_comment:
+            # 清理当前行的行注释
+            index = line.find("//")
+            if index != -1:
+                line = line[:index]
+
+            # 清理当前行开始的块注释起始部分
+            index = line.find("/*")
+            if index != -1:
+                line = line[:index]
+                in_block_comment = True
+
+        if in_block_comment:
+            # 寻找块注释结束部分
+            index = line.find("*/")
+            if index != -1:
+                line = line[index + 2 :]
+                in_block_comment = False
+            else:
+                line = ""
+
+        if line.strip() or in_block_comment:
+            cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines)
+
+
 def _get_duration_components(duration):
     days = duration.days
     seconds = duration.seconds
