@@ -18,7 +18,6 @@ class DynamicPermission(models.Model):
     class Meta:
         unique_together = ("perm", "target")
         indexes = [
-            models.Index(
-                fields=("perm", "target"), name="dynamic_permission_together_idx"
-            ),
+            models.Index(fields=("perm",)),
+            models.Index(fields=("target",)),
         ]
