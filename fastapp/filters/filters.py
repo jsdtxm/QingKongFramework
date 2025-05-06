@@ -13,6 +13,7 @@ from uuid import UUID
 
 from pydantic import constr
 from tortoise.fields.base import Field
+from tortoise.fields.relational import RelationalField
 
 from fastapp.models.fields import JSONField
 from fastapp.models.fields import data as models_data_fields
@@ -107,9 +108,22 @@ class Filter(Generic[VALUE]):
             fields = self.nested_field.split("__", 1)
             if len(fields) > 1:
                 related_model_fields_map = model_field.related_model._meta.fields_map
-                if isinstance(related_model_fields_map[fields[0]], JSONField):
+                related_field = related_model_fields_map[fields[0]]
+                if isinstance(related_field, JSONField) or isinstance(
+                    related_field, RelationalField
+                ):
                     sub_source_field = fields[0]
                     sub_nested_field = fields[1] if len(fields) > 1 else None
+
+                    if (
+                        isinstance(related_field, RelationalField)
+                        and "__" in sub_nested_field
+                    ):
+                        sub_nested_field_splited = sub_nested_field.split("__")
+                        sub_source_field = "__".join(
+                            [sub_source_field, *sub_nested_field_splited[:-1]]
+                        )
+                        sub_nested_field = sub_nested_field_splited[-1]
 
                     return self.jsonfield_filter(
                         queryset,
