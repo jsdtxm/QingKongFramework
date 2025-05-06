@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from functools import lru_cache
 
 import click
 
@@ -54,6 +55,27 @@ def get_all_fixtures(folders):
     return sorted(found_files)
 
 
+@lru_cache
+def _get_model_fk_id_fields_dict(model):
+    fk_fields = {}
+    for field_name in model._meta.fk_fields:
+        field = model._meta.fields_map[field_name]
+        fk_fields[field.source_field] = field.related_model
+
+    return fk_fields
+
+
+async def _handle_fields(model, fields):
+    fk_fields_dict = _get_model_fk_id_fields_dict(model)
+
+    for k, v in fields.items():
+        if k in fk_fields_dict and isinstance(v, str) and v.startswith("${"):
+            obj = await fk_fields_dict[k].get(**dict((v[2:-1].split("="),)))
+            fields[k] = obj.id
+
+    return fields
+
+
 async def _loaddata_inner(file_path):
     if "/" not in file_path and not os.path.exists(file_path):
         app_dirs = list(
@@ -76,15 +98,18 @@ async def _loaddata_inner(file_path):
             app, model_name = item["model"].split(".")
             model = Tortoise.apps.get(app, {}).get(model_name)
 
+            fields = await _handle_fields(model, item["fields"])
+
             if item.get("pk", None) is None:
-                instance = model(**item["fields"])
+                instance = model(**fields)
                 await instance.save()
                 continue
 
             if await model.objects.filter(id=item["pk"]).exists():
-                # TODO 应该更新
+                await model.objects.filter(id=item["pk"]).update(**fields)
                 continue
-            instance = model(id=item["pk"], **item["fields"])
+
+            instance = model(id=item["pk"], **fields)
             await instance.save()
 
         conn = Tortoise.get_connection(model._meta.default_connection)
