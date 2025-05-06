@@ -10,6 +10,8 @@ class BaseSettings(PydanticBaseSettings):
 
     PROJECT_NAME: Optional[str] = None
 
+    TIME_ZONE: str = "Asia/Shanghai"
+
     BASE_DIR: Path
     SECRET_KEY: str = "longlivethegreatunityofthepeople"
 

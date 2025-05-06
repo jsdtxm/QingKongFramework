@@ -5,6 +5,7 @@ from importlib import import_module
 from typing import Any
 
 from fastapp.apps import Apps
+from fastapp.conf import settings
 from fastapp.models.base import TortoiseModel
 from fastapp.models.tortoise import Tortoise
 from fastapp.utils.module_loading import package_try_import
@@ -34,6 +35,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
     tortoise_config = {
         "connections": {},
         "apps": {},
+        "timezone": settings.TIME_ZONE,
     }
 
     connection_routers = []
