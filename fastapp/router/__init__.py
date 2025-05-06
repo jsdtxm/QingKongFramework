@@ -142,9 +142,8 @@ def router_convert(urlpatterns: List[ApiPath]):
 
                 if "<" in url.path:
                     url_angle_params = extract_type_and_name(url.path)
-                    if url_angle_params:
-                        url.path = convert_url_format(url.path)
-                elif "{" in url.path:
+
+                if "{" in url.path:
                     url_curly_params = [
                         (x, "int") for x in re.findall(BRACE_REGEX, url.path)
                     ]
@@ -159,6 +158,9 @@ def router_convert(urlpatterns: List[ApiPath]):
                             url.path = re.sub(
                                 CURLY_BRACKET_WITH_TYPE_REGEX, r"{\1}", url.path
                             )
+
+                if url_angle_params:
+                    url.path = convert_url_format(url.path)
 
                 url_params = list(chain(url_curly_params, url_angle_params))
 
