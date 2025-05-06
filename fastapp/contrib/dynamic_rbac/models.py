@@ -21,3 +21,9 @@ class DynamicPermission(models.Model):
             models.Index(fields=("perm",)),
             models.Index(fields=("target",)),
         ]
+
+    async def has_permission(self, request, view):
+        return True
+
+    async def has_object_permission(self, request, view, obj):
+        return True
