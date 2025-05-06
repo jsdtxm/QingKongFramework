@@ -58,15 +58,15 @@ class AND:
         self.op1 = op1
         self.op2 = op2
 
-    def has_permission(self, request: DjangoStyleRequest, view):
-        return self.op1.has_permission(request, view) and self.op2.has_permission(
+    async def has_permission(self, request: DjangoStyleRequest, view):
+        return await self.op1.has_permission(
             request, view
-        )
+        ) and await self.op2.has_permission(request, view)
 
-    def has_object_permission(self, request: DjangoStyleRequest, view, obj):
-        return self.op1.has_object_permission(
+    async def has_object_permission(self, request: DjangoStyleRequest, view, obj):
+        return await self.op1.has_object_permission(
             request, view, obj
-        ) and self.op2.has_object_permission(request, view, obj)
+        ) and await self.op2.has_object_permission(request, view, obj)
 
 
 class OR:
@@ -74,17 +74,17 @@ class OR:
         self.op1 = op1
         self.op2 = op2
 
-    def has_permission(self, request: DjangoStyleRequest, view):
-        return self.op1.has_permission(request, view) or self.op2.has_permission(
+    async def has_permission(self, request: DjangoStyleRequest, view):
+        return await self.op1.has_permission(
             request, view
-        )
+        ) or await self.op2.has_permission(request, view)
 
-    def has_object_permission(self, request: DjangoStyleRequest, view, obj):
+    async def has_object_permission(self, request: DjangoStyleRequest, view, obj):
         return (
-            self.op1.has_permission(request, view)
+            await self.op1.has_permission(request, view)
             and self.op1.has_object_permission(request, view, obj)
         ) or (
-            self.op2.has_permission(request, view)
+            await self.op2.has_permission(request, view)
             and self.op2.has_object_permission(request, view, obj)
         )
 
@@ -93,11 +93,11 @@ class NOT:
     def __init__(self, op1: "BasePermission"):
         self.op1 = op1
 
-    def has_permission(self, request: DjangoStyleRequest, view):
-        return not self.op1.has_permission(request, view)
+    async def has_permission(self, request: DjangoStyleRequest, view):
+        return not await self.op1.has_permission(request, view)
 
-    def has_object_permission(self, request: DjangoStyleRequest, view, obj):
-        return not self.op1.has_object_permission(request, view, obj)
+    async def has_object_permission(self, request: DjangoStyleRequest, view, obj):
+        return not await self.op1.has_object_permission(request, view, obj)
 
 
 class BasePermissionMetaclass(OperationHolderMixin, type):
@@ -109,13 +109,13 @@ class BasePermission(metaclass=BasePermissionMetaclass):
     A base class from which all permission classes should inherit.
     """
 
-    def has_permission(self, request: DjangoStyleRequest, view):
+    async def has_permission(self, request: DjangoStyleRequest, view):
         """
         Return `True` if permission is granted, `False` otherwise.
         """
         return True
 
-    def has_object_permission(self, request: DjangoStyleRequest, view, obj):
+    async def has_object_permission(self, request: DjangoStyleRequest, view, obj):
         """
         Return `True` if permission is granted, `False` otherwise.
         """

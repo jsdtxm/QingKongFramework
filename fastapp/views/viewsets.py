@@ -210,13 +210,13 @@ class APIView(View):
         """
         return [permission() for permission in self.permission_classes]
 
-    def check_permissions(self, request):
+    async def check_permissions(self, request):
         """
         Check if the request should be permitted.
         Raises an appropriate exception if the request is not permitted.
         """
         for permission in self.get_permissions():
-            if not permission.has_permission(request, self):
+            if not await permission.has_permission(request, self):
                 self.permission_denied(
                     request,
                     message=getattr(permission, "message", None),
@@ -229,7 +229,7 @@ class APIView(View):
         Raises an appropriate exception if the request is not permitted.
         """
         for permission in self.get_permissions():
-            if not permission.has_object_permission(request, self, obj):
+            if not await permission.has_object_permission(request, self, obj):
                 self.permission_denied(
                     request,
                     message=getattr(permission, "message", None),
