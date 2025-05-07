@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING, Dict
+
 from fastapp.cache.base import BaseCache
 
-connections = {}
-caches = {}
+if TYPE_CHECKING:
+    from redis.asyncio import Redis
+
+connections: Dict["Redis" | "BaseCache"] = {}
+caches: Dict["Redis" | "BaseCache"] = {}
 
 
 class LazyCache:
