@@ -89,6 +89,15 @@ class BaseSerializer:
         @classmethod
         async def from_tortoise_orm(cls, obj: "BaseModel") -> Self: ...
 
+        @classmethod
+        def model_validate_json(
+            cls,
+            json_data: str | bytes | bytearray,
+            *,
+            strict: bool | None = None,
+            context: Any | None = None,
+        ) -> Self: ...
+
 
 class OverrideMixin:
     def __getattr__(self, item: str) -> Any:
