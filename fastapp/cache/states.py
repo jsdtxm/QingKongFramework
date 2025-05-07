@@ -14,5 +14,8 @@ class LazyCache:
     def cache(self, *args, **kwargs) -> BaseCache:
         return caches["default"]
 
+    def __getattr__(self, name: str):
+        return self.cache.__getattribute__(name)
 
-cache: BaseCache = LazyCache.cache
+
+cache: BaseCache = LazyCache()
