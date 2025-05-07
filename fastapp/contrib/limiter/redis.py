@@ -72,18 +72,15 @@ end"""
         if not self.connection:
             raise Exception("Redis connection Invalid")
 
-        route_index, dep_index = self.get_dep_index(request)
-
-        # moved here because constructor run before app startup
-        identifier = self.identifier or self.identifier
         callback = self.callback or self.http_callback
-        rate_key = await identifier(request)
-        key = f"{self.prefix}:{rate_key}:{route_index}:{dep_index}"
+        key = await self.get_key(request)
+
         try:
             pexpire = await self._check(key)
         except pyredis.exceptions.NoScriptError:
             self.lua_sha = await self.connection.script_load(self.lua_script)
             pexpire = await self._check(key)
+
         if pexpire != 0:
             return await callback(request, response, pexpire)
 
@@ -92,8 +89,9 @@ class WebSocketRedisRateLimiter(RedisRateLimiter):
     async def __call__(self, ws: WebSocket, context_key=""):
         if not self.connection:
             raise Exception("Redis connection Invalid")
-        identifier = self.identifier or self.identifier
-        rate_key = await identifier(ws)
+        
+        rate_key = await self.identifier(ws)
+
         key = f"{self.prefix}:ws:{rate_key}:{context_key}"
         pexpire = await self._check(key)
         callback = self.callback or self.ws_callback

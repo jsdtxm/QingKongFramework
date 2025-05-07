@@ -8,6 +8,8 @@ from fastapp.contrib.limiter.utils import ip_identifier
 
 
 class BaseRateLimiter:
+    key_infix: str = "http"
+
     prefix: Optional[str] = None
     identifier: Optional[Callable] = None
     http_callback: Optional[Callable] = None
@@ -57,3 +59,10 @@ class BaseRateLimiter:
                         dep_index = j
                         break
         return route_index, dep_index
+
+    async def get_key(self, request: Request) -> str:
+        route_index, dep_index = self.get_dep_index(request)
+
+        rate_key = await self.identifier(request)
+
+        return f"{self.prefix}:{self.key_infix}:{rate_key}:{route_index}:{dep_index}"
