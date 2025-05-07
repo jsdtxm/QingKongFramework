@@ -73,7 +73,7 @@ async def tortoise_validation_exception_handler(
     request: "Request", exc: TortoiseValidationError
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": exc.__class__.__name__,
             "message": str(exc),
