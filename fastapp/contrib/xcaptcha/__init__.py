@@ -5,7 +5,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
-from fastapp.contrib.limiter import ip_identifier
+from fastapp.contrib.limiter.utils import ip_identifier
 from fastapp.contrib.xcaptcha.exceptions import ThrottledException
 
 
