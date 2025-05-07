@@ -28,7 +28,10 @@ class BaseSettings(PydanticBaseSettings):
 
     EXTRA_PROXY: List[Tuple[str, str]] = []
 
-    RATE_LIMITER_CLASS: str = "fastapp.contrib.limiter.RedisRateLimiter"
+    RATE_LIMITER_CLASS: str = "fastapp.contrib.limiter.cache.CacheRateLimiter"
+    WEBSOCKET_RATE_LIMITER_CLASS: str = (
+        "fastapp.contrib.limiter.cache.WebSocketCacheRateLimiter"
+    )
 
     XCAPTCHA_URL: Optional[str] = None
     XCAPTCHA_ENCRYPT_KEY: Optional[str] = None

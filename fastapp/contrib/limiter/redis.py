@@ -54,6 +54,9 @@ end"""
         )
         self.connection = get_redis_connection(self.connection_alias)
 
+        if self.connection.__class__.__name__ != "Redis":
+            raise Exception("Redis connection Invalid")
+
         asyncio.create_task(self.script_load())
 
     async def script_load(self):

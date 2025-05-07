@@ -15,6 +15,8 @@ class BaseRateLimiter:
     http_callback: Optional[Callable] = None
     ws_callback: Optional[Callable] = None
 
+    initialized: bool = False
+
     def __init__(
         self,
         times: Annotated[int, Field(ge=0)] = 1,
@@ -30,10 +32,14 @@ class BaseRateLimiter:
         self.milliseconds = (
             milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
         )
-        self.identifier = identifier
+        if identifier:
+            self.identifier = identifier
         self.callback = callback
 
         self.connection_alias = connection_alias
+
+        if not self.initialized:
+            self.init()
 
     @classmethod
     async def init(
@@ -44,9 +50,18 @@ class BaseRateLimiter:
         ws_callback: Callable = ws_default_callback,
     ) -> None:
         cls.prefix = prefix
-        cls.identifier = identifier
-        cls.http_callback = http_callback
-        cls.ws_callback = ws_callback
+        cls.identifier = cls.func_wrap(identifier)
+        cls.http_callback = cls.func_wrap(http_callback)
+        cls.ws_callback = cls.func_wrap(ws_callback)
+
+        cls.initialized = True
+
+    @staticmethod
+    def func_wrap(func):
+        def wrapper(_self, *args, **kwargs):
+            return func(*args, **kwargs)
+
+        return wrapper
 
     def get_dep_index(self, request: Request):
         route_index = 0
