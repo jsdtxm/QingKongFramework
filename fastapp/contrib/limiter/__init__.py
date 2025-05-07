@@ -7,13 +7,11 @@ from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 from starlette.websockets import WebSocket
 
+from fastapp.utils.ip import get_client_ip
+
 
 async def ip_identifier(request: Union[Request, WebSocket]):
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        ip = forwarded.split(",")[0]
-    else:
-        ip = request.client.host
+    ip = get_client_ip(request)
     return ip + ":" + request.scope["path"]
 
 
