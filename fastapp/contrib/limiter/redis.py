@@ -72,7 +72,6 @@ end"""
         if not self.connection:
             raise Exception("Redis connection Invalid")
 
-        callback = self.callback or self.http_callback
         key = await self.get_key(request)
 
         try:
@@ -82,6 +81,7 @@ end"""
             pexpire = await self._check(key)
 
         if pexpire != 0:
+            callback = self.callback or self.http_callback
             return await callback(request, response, pexpire)
 
 
@@ -89,11 +89,12 @@ class WebSocketRedisRateLimiter(RedisRateLimiter):
     async def __call__(self, ws: WebSocket, context_key=""):
         if not self.connection:
             raise Exception("Redis connection Invalid")
-        
+
         rate_key = await self.identifier(ws)
 
         key = f"{self.prefix}:ws:{rate_key}:{context_key}"
         pexpire = await self._check(key)
-        callback = self.callback or self.ws_callback
+
         if pexpire != 0:
+            callback = self.callback or self.ws_callback
             return await callback(ws, pexpire)
