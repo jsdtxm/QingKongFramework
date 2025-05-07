@@ -1,5 +1,5 @@
 from pypika.functions import Cast
-from tortoise.expressions import F, Q, Subquery
+from tortoise.expressions import F, Q, RawSQL, Subquery
 from tortoise.fields.base import OnDelete
 from tortoise.functions import Count, Sum, Trim
 from tortoise.indexes import Index
