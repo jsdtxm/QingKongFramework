@@ -8,7 +8,7 @@ from starlette.responses import Response
 from starlette.websockets import WebSocket
 
 from fastapp.cache import get_redis_connection
-from fastapp.contrib.limiter import RedisRateLimiter
+from fastapp.contrib.limiter.redis import RedisRateLimiter
 
 lua_sha_dict: Dict[Tuple[AnyStr, AnyStr], Any] = {}
 
