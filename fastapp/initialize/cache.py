@@ -32,7 +32,7 @@ async def init_cache():
         connections[alias] = conn
 
         # HACK
-        if backend.endswith("DiskCache"):
+        if backend.endswith("DiskCacheBackend"):
             caches[alias] = conn
             continue
 
