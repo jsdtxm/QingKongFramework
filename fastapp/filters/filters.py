@@ -115,22 +115,32 @@ class Filter(Generic[VALUE]):
                     sub_source_field = fields[0]
                     sub_nested_field = fields[1] if len(fields) > 1 else None
 
-                    if (
-                        isinstance(related_field, RelationalField)
-                        and "__" in sub_nested_field
-                    ):
-                        sub_nested_field_splited = sub_nested_field.split("__")
-                        sub_source_field = "__".join(
-                            [sub_source_field, *sub_nested_field_splited[:-1]]
-                        )
-                        sub_nested_field = sub_nested_field_splited[-1]
+                    sub_related_field = None
+                    if isinstance(related_field, RelationalField):
+                        sub_fields_map = related_field.related_model._meta.fields_map
+                        if "__" in sub_nested_field:
+                            sub_nested_field_splited = sub_nested_field.split("__")
 
-                    return self.jsonfield_filter(
-                        queryset,
-                        value,
-                        source_field=f"{self.source_field}__{sub_source_field}",
-                        nested_field=sub_nested_field,
-                    )
+                            sub_related_field = sub_fields_map.get(
+                                sub_nested_field_splited[0]
+                            )
+
+                            sub_source_field = "__".join(
+                                [sub_source_field, *sub_nested_field_splited[:-1]]
+                            )
+                            sub_nested_field = sub_nested_field_splited[-1]
+                        else:
+                            sub_related_field = sub_fields_map.get(sub_nested_field)
+
+                    if isinstance(related_field, JSONField) or isinstance(
+                        sub_related_field, JSONField
+                    ):
+                        return self.jsonfield_filter(
+                            queryset,
+                            value,
+                            source_field=f"{self.source_field}__{sub_source_field}",
+                            nested_field=sub_nested_field,
+                        )
 
         lookup_expr = (
             "" if self.lookup_expr == LookupExprEnum.exact.value else self.lookup_expr
