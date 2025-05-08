@@ -9,6 +9,7 @@ import os
 import typing
 from io import IOBase
 
+from pydantic import BaseModel
 from starlette.background import BackgroundTask
 from starlette.responses import FileResponse as StarletteFileResponse  # noqa
 from starlette.responses import HTMLResponse as HTMLResponse  # noqa
@@ -21,9 +22,11 @@ from starlette.responses import StreamingResponse as StarletteStreamingResponse 
 from fastapp.utils.json import JSONEncoder, default_datetime_format, replace_nan
 
 
-def orjson_default_decimal(obj):
+def orjson_default(obj):
     if isinstance(obj, decimal.Decimal):
         return f"{obj:f}"
+    if isinstance(obj, BaseModel):
+        return obj.model_dump()
     raise TypeError
 
 
@@ -55,7 +58,7 @@ class JSONResponse(StarletteJSONResponse):
         if orjson:
             if self.orjson_parse_datetime:
                 content = default_datetime_format(content)
-            return orjson.dumps(content, default=orjson_default_decimal)
+            return orjson.dumps(content, default=orjson_default)
 
         if self.json_replace_nan:
             content = replace_nan(content)
