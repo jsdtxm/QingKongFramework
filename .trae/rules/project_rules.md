@@ -102,6 +102,7 @@ class Document(models.Model):
 
 ## filter example
 ### File place in project_folder/apps/{app_name}/filters.py
+### You can change field filter operator, if you don't specify it, it will use `exact`.
 ```python
 from apps.{app_name}.models import Document, Folder
 from fastapp import filters
@@ -129,6 +130,7 @@ class FolderFilterSet(filters.FilterSet):
         model = Folder
         # Optional, if you want to specify filter method.
         fields = {
+            # if you don't specify filter method, it will use "exact" method.
             "name": LookupExprEnum.contains.value,  # Default is "exact".
             "created_at": [LookupExprEnum.gte.value, LookupExprEnum.lte.value], # Support multiple lookup expressions.
         }
