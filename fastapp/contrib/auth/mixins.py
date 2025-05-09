@@ -1,6 +1,10 @@
+from fastapp import models
+from fastapp.contrib.auth import get_user_model
 from fastapp.exceptions import NotAuthenticated
 from fastapp.serializers import ModelSerializer
 from fastapp.views.viewsets import GenericViewSet
+
+User = get_user_model()
 
 
 class AccessMixin:
@@ -71,3 +75,28 @@ class CreatorWithFilterMixin(LoginRequiredMixin, CreatorMixin):
 
         queryset = queryset.filter(**{self.creator_field: self.request.user.id})
         return queryset
+
+
+class ModelCreatorMixin:
+    created_by = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="created_{model}s"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class UpdaterMixin:
+    updater_field = "updated_by_id"
+
+    async def perform_update(self, serializer):
+        if self.request.user:
+            setattr(serializer, self.updater_field, self.request.user.id)  # type: ignore[attr-defined]
+        else:
+            setattr(serializer, self.updater_field, None)  # type: ignore[attr-defined]
+        return await super().perform_update(serializer)
+
+
+class ModelUpdaterMixin:
+    updated_by = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="updated_{model}s"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
