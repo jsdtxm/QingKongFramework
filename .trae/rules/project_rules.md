@@ -39,13 +39,14 @@ class FolderViewSet(SuperUserRequiredMixin, CreatorMixin, ModelViewSet):
 
 ## url example
 ### File place in project_folder/apps/{app_name}/urls.py
+### Url path cannot use plural words and should use underscores to separate words
 ```python
 from apps.document import views
 from fastapp.router import path
 
 urlpatterns = [
     path("folder", views.FolderViewSet.as_view()),
-    path("document", views.DocumentViewSet.as_view()),
+    path("device_file", views.DeviceFileViewSet.as_view()),
 ]
 ```
 
