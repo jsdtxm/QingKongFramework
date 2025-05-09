@@ -49,6 +49,7 @@ def OneToOneField(
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
     null: bool = False,
+    db_index=True,
     **kwargs: Any,
 ) -> "OneToOneRelation[MODEL] | OneToOneNullableRelation[MODEL]":
     """
@@ -90,13 +91,13 @@ def OneToOneField(
         The default is True, and that’s almost certainly what you want; setting this to False can be very bad for data integrity.
     """
 
-
     return OneToOneFieldInstance(
         utils.model_name_preprocess(model_name),
         related_name,
         on_delete,
         db_constraint=db_constraint,
         null=null,
+        db_index=db_index,
         **kwargs,
     )
 
@@ -168,6 +169,7 @@ def ForeignKeyField(
     db_constraint: bool = True,
     null: bool = False,
     db_column: Optional[str] = None,
+    db_index=True,
     **kwargs: Any,
 ) -> "ForeignKeyRelation[MODEL] | ForeignKeyNullableRelation[MODEL]":
     """
@@ -218,6 +220,7 @@ def ForeignKeyField(
         on_delete,
         db_constraint=db_constraint,
         null=null,
+        db_index=db_index,
         **kwargs,
     )
 
