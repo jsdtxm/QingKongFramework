@@ -97,7 +97,7 @@ class UpdaterMixin:
 
 class ModelUpdaterMixin:
     updated_by = models.ForeignKey(
-        User, on_delete=models.PROTECT, related_name="updated_{model}s"
+        User, null=True, on_delete=models.SET_NULL, related_name="updated_{model}s"
     )
     updated_at = models.DateTimeField(auto_now=True)
 
