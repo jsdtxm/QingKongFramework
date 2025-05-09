@@ -1,8 +1,11 @@
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
 from pydantic_settings import BaseSettings as PydanticBaseSettings
 from pydantic_settings import SettingsConfigDict
+
+if TYPE_CHECKING:
+    from common.settings import Settings
 
 
 class BaseSettings(PydanticBaseSettings):
@@ -115,4 +118,4 @@ class LazySettings:
         return self.load_settings().__getattribute__(name)
 
 
-settings: BaseSettings = LazySettings()  # type: ignore
+settings: "Settings" = LazySettings()  # type: ignore
