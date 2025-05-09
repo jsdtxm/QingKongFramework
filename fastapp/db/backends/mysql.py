@@ -234,6 +234,11 @@ class MySQLSchemaGenerator(SchemaGeneratorMixin, schema_generator.MySQLSchemaGen
         ]
 
         if model._meta.indexes:
+            field_indexes = set(
+                map(
+                    lambda x: re.search(r"\(`(\S+)`\)", x).group(1), self._field_indexes
+                )
+            )
             for indexes_list in model._meta.indexes:
                 if not isinstance(indexes_list, Index):
                     indexes_to_create = []
@@ -245,6 +250,12 @@ class MySQLSchemaGenerator(SchemaGeneratorMixin, schema_generator.MySQLSchemaGen
                         self._get_index_sql(model, indexes_to_create, safe=safe)
                     )
                 else:
+                    if not safe and (
+                        len(indexes_list.fields) == 1
+                        and indexes_list.fields[0] in field_indexes
+                    ):
+                        continue
+
                     _indexes.append(indexes_list.get_sql(self, model, safe))
 
         field_indexes_sqls = [val for val in list(dict.fromkeys(_indexes)) if val]
