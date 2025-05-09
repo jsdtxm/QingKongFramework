@@ -10,9 +10,9 @@ from fastapp.contrib.auth.mixins import CreatorMixin, SuperUserRequiredMixin
 from fastapp.filters import FilterBackend
 from fastapp.views.viewsets import ModelViewSet
 
-from apps.document.models import Folder
-from apps.document.serializers import FolderSerializer
-from apps.document.filters import FolderFilterSet
+from apps.{app_name}.models import Folder
+from apps.{app_name}.serializers import FolderSerializer
+from apps.{app_name}.filters import FolderFilterSet
 
 class FolderViewSet(SuperUserRequiredMixin, CreatorMixin, ModelViewSet):
     queryset = Folder
@@ -41,7 +41,7 @@ class FolderViewSet(SuperUserRequiredMixin, CreatorMixin, ModelViewSet):
 ### File place in project_folder/apps/{app_name}/urls.py
 ### Url path cannot use plural words and should use underscores to separate words
 ```python
-from apps.document import views
+from apps.{app_name} import views
 from fastapp.router import path
 
 urlpatterns = [
@@ -53,13 +53,7 @@ urlpatterns = [
 ## serializer example
 ### File place in project_folder/apps/{app_name}/serializers.py
 ```python
-"""
-Serializers for the Document application.
-
-This module contains serializers for the Document and DocumentVersion models.
-"""
-
-from apps.document.models import Document, DocumentVersion, Folder
+from apps.{app_name}.models import Document, DocumentVersion, Folder
 from apps.misc.serializers import TagSerializer
 from fastapp import serializers
 
@@ -109,7 +103,7 @@ class Document(models.Model):
 ## filter example
 ### File place in project_folder/apps/{app_name}/filters.py
 ```python
-from apps.document.models import Document, Folder
+from apps.{app_name}.models import Document, Folder
 from fastapp import filters
 from fastapp.filters import LookupExprEnum
 from pydantic import field_validator
@@ -204,7 +198,7 @@ class Document(models.Model):
 > serializer.py
 ```python
 from pydantic import field_validator
-from apps.document.models import SeverityLevelValues
+from apps.{app_name}.models import SeverityLevelValues
 
 class DocumentSerializer(serializers.ModelSerializer):
     # Maintain the original code
