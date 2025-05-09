@@ -100,3 +100,11 @@ class ModelUpdaterMixin:
         User, on_delete=models.PROTECT, related_name="updated_{model}s"
     )
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class UserAuditMixin(CreatorMixin, UpdaterMixin):
+    pass
+
+
+class ModelUserAuditMixin(ModelCreatorMixin, ModelUpdaterMixin):
+    pass
