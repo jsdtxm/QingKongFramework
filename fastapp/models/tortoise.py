@@ -133,6 +133,10 @@ class Tortoise(RawTortoise):
             if (backward_relation_name := fk_object.related_name) is not False:
                 if not backward_relation_name:
                     backward_relation_name = f"{model._meta.db_table}s"
+                elif "{" in backward_relation_name:
+                    backward_relation_name = backward_relation_name.replace(
+                        "{model}", model.__name__.lower()
+                    )
                 if backward_relation_name in related_model._meta.fields:
                     raise ConfigurationError(
                         f'backward relation "{backward_relation_name}" duplicates in'
