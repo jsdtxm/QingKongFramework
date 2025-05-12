@@ -143,6 +143,7 @@ class FolderFilterSet(filters.FilterSet):
 ## fixtures example
 ### File place in project_folder/apps/{app_name}/fixtures/{fixture_order}_{fixture_name}.json
 #### filename example: `01_tags.json`, `20_users.json`, small number will be executed first.
+#### ForeignKeyField must add _id suffix.
 ```json
 [
   {
