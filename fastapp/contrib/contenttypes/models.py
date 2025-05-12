@@ -25,5 +25,11 @@ class ContentType(models.Model):
             app_label=model._meta.app_config.label, model=model.__class__.__name__
         )
 
+    @property
+    def model_class(self) -> Type[models.Model]:
+        from fastapp.models.tortoise import Tortoise
+
+        return Tortoise.apps.get(self.app_label, {})[self.model]
+
     def __str__(self):
         return f"{self.app_label}.{self.model}"
