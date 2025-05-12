@@ -72,6 +72,7 @@ class DocumentCreateSerializer(serializers.ModelSerializer):
 
 ## model example
 ### File place in project_folder/apps/{app_name}/models.py
+### You can add index to some fields if needed, ForeignKeyField will auto add index.
 ```python
 from fastapp import models
 
@@ -80,6 +81,11 @@ class Document(models.Model):
     content = models.TextField()
 
     folder = models.ForeignKeyField(Folder, related_name="documents")
+
+    status = models.CharField(
+        max_length=20, 
+        default=FaultStatusEnum.REPORTED.value
+    )
 
     current_version = models.IntegerField(default=1)
     versions: models.ReverseRelation["DocumentVersion"]
@@ -95,8 +101,7 @@ class Document(models.Model):
     # ForeignKeyField should add index like below lines.
     class Meta:
         indexes = [
-            models.Index(fields=("folder_id",)),
-            models.Index(fields=("created_by_id",)),
+            models.Index(fields=("status",)),
         ]
 ```
 
