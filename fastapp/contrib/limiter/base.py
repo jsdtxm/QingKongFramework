@@ -42,7 +42,7 @@ class BaseRateLimiter:
             self.init()
 
     @classmethod
-    async def init(
+    def init(
         cls,
         prefix: str = "fastapp-limiter",
         identifier: Callable = ip_identifier,

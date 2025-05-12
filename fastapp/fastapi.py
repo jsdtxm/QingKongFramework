@@ -41,8 +41,7 @@ def lifespan_wrapper(lifespan: Callable[[RawFastAPI], _AsyncGeneratorContextMana
         app: RawFastAPI,
     ):
         if p := settings.RATE_LIMITER_CLASS:
-            # FIXME 个人认为这个用不着
-            await import_string(p).init()
+            import_string(p).init()
 
         if p := settings.XCAPTCHA_LIMITER_CLASS:
             await import_string(p).init()
