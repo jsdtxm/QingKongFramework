@@ -142,8 +142,11 @@ class FolderFilterSet(filters.FilterSet):
 
 ## fixtures example
 ### File place in project_folder/apps/{app_name}/fixtures/{fixture_order}_{fixture_name}.json
-#### filename example: `01_tags.json`, `20_users.json`, small number will be executed first.
-#### ForeignKeyField must add _id suffix.
+### filename example: `01_tags.json`, `13_componentCategory.json`, small number will be executed first.
+### IMPORTANT: ForeignKeyField must add _id suffix and use id to associate to target object.
+### One fixture file should only contain one model data.
+
+### example 1
 ```json
 [
   {
@@ -163,6 +166,23 @@ class FolderFilterSet(filters.FilterSet):
       "namespace": "warehouse",
       "key": "sample",
       "label": "取样",
+      "created_by_id": 1
+    }
+  }
+]
+```
+### example 2
+#### component_id in model is `component = models.ForeignKey(Component, on_delete=models.CASCADE)` 
+```
+[
+  {
+    "model": "device.ComponentMovement",
+    "pk": 1,
+    "fields": {
+      "component_id": 1,
+      "description": "Initial stock",
+      "category": "INBOUND",
+      "quantity": 100,
       "created_by_id": 1
     }
   }
