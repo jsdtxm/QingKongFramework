@@ -8,6 +8,7 @@ import click
 from common.settings import settings
 from fastapp.initialize.apps import init_apps
 from fastapp.initialize.db import async_init_db, get_tortoise_config
+from fastapp.models import BaseModel
 from fastapp.models.tortoise import Tortoise
 from fastapp.utils.json import remove_comments
 
@@ -65,15 +66,17 @@ def _get_model_fk_id_fields_dict(model):
     return fk_fields
 
 
-async def _handle_fields(model, fields):
+async def _handle_fields(model: BaseModel, fields):
     fk_fields_dict = _get_model_fk_id_fields_dict(model)
+
+    m2m_fields = model._meta.m2m_fields
 
     for k, v in fields.items():
         if k in fk_fields_dict and isinstance(v, str) and v.startswith("${"):
             obj = await fk_fields_dict[k].get(**dict((v[2:-1].split("="),)))
             fields[k] = obj.id
 
-    return fields
+    return {k: v for k, v in fields.items() if k not in m2m_fields}
 
 
 async def _loaddata_inner(file_path):
@@ -103,14 +106,26 @@ async def _loaddata_inner(file_path):
             if item.get("pk", None) is None:
                 instance = model(**fields)
                 await instance.save()
-                continue
-
-            if await model.objects.filter(id=item["pk"]).exists():
+            elif await model.objects.filter(id=item["pk"]).exists():
                 await model.objects.filter(id=item["pk"]).update(**fields)
-                continue
+                instance = await model.objects.get(id=item["pk"])
+            else:
+                instance = model(id=item["pk"], **fields)
+                await instance.save()
 
-            instance = model(id=item["pk"], **fields)
-            await instance.save()
+            # m2m
+            if m2m_fields := model._meta.m2m_fields & set(item["fields"].keys()):
+                for field_name in m2m_fields:
+                    field = model._meta.fields_map[field_name]
+                    value = item["fields"][field_name]
+                    if not isinstance(value, list):
+                        raise Exception("m2m field must be list")
+
+                    related_model = field.related_model
+                    related_objs = await related_model.filter(id__in=value)
+
+                    await getattr(instance, field_name).clear()
+                    await getattr(instance, field_name).add(*related_objs)
 
         conn = Tortoise.get_connection(model._meta.default_connection)
         if "PostgreSQL" in conn.__class__.__name__:
