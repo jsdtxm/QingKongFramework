@@ -10,12 +10,12 @@ log_config_template: dict[str, Any] = {
     "formatters": {
         "default": {
             "()": "fastapp.logging.QingKongDefaultFormatter",
-            "fmt": "%(levelprefix)s %(app_label)s %(message)s",
+            "fmt": "%(levelprefix)s %(app_label)s %(asctime)s %(message)s",
             "use_colors": None,
         },
         "access": {
             "()": "fastapp.logging.QingKongAccessFormatter",
-            "fmt": '%(levelprefix)s %(app_label)s %(client_addr)s - "%(request_line)s" %(status_code)s',  # noqa: E501
+            "fmt": '%(levelprefix)s %(app_label)s %(asctime)s %(client_addr)s - "%(request_line)s" %(status_code)s',  # noqa: E501
         },
     },
     "handlers": {
@@ -36,7 +36,11 @@ log_config_template: dict[str, Any] = {
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
         "qingkong": {"handlers": ["default"], "level": "INFO", "propagate": False},
         "qingkong.error": {"level": "INFO"},
-        "qingkong.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
+        "qingkong.access": {
+            "handlers": ["access"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 
@@ -53,15 +57,19 @@ class LoggingAppLabelMixin:
 
 
 class QingKongDefaultFormatter(LoggingAppLabelMixin, DefaultFormatter):
-    def __init__(self, app_label="Default", *args, **kwargs):
+    def __init__(
+        self, app_label="Default", *args, datefmt="%Y-%m-%d %H:%M:%S", **kwargs
+    ):
         self.app_label = app_label
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, datefmt=datefmt, **kwargs)
 
 
 class QingKongAccessFormatter(LoggingAppLabelMixin, AccessFormatter):
-    def __init__(self, app_label="Default", *args, **kwargs):
+    def __init__(
+        self, app_label="Default", *args, datefmt="%Y-%m-%d %H:%M:%S", **kwargs
+    ):
         self.app_label = app_label
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, datefmt=datefmt, **kwargs)
 
 
 def generate_app_logging_config(app_label):
