@@ -1,6 +1,5 @@
 import inspect
 import multiprocessing
-import multiprocessing.pool
 import signal
 import sys
 from collections import Counter
@@ -23,9 +22,7 @@ except ImportError:
 
 if uvloop is not None:
     uvloop.install()
-    print("uvloop installed.")
-else:
-    print("uvloop not available, using default asyncio.")
+    print("[uvloop installed]")
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
