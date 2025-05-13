@@ -78,12 +78,6 @@ class GenericViewSetWrapper(ViewWrapper):
     def get_routers(self, viewset: "GenericViewSet") -> Iterable[ViewSetRouteItem]:
         routers = []
 
-        for name, action in viewset.get_actions():
-            methods = REST_ACTION_METHOD_MAPPING[name]
-            detail = name in {"retrieve", "update", "destroy"}
-
-            routers.append(ViewSetRouteItem(name, "/{id}/" if detail else "/", methods))
-
         for name, action in viewset.get_extra_actions():
             detail = getattr(action, "detail", False)
 
@@ -94,6 +88,12 @@ class GenericViewSetWrapper(ViewWrapper):
                     action.methods,
                 )
             )
+
+        for name, action in viewset.get_actions():
+            methods = REST_ACTION_METHOD_MAPPING[name]
+            detail = name in {"retrieve", "update", "destroy"}
+
+            routers.append(ViewSetRouteItem(name, "/{id}/" if detail else "/", methods))
 
         return routers
 
