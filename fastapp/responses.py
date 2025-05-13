@@ -8,9 +8,11 @@ import decimal
 import os
 import typing
 from io import IOBase
+from urllib.parse import quote
 
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
+from starlette.responses import ContentStream
 from starlette.responses import FileResponse as StarletteFileResponse  # noqa
 from starlette.responses import HTMLResponse as HTMLResponse  # noqa
 from starlette.responses import JSONResponse as StarletteJSONResponse  # noqa
@@ -103,10 +105,12 @@ class HttpResponse(ResponseHeaderOperatorsMixin, Response):
         )
 
 
-class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
+class FileResponseWithHeaderOperators(
+    ResponseHeaderOperatorsMixin, StarletteFileResponse
+):
     def __init__(
         self,
-        path: IOBase | str | os.PathLike[str],
+        path: str | os.PathLike[str],
         status_code: int = 200,
         status: typing.Optional[int] = None,
         headers: typing.Mapping[str, str] | None = None,
@@ -119,13 +123,6 @@ class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
         content_disposition_type: str = "attachment",
         as_attachment: typing.Optional[bool] = None,
     ) -> None:
-        if isinstance(path, IOBase):
-            path.close()
-            path = getattr(path, "name", None)
-
-            if path is None:
-                raise Exception("Not support this type")
-
         if as_attachment is not None and as_attachment is False:
             content_disposition_type = "inline"
 
@@ -140,6 +137,40 @@ class FileResponse(ResponseHeaderOperatorsMixin, StarletteFileResponse):
             method,
             content_disposition_type,
         )
+
+
+class StreamingFileResponse(ResponseHeaderOperatorsMixin, StarletteStreamingResponse):
+    def __init__(
+        self,
+        content: ContentStream,
+        status_code: int = 200,
+        headers: typing.Mapping[str, str] | None = None,
+        media_type: str | None = None,
+        background: BackgroundTask | None = None,
+        filename: str | None = None,
+        content_disposition_type: str = "attachment",
+    ) -> None:
+        super().__init__(content, status_code, headers, media_type, background)
+
+        self.filename = filename
+        if self.filename is not None:
+            content_disposition_filename = quote(self.filename)
+            if content_disposition_filename != self.filename:
+                content_disposition = f"{content_disposition_type}; filename*=utf-8''{content_disposition_filename}"
+            else:
+                content_disposition = (
+                    f'{content_disposition_type}; filename="{self.filename}"'
+                )
+            self.headers.setdefault("content-disposition", content_disposition)
+
+
+class FileResponse:
+    def __new__(cls, path: IOBase | str | os.PathLike[str], *args, **kwargs):
+        if isinstance(path, IOBase):
+            print(path, args, kwargs)
+            return StreamingFileResponse(path, *args, **kwargs)
+
+        return FileResponseWithHeaderOperators(path, *args, **kwargs)
 
 
 class StreamingResponse(ResponseHeaderOperatorsMixin, StarletteStreamingResponse):
