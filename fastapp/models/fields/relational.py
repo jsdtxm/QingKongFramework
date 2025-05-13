@@ -5,19 +5,43 @@ from tortoise.fields.relational import (
     MODEL,
     BackwardFKRelation,
     BackwardOneToOneRelation,
-    ForeignKeyFieldInstance,
     ForeignKeyNullableRelation,
     ForeignKeyRelation,
-    ManyToManyFieldInstance,
     ManyToManyRelation,
-    OneToOneFieldInstance,
     OneToOneNullableRelation,
     OneToOneRelation,
     ReverseRelation,
 )
+from tortoise.fields.relational import (
+    ForeignKeyFieldInstance as TortoiseForeignKeyFieldInstance,
+)
+from tortoise.fields.relational import (
+    ManyToManyFieldInstance as TortoiseManyToManyFieldInstance,
+)
+from tortoise.fields.relational import (
+    OneToOneFieldInstance as TortoiseOneToOneFieldInstance,
+)
 from tortoise.models import Model
 
 from fastapp.models import utils
+
+
+class ManyToManyFieldInstance(TortoiseManyToManyFieldInstance[MODEL]):
+    def __init__(self, *args, verbose_name=None, **kwargs):
+        self.verbose_name = verbose_name
+        super().__init__(*args, **kwargs)
+
+
+class OneToOneFieldInstance(TortoiseOneToOneFieldInstance[MODEL]):
+    def __init__(self, *args, verbose_name=None, **kwargs):
+        self.verbose_name = verbose_name
+        super().__init__(*args, **kwargs)
+
+
+class ForeignKeyFieldInstance(TortoiseForeignKeyFieldInstance[MODEL]):
+    def __init__(self, *args, verbose_name=None, **kwargs):
+        self.verbose_name = verbose_name
+        super().__init__(*args, **kwargs)
 
 
 @overload
@@ -50,6 +74,7 @@ def OneToOneField(
     db_constraint: bool = True,
     null: bool = False,
     db_index=True,
+    verbose_name=None,
     **kwargs: Any,
 ) -> "OneToOneRelation[MODEL] | OneToOneNullableRelation[MODEL]":
     """
@@ -98,6 +123,7 @@ def OneToOneField(
         db_constraint=db_constraint,
         null=null,
         db_index=db_index,
+        verbose_name=verbose_name,
         **kwargs,
     )
 
@@ -170,6 +196,7 @@ def ForeignKeyField(
     null: bool = False,
     db_column: Optional[str] = None,
     db_index=True,
+    verbose_name=None,
     **kwargs: Any,
 ) -> "ForeignKeyRelation[MODEL] | ForeignKeyNullableRelation[MODEL]":
     """
@@ -221,6 +248,7 @@ def ForeignKeyField(
         db_constraint=db_constraint,
         null=null,
         db_index=db_index,
+        verbose_name=verbose_name,
         **kwargs,
     )
 
@@ -234,6 +262,7 @@ def ManyToManyField(
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
     create_unique_index: bool = True,
+    verbose_name=None,
     **kwargs: Any,
 ) -> "ManyToManyRelation[Any]":
     """
@@ -293,5 +322,6 @@ def ManyToManyField(
         on_delete=on_delete,
         db_constraint=db_constraint,
         create_unique_index=create_unique_index,
+        verbose_name=verbose_name,
         **kwargs,
     )
