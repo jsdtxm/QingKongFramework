@@ -344,7 +344,7 @@ class GenericAPIView(Generic[MODEL], APIView):
 
     def get_serializer_class(
         self, override_action: Optional[str] = None
-    ) -> Type[serializers.BaseSerializer]:
+    ) -> Type[serializers.ModelSerializer]:
         """
         Return the class to use for the serializer.
         Defaults to using `self.serializer_class`.
