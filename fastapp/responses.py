@@ -167,7 +167,6 @@ class StreamingFileResponse(ResponseHeaderOperatorsMixin, StarletteStreamingResp
 class FileResponse:
     def __new__(cls, path: IOBase | str | os.PathLike[str], *args, **kwargs):
         if isinstance(path, IOBase):
-            print(path, args, kwargs)
             return StreamingFileResponse(path, *args, **kwargs)
 
         return FileResponseWithHeaderOperators(path, *args, **kwargs)
