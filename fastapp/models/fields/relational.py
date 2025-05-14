@@ -3,14 +3,10 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, Union, overload
 from tortoise.fields.base import CASCADE, OnDelete
 from tortoise.fields.relational import (
     MODEL,
-    RelationalField,
     BackwardFKRelation,
     BackwardOneToOneRelation,
-    ForeignKeyNullableRelation,
-    ForeignKeyRelation,
     ManyToManyRelation,
-    OneToOneNullableRelation,
-    OneToOneRelation,
+    RelationalField,
     ReverseRelation,
 )
 from tortoise.fields.relational import (
@@ -43,6 +39,13 @@ class ForeignKeyFieldInstance(TortoiseForeignKeyFieldInstance[MODEL]):
     def __init__(self, *args, verbose_name=None, **kwargs):
         self.verbose_name = verbose_name
         super().__init__(*args, **kwargs)
+
+
+OneToOneRelation = OneToOneFieldInstance[MODEL]
+OneToOneNullableRelation = Optional[OneToOneFieldInstance[MODEL]]
+
+ForeignKeyRelation = ForeignKeyFieldInstance[MODEL]
+ForeignKeyNullableRelation = Optional[ForeignKeyFieldInstance[MODEL]]
 
 
 @overload
