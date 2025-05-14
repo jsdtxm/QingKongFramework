@@ -10,7 +10,7 @@ jobs:
       - name: Check out repository code
         uses: https://gitea.xiamin.tech/actions/checkout@v4
       -
-        name: Login to GitLab
+        name: Login to Harbor
         uses: https://gitea.xiamin.tech/docker_actions/login-action@v3
         with:
           registry: harbor.xiamin.tech
