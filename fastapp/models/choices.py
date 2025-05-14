@@ -8,12 +8,13 @@ T = TypeVar("T", int, str)
 
 # 定义ChoiceItem用于存储标签，元类会将其转换为Choice对象
 class ChoiceItem(Generic[T]):
-    __slots__ = ("label",)
+    __slots__ = ("label", "value")
 
     value: T
 
-    def __init__(self, label: str):
+    def __init__(self, label: str, value: T = None):
         self.label = label
+        self.value = value
 
 
 # 使用具名元组来保存最终的选项值
@@ -31,7 +32,8 @@ class ChoicesMeta(type):
         for attr_name, attr_value in namespace.items():
             if isinstance(attr_value, ChoiceItem):
                 # 将ChoiceItem转换为包含实际值（属性名）和标签的Choice对象
-                choice = Choice(value=attr_name, label=attr_value.label)
+                value = attr_value.value or attr_name
+                choice = Choice(value=value, label=attr_value.label)
                 processed_namespace[attr_name] = choice
                 choices.append(choice)
             else:
