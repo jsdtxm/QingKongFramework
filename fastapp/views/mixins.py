@@ -185,3 +185,35 @@ if TYPE_CHECKING:
     class ModelFieldsOperatorMixinType(ModelFieldsOperatorMixin, GenericViewSet):
         pass
 
+
+class ModelSchemaMixin:
+    @action(detail=False, methods=["get"])
+    async def schema(self: "ModelSchemaMixinType", request: DjangoStyleRequest):  # type: ignore[misc]
+        serializer_class = self.get_serializer_class()
+        fields_map = serializer_class.field_map()
+        verbose_name_dict = ModelFieldsOperatorMixin.get_verbose_name_dict(self)
+
+        res = []
+        for field_name, field in fields_map.items():
+            item = {
+                "field_name": field_name,
+                "verbose_name": verbose_name_dict.get(field_name),
+                "required": not field.get("nullable"),
+            }
+            if choices := field.get("choices", None):
+                item["choices"] = [
+                    {"value": choice.value, "label": choice.label}
+                    for choice in choices.choices
+                ]
+
+            res.append(item)
+
+        return res
+
+
+if TYPE_CHECKING:
+
+    class ModelSchemaMixinType(
+        ModelSchemaMixin, ModelFieldsOperatorMixin, GenericViewSet
+    ):
+        pass
