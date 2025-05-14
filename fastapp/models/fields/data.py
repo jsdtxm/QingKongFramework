@@ -11,8 +11,11 @@ except Exception:
 
 # Integer
 class SmallIntegerField(tortoise_data_fields.SmallIntField):
-    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, choice=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+        self.choice = choice
+
+        # TODO auto verify choice
 
         if db_column:
             kwargs["source_field"] = db_column
@@ -124,8 +127,9 @@ class DecimalField(tortoise_data_fields.DecimalField):
 
 # String
 class CharField(tortoise_data_fields.CharField):
-    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
+    def __init__(self, verbose_name=None, db_column=None, choice=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
+        self.choice = choice
 
         if db_column:
             kwargs["source_field"] = db_column
