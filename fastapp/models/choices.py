@@ -76,6 +76,10 @@ class Choices(Generic[T], metaclass=ChoicesMeta):
     def labels(cls) -> tuple[str]:
         return cls._labels  # type: ignore
 
+    @classproperty
+    def choices(cls) -> tuple[ChoiceItem[T]]:
+        return cls._choices  # type: ignore
+
     if TYPE_CHECKING:
 
         @classmethod
@@ -85,6 +89,10 @@ class Choices(Generic[T], metaclass=ChoicesMeta):
         @classmethod
         @property
         def labels(cls) -> tuple[str]: ...
+
+        @classmethod
+        @property
+        def choices(cls) -> tuple[ChoiceItem[T]]: ...
 
 
 if __name__ == "__main__":
