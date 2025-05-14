@@ -24,12 +24,17 @@ class SmallIntegerField(tortoise_data_fields.SmallIntField):
         self.verbose_name = verbose_name
         self.choices = choices
 
-        # TODO auto verify choices
-
         if db_column:
             kwargs["source_field"] = db_column
 
         super().__init__(**kwargs)
+
+    def describe(self, serializable: bool) -> dict:
+        desc = super().describe(serializable)
+        if self.choices and not serializable:
+            desc["choices"] = self.choices
+
+        return desc
 
 
 class IntegerField(tortoise_data_fields.IntField):
@@ -150,6 +155,13 @@ class CharField(tortoise_data_fields.CharField):
             kwargs["source_field"] = db_column
 
         super().__init__(**kwargs)
+
+    def describe(self, serializable: bool) -> dict:
+        desc = super().describe(serializable)
+        if self.choices and not serializable:
+            desc["choices"] = self.choices
+
+        return desc
 
 
 class TextField(tortoise_data_fields.TextField):
