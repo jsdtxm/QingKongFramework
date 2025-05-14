@@ -24,6 +24,7 @@ from .data import (
     UUIDField,
 )
 from .relational import (
+    RelationalField,
     ForeignKeyField,
     ForeignKeyFieldInstance,
     ForeignKeyRelation,
