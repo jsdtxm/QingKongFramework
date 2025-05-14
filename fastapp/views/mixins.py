@@ -164,7 +164,7 @@ class ModelFieldsOperatorMixin:
 
     def get_verbose_name_dict(self):  # type: ignore[misc]
         res = {}
-        for k, v in ModelFieldsOperatorMixin.get_fields_map(self).items():
+        for k, v in self.get_fields_map().items():
             verbose_name = getattr(v, "verbose_name", k)
             if verbose_name and verbose_name != k:
                 res[k] = verbose_name
@@ -187,14 +187,26 @@ if TYPE_CHECKING:
 
 
 class ModelSchemaMixin:
+    schema_exclude_fields: set[str] = {
+        "created_at",
+        "updated_at",
+        "created_by_id",
+        "updated_by_id",
+        "created_by",
+        "updated_by",
+        "is_deleted",
+    }
+
     @action(detail=False, methods=["get"])
     async def schema(self: "ModelSchemaMixinType", request: DjangoStyleRequest):  # type: ignore[misc]
         serializer_class = self.get_serializer_class()
         fields_map = serializer_class.field_map()
-        verbose_name_dict = ModelFieldsOperatorMixin.get_verbose_name_dict(self)
+        verbose_name_dict = self.get_verbose_name_dict()
 
         res = []
         for field_name, field in fields_map.items():
+            if field_name in self.schema_exclude_fields:
+                continue
             item = {
                 "field_name": field_name,
                 "verbose_name": verbose_name_dict.get(field_name),
