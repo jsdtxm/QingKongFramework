@@ -303,11 +303,11 @@ def generate_query_params_attrs(
             field_full = name in getattr(cls.StubGenMeta, "full", [])
 
             if (
-                field_type is relational.ForeignKeyFieldInstance
-                or field_type is relational.OneToOneFieldInstance
-                or field_type is relational.BackwardOneToOneRelation
-                or field_type is relational.BackwardFKRelation
-                or field_type is relational.ManyToManyFieldInstance
+                issubclass(field_type, relational.ForeignKeyFieldInstance)
+                or issubclass(field_type, relational.OneToOneFieldInstance)
+                or issubclass(field_type, relational.BackwardOneToOneRelation)
+                or issubclass(field_type, relational.BackwardFKRelation)
+                or issubclass(field_type, relational.ManyToManyFieldInstance)
             ):
                 if depth >= max_depth:
                     continue

@@ -369,9 +369,9 @@ def pydantic_model_creator(
         # Foreign keys and OneToOne fields are embedded schemas
         is_to_one_relation = False
         if (
-            field_type is relational.ForeignKeyFieldInstance
-            or field_type is relational.OneToOneFieldInstance
-            or field_type is relational.BackwardOneToOneRelation
+            issubclass(field_type, relational.ForeignKeyFieldInstance)
+            or issubclass(field_type, relational.OneToOneFieldInstance)
+            or issubclass(field_type, relational.BackwardOneToOneRelation)
         ):
             is_to_one_relation = True
             model = get_submodel(fdesc["python_type"])
