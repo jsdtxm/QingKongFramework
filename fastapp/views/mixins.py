@@ -3,9 +3,11 @@ from typing import TYPE_CHECKING
 from starlette import status
 
 from fastapp.models.base import BaseModel, QuerySet
+from fastapp.models.fields import DateField, DateTimeField, RelationalField
 from fastapp.requests import DjangoStyleRequest
 from fastapp.responses import JSONResponse
 from fastapp.serializers.model import ModelSerializer
+from fastapp.views.decorators import action
 
 if TYPE_CHECKING:
     from fastapp.views.viewsets import GenericViewSet
@@ -117,3 +119,69 @@ if TYPE_CHECKING:
 
     class DestroyModelMixinType(DestroyModelMixin, GenericViewSet):
         pass
+
+
+class ModelFieldsOperatorMixin:
+    def get_fields_map(  # type: ignore[misc]
+        self: "ModelFieldsOperatorMixinType",
+        include_backward: bool = False,
+        include_m2m: bool = True,
+        include_auto: bool = True,
+        include_fk_id: bool = True,
+    ):
+        model = self.get_queryset().model
+
+        fields_map = model._meta.fields_map
+
+        if not include_backward:
+            field_set = model._meta.backward_fk_fields | model._meta.backward_o2o_fields
+
+            fields_map = {k: v for k, v in fields_map.items() if k not in field_set}
+
+        if not include_m2m:
+            fields_map = {
+                k: v for k, v in fields_map.items() if k not in model._meta.m2m_fields
+            }
+
+        if not include_auto:
+            fields_map = {
+                k: v
+                for k, v in fields_map.items()
+                if not v.generated
+                and not (
+                    (isinstance(v, DateTimeField) or isinstance(v, DateField))
+                    and (v.auto_now or v.auto_now_add)
+                )
+            }
+
+        if not include_fk_id:
+            fk_id_field_set = {f"{x}_id" for x in model._meta.fk_fields}
+            fields_map = {
+                k: v for k, v in fields_map.items() if k not in fk_id_field_set
+            }
+
+        return fields_map
+
+    def get_verbose_name_dict(self):  # type: ignore[misc]
+        res = {}
+        for k, v in ModelFieldsOperatorMixin.get_fields_map(self).items():
+            verbose_name = getattr(v, "verbose_name", k)
+            if verbose_name and verbose_name != k:
+                res[k] = verbose_name
+            if isinstance(v, RelationalField):
+                if verbose_name:
+                    res[f"{k}_id"] = f"{verbose_name}ID"
+                for sk, sv in v.related_model._meta.fields_map.items():
+                    if sub_verbose_name := getattr(sv, "verbose_name", None):
+                        res[f"{k}.{sk}"] = f"{verbose_name}.{sub_verbose_name}"
+                    elif verbose_name:
+                        res[f"{k}.{sk}"] = f"{verbose_name}.{sk}"
+
+        return res
+
+
+if TYPE_CHECKING:
+
+    class ModelFieldsOperatorMixinType(ModelFieldsOperatorMixin, GenericViewSet):
+        pass
+
