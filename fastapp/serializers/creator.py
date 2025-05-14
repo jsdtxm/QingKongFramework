@@ -1,7 +1,18 @@
 from base64 import b32encode
 from datetime import datetime
 from hashlib import sha3_224
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pydantic import (
     BaseModel,
@@ -433,6 +444,9 @@ def pydantic_model_creator(
             if is_optional_field or field_default is not None or fdesc.get("nullable"):
                 ptype = Optional[ptype]
                 json_schema_extra["nullable"] = True
+
+            if choices := fdesc.get("choices"):
+                ptype = Optional[Literal[*choices.values]]
 
             if not (exclude_readonly and json_schema_extra.get("readOnly") is True):
                 properties[fname] = annotation or ptype
