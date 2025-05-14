@@ -1,8 +1,10 @@
-from typing import Any, Optional
+from typing import Any, Optional, Type
 from uuid import UUID
 
 from tortoise.exceptions import ConfigurationError
 from tortoise.fields import data as tortoise_data_fields
+
+from fastapp.models.choices import Choices
 
 try:
     from asyncpg.pgproto.pgproto import UUID as AsyncpgUUID
@@ -13,7 +15,11 @@ except Exception:
 # Integer
 class SmallIntegerField(tortoise_data_fields.SmallIntField):
     def __init__(
-        self, verbose_name=None, db_column=None, choices=None, **kwargs: Any
+        self,
+        verbose_name=None,
+        db_column=None,
+        choices: Optional[Type[Choices]] = None,
+        **kwargs: Any,
     ) -> None:
         self.verbose_name = verbose_name
         self.choices = choices
@@ -131,7 +137,11 @@ class DecimalField(tortoise_data_fields.DecimalField):
 # String
 class CharField(tortoise_data_fields.CharField):
     def __init__(
-        self, verbose_name=None, db_column=None, choices=None, **kwargs: Any
+        self,
+        verbose_name=None,
+        db_column=None,
+        choices: Optional[Type[Choices]] = None,
+        **kwargs: Any,
     ) -> None:
         self.verbose_name = verbose_name
         self.choices = choices
