@@ -44,11 +44,19 @@ class ChoicesMeta(type):
 
         # 创建新的类对象
         cls = super().__new__(mcs, name, bases, processed_namespace)
+        cls._frozen = True
+
         return cls
 
-    def __setattr__(cls, name: str, value: Any) -> None:
-        """禁止动态添加或修改类属性"""
-        raise AttributeError(f"Cannot modify Choices class '{cls.__name__}'")
+    def __setattr__(self, name, value):
+        if getattr(self, "_frozen", False) and name not in {
+            "__parameters__",
+            "_frozen",
+        }:
+            raise AttributeError(
+                f"Cannot add new attributes to {self.__class__.__name__}"
+            )
+        super().__setattr__(name, value)
 
     def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         """禁止实例化"""
