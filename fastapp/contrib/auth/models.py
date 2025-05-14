@@ -138,33 +138,19 @@ class AbstractUser(models.Model, LoadPermissionBackendMixin):
 
     is_active = models.BooleanField(default=True)
 
-    last_login = models.DateTimeField("last login", null=True)
+    last_login = models.DateTimeField(null=True)
 
-    is_superuser = models.BooleanField(
-        "superuser status",
-        default=False,
-        help_text=(
-            "Designates that this user has all permissions without "
-            "explicitly assigning them."
-        ),
-    )
+    is_superuser = models.BooleanField(default=False)
     groups = models.ManyToManyField(
         Group,
-        verbose_name="groups",
         blank=True,
-        help_text=(
-            "The groups this user belongs to. A user will get all permissions "
-            "granted to each of their groups."
-        ),
         related_name="user_set",
         related_query_name="user",
         through=f"{settings.INTERNAL_APP_PREFIX}_auth_user_groups",
     )
     user_permissions = models.ManyToManyField(
         Permission,
-        verbose_name="user permissions",
         blank=True,
-        help_text="Specific permissions for this user.",
         related_name="user_set",
         related_query_name="user",
         through=f"{settings.INTERNAL_APP_PREFIX}_auth_user_permissions",
