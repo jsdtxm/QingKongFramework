@@ -436,6 +436,11 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
         @classmethod
         def filter(cls, *args: Q, **kwargs: Any) -> QuerySet[Self]: ...
 
+        @classmethod
+        @property
+        def objects(cls) -> Type[Self]: ...
+        
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
