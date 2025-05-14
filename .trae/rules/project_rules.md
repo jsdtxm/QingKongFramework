@@ -75,16 +75,20 @@ class DocumentCreateSerializer(serializers.ModelSerializer):
 ### You can add index to some fields if needed, ForeignKeyField will auto add index.
 ```python
 from fastapp import models
+from fastapp.models.choices import ChoiceItem, Choices
+
+class StatusChoices(Choices[str]):
+    PENDING = ChoiceItem[str]("待办")
+    PROCESSING = ChoiceItem[str]("进行中")
 
 class Document(models.Model):
     title = models.CharField(max_length=512)
     content = models.TextField()
 
-    folder = models.ForeignKeyField(Folder, related_name="documents")
-
     status = models.CharField(
         max_length=20, 
-        default=FaultStatusEnum.REPORTED.value
+        choices=StatusChoices,
+        default=StatusChoices.REPORTED.value
     )
 
     current_version = models.IntegerField(default=1)
@@ -207,40 +211,21 @@ class FolderFilterSet(filters.FilterSet):
 - gateway: `python manage.py gateway`
 
 
-## Model with enum field
-### add enum field to model.py follow below code.
+## Model with choices field
+### add choices field to model.py follow below code, model serializer will auto verify choices field.
 ```python
-from enum import Enum
-class SeverityLevel(Enum):
-    CRITICAL = "CRITICAL"
-    HIGH = "HIGH"
-    MEDIUM = "MEDIUM"
-    LOW = "LOW"
+from fastapp.models.choices import ChoiceItem, Choices
 
-SeverityLevelValues = [item.value for item in SeverityLevel]
+class StatusChoices(Choices[str]):
+    PENDING = ChoiceItem[str]("待办")
+    PROCESSING = ChoiceItem[str]("进行中")
 
 class Document(models.Model):
-    level = models.CharField(max_length=20, default=SeverityLevel.MEDIUM.value)
-```
-### then you should add enum validator to the field in serializer.py, follow below code.
-> serializer.py
-```python
-from pydantic import field_validator
-from apps.{app_name}.models import SeverityLevelValues
-
-class DocumentSerializer(serializers.ModelSerializer):
-    # Maintain the original code
-
-    @field_validator("level")
-    @classmethod
-    def validate_level(cls, value):
-        if value not in SeverityLevelValues:
-            raise ValueError(
-                f"Invalid level '{value}'. It must be one of {SeverityLevelValues}."
-            )
-        return value
-    
-    # Maintain the original code
+    status = models.CharField(
+        max_length=20, 
+        choices=StatusChoices,
+        default=StatusChoices.REPORTED.value
+    )
 ```
 
 
