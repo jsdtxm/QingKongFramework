@@ -1,6 +1,7 @@
 from typing import Any, Optional
 from uuid import UUID
 
+from tortoise.exceptions import ConfigurationError
 from tortoise.fields import data as tortoise_data_fields
 
 try:
@@ -169,11 +170,24 @@ class TimeField(tortoise_data_fields.TimeField):
 
 
 class DateField(tortoise_data_fields.DateField):
-    def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        verbose_name=None,
+        db_column=None,
+        auto_now: bool = False,
+        auto_now_add: bool = False,
+        **kwargs: Any,
+    ) -> None:
         self.verbose_name = verbose_name
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        if auto_now_add and auto_now:
+            raise ConfigurationError("You can choose only 'auto_now' or 'auto_now_add'")
+
+        self.auto_now = auto_now
+        self.auto_now_add = auto_now | auto_now_add
 
         super().__init__(**kwargs)
 
