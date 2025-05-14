@@ -5,9 +5,14 @@ from itertools import chain
 from tortoise.fields import relational
 
 from fastapp.models.base import BaseModel
+from fastapp.models.choices import Choices
 from fastapp.utils.module_loading import import_module
 from fastapp.utils.typing import type_to_str
 
+CLASS_PATTERN = re.compile(
+    r"class\s([A-Za-z_][A-Za-z_0-9]*)\([A-Za-z_][A-Za-z_0-9.\[\]]+\):"
+)
+INCOMPLETE_PATTERN = re.compile(r"\s+([A-Za-z_][A-Za-z_0-9]*)\s*:\s*Incomplete")
 
 def remove_meta_class(code_lines):
     """
@@ -55,25 +60,20 @@ def complete(module_name: str):
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
-    class_pattern = re.compile(
-        r"class\s([A-Za-z_][A-Za-z_0-9]*)\([A-Za-z_][A-Za-z_0-9.]+\):"
-    )
-
-    incomplete_pattern = re.compile(r"\s+([A-Za-z_][A-Za-z_0-9]*)\s*:\s*Incomplete")
-
     result_parts = []
     tmp_part = []
     model_name = None
     model_desc_dict = defaultdict(dict)
     for line in lines:
-        if m := class_pattern.match(line):
-            model_name = m.group(1)
-            model_class = getattr(module, model_name)
+        if m := CLASS_PATTERN.match(line):
+            _model_name = m.group(1)
+            model_class = getattr(module, _model_name)
 
             if not issubclass(model_class, BaseModel):
                 tmp_part.append(line)
                 continue
-
+            
+            model_name = _model_name
             for _, fields in filter(
                 lambda x: x[0]
                 in {"pk_field", "data_fields", "fk_fields", "backward_fk_fields"},
@@ -89,7 +89,7 @@ def complete(module_name: str):
             result_parts.append(tmp_part)
             tmp_part = []
 
-        elif model_name and (m := incomplete_pattern.match(line)):
+        elif model_name and (m := INCOMPLETE_PATTERN.match(line)):
             field_name = m.group(1)
             try:
                 desc = model_desc_dict[model_name][field_name]
@@ -130,5 +130,50 @@ def complete(module_name: str):
 
     result_parts.append(tmp_part)
     lines = remove_meta_class(chain(*result_parts))
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.writelines(lines)
+
+
+def complete_choices(module_name: str):
+    file_path = module_name.replace(".", "/") + ".pyi"
+    module = import_module(module_name)
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        lines = file.readlines()
+
+    result_parts = []
+    tmp_part = []
+    model_name = None
+    for line in lines:
+        if m := CLASS_PATTERN.match(line):
+            _model_name = m.group(1)
+            model_class = getattr(module, _model_name)
+
+            if not issubclass(model_class, Choices):
+                tmp_part.append(line)
+                continue
+
+            model_name = _model_name
+
+            generic_type = re.search(r"\[(\S+)\]", line)
+            if generic_type:
+                generic_type = generic_type.group(1)
+
+            result_parts.append(tmp_part)
+            tmp_part = []
+
+        elif model_name and (m := INCOMPLETE_PATTERN.match(line)):
+            line_type_str = "ChoiceItem"
+            if generic_type:
+                line_type_str = f"ChoiceItem[{generic_type}]"
+
+            tmp_part.append(line.replace("Incomplete", line_type_str))
+
+            continue
+
+        tmp_part.append(line)
+
+    result_parts.append(tmp_part)
+    lines = chain(*result_parts)
     with open(file_path, "w", encoding="utf-8") as file:
         file.writelines(lines)

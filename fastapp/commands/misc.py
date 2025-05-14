@@ -5,7 +5,7 @@ from fastapp.initialize.apps import init_apps
 from fastapp.initialize.db import init_models
 from fastapp.misc import model_stub
 from fastapp.misc.ascii_art import print_logo
-from fastapp.misc.complete_type import complete
+from fastapp.misc.complete_type import complete, complete_choices
 from fastapp.utils.module_loading import package_try_import
 
 
@@ -29,3 +29,4 @@ def stubgen(mode="lite"):
         if models := package_try_import(app_config.module, "models"):
             model_stub.generate(models.__name__, mode)
             complete(models.__name__)
+            complete_choices(models.__name__)

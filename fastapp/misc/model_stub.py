@@ -55,6 +55,7 @@ def generate(module_name: str, mode: str):
         "from tortoise.backends.base.client import BaseDBAsyncClient\n",
         "from fastapp.contrib.auth.typing import UserProtocol\n",
         "from fastapp.models.base import QuerySet\n",
+        "from fastapp.models.choices import ChoiceItem, Choices\n",
     ]
     need_import = defaultdict(set)
     modified_lines = []
