@@ -162,20 +162,23 @@ class ModelFieldsOperatorMixin:
 
         return fields_map
 
-    def get_verbose_name_dict(self):  # type: ignore[misc]
+    def get_verbose_name_dict(self, extra_verbose_name_dict=None):  # type: ignore[misc]
         res = {}
+        extra_verbose_name_dict = extra_verbose_name_dict or {}
+
         for k, v in self.get_fields_map().items():
-            verbose_name = getattr(v, "verbose_name", k)
+            verbose_name = getattr(
+                v, "verbose_name", None
+            ) or extra_verbose_name_dict.get(k, k)
             if verbose_name and verbose_name != k:
                 res[k] = verbose_name
-            if isinstance(v, RelationalField):
-                if verbose_name:
+                if isinstance(v, RelationalField):
                     res[f"{k}_id"] = f"{verbose_name}ID"
-                for sk, sv in v.related_model._meta.fields_map.items():
-                    if sub_verbose_name := getattr(sv, "verbose_name", None):
+                    for sk, sv in v.related_model._meta.fields_map.items():
+                        sub_verbose_name = getattr(
+                            sv, "verbose_name", None
+                        ) or extra_verbose_name_dict.get(sk, sk)
                         res[f"{k}.{sk}"] = f"{verbose_name}.{sub_verbose_name}"
-                    elif verbose_name:
-                        res[f"{k}.{sk}"] = f"{verbose_name}.{sk}"
 
         return res
 
