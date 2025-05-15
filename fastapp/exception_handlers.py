@@ -90,7 +90,9 @@ async def pydantic_validation_exception_handler(
         content={
             "error": exc.__class__.__name__,
             "message": "Invalid request data",
-            "detail": jsonable_encoder(exc.errors()),
+            "detail": jsonable_encoder(
+                exc.errors(include_url=False, include_input=False)
+            ),
         },
     )
 
