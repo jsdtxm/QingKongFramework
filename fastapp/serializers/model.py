@@ -14,11 +14,7 @@ from typing import (
     Union,
 )
 
-from pydantic import (
-    BaseModel,
-    model_serializer,
-    model_validator,
-)
+from pydantic import BaseModel, ValidationInfo, model_serializer, model_validator
 from pydantic._internal import _model_construction
 from pydantic.main import IncEx
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -383,12 +379,15 @@ class ModelSerializerPydanticModel(PydanticModel):
 
 def remove_hidden_fields_builder(fields):
     @model_validator(mode="before")
-    def remove_hidden_fields(self):
-        for field in fields:
-            if field in self:
-                self.pop(field)
+    def remove_hidden_fields(self, values: ValidationInfo):
+        if values.data is None:
+            return values
 
-        return self
+        for field in fields:
+            if field in values.data:
+                values.data.pop(field)
+
+        return values
 
     return remove_hidden_fields
 
