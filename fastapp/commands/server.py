@@ -22,10 +22,11 @@ def runserver(app, host, exclude, workers, reload):
 
 @click.option("--host", default="127.0.0.1", type=click.STRING)
 @click.option("--port", default=8080, type=click.INT)
+@click.option("--workers", default=1, type=click.INT)
 @click.option("--reload", is_flag=True)
-def runserver_aio(host, port, reload):
+def runserver_aio(host, port, workers, reload):
     print_logo()
-    serve_app_aio(host, port, reload)
+    serve_app_aio(host, port, workers, reload)
 
 
 @click.option("--host", default="127.0.0.1", type=click.STRING)
