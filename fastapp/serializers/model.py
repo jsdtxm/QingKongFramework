@@ -139,6 +139,14 @@ class ModelSerializerPydanticModel(PydanticModel):
     def field_map(cls) -> Dict[str, Any]:
         return cls.model_config["field_map"]
 
+    @classmethod
+    def nested_fields(cls) -> Dict[str, Any]:
+        return {
+            field: config
+            for field, config in cls.model_config["field_map"].items()
+            if config.get("nested_field")
+        }
+
     def to_model(self, **extra_fields):
         if self._instance_processed:
             return self._instance

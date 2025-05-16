@@ -184,6 +184,7 @@ class ListSerializer(SerializerMixin[list], NestedField, list):  # type: ignore[
 
     def describe(self, serializable: bool) -> dict:
         desc = super().describe(serializable)
+        desc["nested_field"] = True
         desc["child"] = self.child
         desc["pydantic_type"] = self.pydantic_type
         desc["allow_primary_key"] = self.allow_primary_key
