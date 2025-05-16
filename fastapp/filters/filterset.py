@@ -253,7 +253,7 @@ class BaseFilterSet:
                 )
             except KeyError as e:
                 print("[ERROR]", e)
-        return queryset
+        return queryset.distinct()
 
     @property
     def qs(self):
