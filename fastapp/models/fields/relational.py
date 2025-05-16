@@ -8,6 +8,7 @@ from tortoise.fields.relational import (
     ManyToManyRelation,
     RelationalField,
     ReverseRelation,
+    _NoneAwaitable,
 )
 from tortoise.fields.relational import (
     ForeignKeyFieldInstance as TortoiseForeignKeyFieldInstance,
