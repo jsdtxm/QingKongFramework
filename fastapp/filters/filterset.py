@@ -251,8 +251,8 @@ class BaseFilterSet:
                         type(queryset).__name__,
                     )
                 )
-            except KeyError:
-                pass
+            except KeyError as e:
+                print("[ERROR]", e)
         return queryset
 
     @property
