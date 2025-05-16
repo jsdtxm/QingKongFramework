@@ -146,9 +146,13 @@ class Filter(Generic[VALUE]):
             "" if self.lookup_expr == LookupExprEnum.exact.value else self.lookup_expr
         )
 
-        return queryset.filter(
-            **{f"{self.field_name}{f'__{lookup_expr}' if lookup_expr else ''}": value}
-        )
+        params = {
+            f"{self.field_name}{f'__{lookup_expr}' if lookup_expr else ''}": value
+        }
+        if self.exclude:
+            return queryset.exclude(**params)
+
+        return queryset.filter(**params)
 
     def jsonfield_filter(self, queryset, value, source_field=None, nested_field=None):
         source_field = source_field or self.source_field
@@ -158,21 +162,25 @@ class Filter(Generic[VALUE]):
             LookupExprEnum.contains.value,
             LookupExprEnum.icontains.value,
         ):
-            return queryset.filter(
-                **{f"{source_field}__contains": {nested_field: value}}
-            )
+            params = {f"{source_field}__contains": {nested_field: value}}
+            if self.exclude:
+                return queryset.exclude(**params)
+            return queryset.filter(**params)
 
         lookup_expr = (
             "" if self.lookup_expr == LookupExprEnum.exact.value else self.lookup_expr
         )
 
-        return queryset.filter(
-            **{
-                f"{source_field}__filter": {
-                    f"{nested_field}{f'__{lookup_expr}' if lookup_expr else ''}": value
-                }
+        params = {
+            f"{source_field}__filter": {
+                f"{nested_field}{f'__{lookup_expr}' if lookup_expr else ''}": value
             }
-        )
+        }
+
+        if self.exclude:
+            return queryset.exclude(**params)
+
+        return queryset.filter(**params)
 
 
 # Integer
