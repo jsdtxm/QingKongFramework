@@ -380,6 +380,9 @@ class ModelSerializerPydanticModel(PydanticModel):
 def remove_hidden_fields_builder(fields):
     @model_validator(mode="before")
     def remove_hidden_fields(self, values: ValidationInfo):
+        if isinstance(self, BaseDBModel):
+            return self
+
         if values.data is None:
             return values
 
