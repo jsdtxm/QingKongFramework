@@ -8,6 +8,7 @@ from fastapp.db.index import ExpressionIndex
 
 from .base import BaseModel, Manager, QuerySet
 from .fields import *
+from .functions import Right, Instr, JsonUnquote, JsonExtract
 from .model import BaseMeta, Model
 from .utils import get_object_or_404
 
