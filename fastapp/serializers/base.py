@@ -22,6 +22,7 @@ from pydantic.main import IncEx
 from pydantic_core import CoreSchema
 from tortoise.contrib.pydantic.base import PydanticModel
 from tortoise.fields.base import Field as TortoiseField
+from tortoise.models import Model as TortoiseModel
 from tortoise.queryset import QuerySet as TortoiseQuerySet
 
 from fastapp.serializers.fields import DateTimeField
@@ -87,7 +88,7 @@ class BaseSerializer:
         ) -> Self: ...
 
         @classmethod
-        async def from_tortoise_orm(cls, obj: "BaseModel") -> Self: ...
+        async def from_tortoise_orm(cls, obj: "TortoiseModel") -> Self: ...
 
         @classmethod
         def model_validate_json(

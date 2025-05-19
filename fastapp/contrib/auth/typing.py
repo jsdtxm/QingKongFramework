@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Iterable, Optional, Protocol, Self, Type, Unio
 
 if TYPE_CHECKING:
     from fastapp import models
+    from fastapp.contrib.auth.models import AbstractUser
 
 
 class UserProtocol(Protocol):
@@ -42,3 +43,7 @@ class UserProtocol(Protocol):
     async def create_user(
         self, username, email=None, password=None, **extra_fields
     ) -> Self: ...
+
+
+if TYPE_CHECKING:
+    class UserProtocol(AbstractUser, UserProtocol): ...
