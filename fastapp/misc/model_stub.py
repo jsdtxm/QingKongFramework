@@ -40,7 +40,7 @@ def generate(module_name: str, mode: str):
     file_path = module_name.replace(".", "/") + ".pyi"
 
     class_pattern = re.compile(
-        r"class\s([A-Za-z_][A-Za-z_0-9]+)\([A-Za-z_][A-Za-z_0-9.]+\):"
+        r"class\s([A-Za-z_][A-Za-z_0-9]+)\([A-Za-z_][A-Za-z_0-9.\[\]\'\"]+\):"
     )
 
     with open(file_path, "r", encoding="utf-8") as file:
@@ -57,8 +57,14 @@ def generate(module_name: str, mode: str):
         "from fastapp.models.base import QuerySet\n",
         "from fastapp.models.choices import ChoiceItem, Choices\n",
     ]
+
+    # TODO 需要对abstractUser特殊处理
+    # TODO model的方法会丢失
+    # TODO manager存在的情况需要特殊处理
     need_import = defaultdict(set)
     modified_lines = []
+
+    model_name = None
     for line in lines:
         if m := class_pattern.match(line):
             model_name = m.group(1)
@@ -67,11 +73,16 @@ def generate(module_name: str, mode: str):
             modified_lines.append(line)
 
             if not issubclass(model_class, BaseModel):
+                model_name = None
                 continue
 
             sub_need_import, query_params = model_class.generate_query_params(mode)
             for k, v in sub_need_import.items():
                 need_import[k].update(v)
+
+            objects_typing = f'typing.Type["{model_name}"]'
+            if manager := getattr(model_class.Meta, "manager", None):
+                objects_typing = manager.__class__.__name__
 
             modified_lines.extend(
                 map(
@@ -83,10 +94,10 @@ def generate(module_name: str, mode: str):
             modified_lines.extend(
                 chain(
                     [
-                        f"    objects: typing.Type[\"{model_name}\"] # type: ignore\n\n",
+                        f"    objects: {objects_typing} # type: ignore\n\n",
                     ],
                     map(
-                        lambda x: f"{indent}@classmethod\n{indent}{x}\n{indent*2}...\n\n",
+                        lambda x: f"{indent}@classmethod\n{indent}{x}\n{indent * 2}...\n\n",
                         [
                             """async def create(cls, **kwargs: typing.Unpack[CreateParams]) -> typing.Self: # type: ignore""",
                             """def filter(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
@@ -102,7 +113,10 @@ def generate(module_name: str, mode: str):
             modified_lines.append(line)
 
     pre_import_lines.extend(
-        map(lambda x: f"from {x[0]} import {", ".join(x[1])}\n", [x for x in need_import.items() if x[0] != module_name])
+        map(
+            lambda x: f"from {x[0]} import {', '.join(x[1])}\n",
+            [x for x in need_import.items() if x[0] != module_name],
+        )
     )
 
     with open(file_path, "w", encoding="utf-8") as file:
