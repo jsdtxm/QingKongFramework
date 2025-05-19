@@ -398,6 +398,9 @@ def remove_hidden_fields_builder(fields):
         if values.data is None:
             return self
 
+        if not isinstance(self, dict):
+            return self
+
         for field in fields:
             if field in self:
                 self.pop(field)
