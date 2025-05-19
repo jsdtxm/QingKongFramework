@@ -4,6 +4,8 @@ from tortoise.fields.base import OnDelete
 from tortoise.functions import Count, Sum, Trim
 from tortoise.indexes import Index
 
+from fastapp.db.index import ExpressionIndex
+
 from .base import BaseModel, Manager, QuerySet
 from .fields import *
 from .model import BaseMeta, Model
