@@ -1,3 +1,7 @@
+from typing import Generic
+
+from tortoise.queryset import MODEL
+
 from fastapp import models
 from fastapp.contrib.auth import get_user_model
 from fastapp.exceptions import NotAuthenticated
@@ -56,10 +60,12 @@ class ReadonlyOrSuperUserMixin(AccessMixin):
         return await super().dispatch(request, *args, **kwargs)
 
 
-class CreatorMixin:
+class CreatorMixin(Generic[MODEL]):
     creator_field = "created_by_id"
 
-    async def perform_create(self: "GenericViewSet", serializer: ModelSerializer):
+    async def perform_create(
+        self: "GenericViewSet", serializer: ModelSerializer
+    ) -> MODEL:
         if self.request.user:
             setattr(serializer, self.creator_field, self.request.user.id)  # type: ignore[attr-defined]
         else:
@@ -69,7 +75,7 @@ class CreatorMixin:
 
 class CreatorWithFilterMixin(LoginRequiredMixin, CreatorMixin):
     async def filter_queryset(self, queryset):
-        queryset = (await super().filter_queryset(queryset))
+        queryset = await super().filter_queryset(queryset)
 
         assert self.request.user
         if self.request.user.is_superuser:
@@ -89,12 +95,12 @@ class ModelCreatorMixin:
 class UpdaterMixin:
     updater_field = "updated_by_id"
 
-    async def perform_update(self, serializer):
+    async def perform_update(self, serializer) -> None:
         if self.request.user:
             setattr(serializer, self.updater_field, self.request.user.id)  # type: ignore[attr-defined]
         else:
             setattr(serializer, self.updater_field, None)  # type: ignore[attr-defined]
-        return await super().perform_update(serializer)
+        await super().perform_update(serializer)
 
 
 class ModelUpdaterMixin:
@@ -104,7 +110,7 @@ class ModelUpdaterMixin:
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class UserAuditMixin(CreatorMixin, UpdaterMixin):
+class UserAuditMixin(CreatorMixin[MODEL], UpdaterMixin):
     pass
 
 
