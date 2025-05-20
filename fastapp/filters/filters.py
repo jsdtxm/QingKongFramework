@@ -104,7 +104,7 @@ class Filter(Generic[VALUE]):
             self.nested_field = None
 
     def filter(self, queryset, value, model_field=None):
-        if model_field is not None:
+        if model_field is not None and self.nested_field:
             fields = self.nested_field.split("__", 1)
             if len(fields) > 1:
                 related_model_fields_map = model_field.related_model._meta.fields_map
