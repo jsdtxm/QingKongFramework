@@ -40,7 +40,7 @@ def generate(module_name: str, mode: str):
     file_path = module_name.replace(".", "/") + ".pyi"
 
     class_pattern = re.compile(
-        r"class\s([A-Za-z_][A-Za-z_0-9]+)\([A-Za-z_][A-Za-z_0-9.\[\]\'\"]+\):"
+        r"class\s([A-Za-z_][A-Za-z_0-9]+)\([A-Za-z_][\S\s]+\):"
     )
 
     with open(file_path, "r", encoding="utf-8") as file:
@@ -70,6 +70,7 @@ def generate(module_name: str, mode: str):
             model_name = m.group(1)
             model_class = getattr(module, model_name)
 
+            modified_lines.append("\n")
             modified_lines.append(line)
 
             if not issubclass(model_class, BaseModel):
