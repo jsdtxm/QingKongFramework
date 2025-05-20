@@ -310,7 +310,7 @@ class GenericAPIView(APIView, Generic[MODEL]):
             queryset = queryset.all()
         return queryset.order_by("id")
 
-    async def get_object(self):
+    async def get_object(self) -> MODEL:
         """
         Returns the object the view is displaying.
 
