@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from starlette import status
+from tortoise.queryset import MODEL
 
 from fastapp.models.base import BaseModel, QuerySet
 from fastapp.models.fields import DateField, DateTimeField, RelationalField
@@ -59,7 +60,7 @@ class CreateModelMixin:
             status_code=status.HTTP_201_CREATED,
         )
 
-    async def perform_create(self, serializer: ModelSerializer):
+    async def perform_create(self, serializer: ModelSerializer) -> MODEL:
         return await serializer.save()
 
 
