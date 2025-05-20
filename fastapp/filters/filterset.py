@@ -5,7 +5,13 @@ from tortoise.fields.base import Field as TortoiseField
 from tortoise.fields.relational import RelationalField
 
 from fastapp.filters import filters
-from fastapp.filters.filters import BigIntegerFilter, Filter, ListFilter, LookupExprEnum
+from fastapp.filters.filters import (
+    BigIntegerFilter,
+    Filter,
+    ListFilter,
+    LookupExprEnum,
+    OrderingFilter,
+)
 from fastapp.models import BaseModel as FastappBaseModel
 from fastapp.models import QuerySet
 from fastapp.models.fields import DecimalField, JSONField
@@ -74,6 +80,8 @@ class FilterSetMetaclass(type):
         # combined_filter_sets
         for k, v in combined_filter_sets.items():
             for attr, nested_filter in v.filters.items():
+                if nested_filter.__class__ is OrderingFilter:
+                    continue
                 combined_filters[f"{k}__{attr}"] = nested_filter.__class__(
                     **(
                         nested_filter.__dict__
@@ -112,8 +120,9 @@ class FilterSetMetaclass(type):
                             field_filter_dict.pop(field_name)
 
                 # 构建新的类
+                order_fields = [("id", "id")]
                 new_attrs = {k: v for k, v in attrs.items() if k.startswith("__")}
-                for field_name in field_filter_dict:
+                for field_name, field in field_filter_dict.items():
                     if field_name not in non_related_fields_map:
                         raise ValueError(
                             f"Field '{field_name}' does not exist in model '{model.__name__}'"
@@ -151,6 +160,11 @@ class FilterSetMetaclass(type):
                             new_attrs[f"{field_name}_id"] = BigIntegerFilter(
                                 field_name=field_name,
                             )
+
+                    if getattr(field, "auto_now_add", False):
+                        order_fields.append((field_name, field_name))
+
+                new_attrs["o"] = OrderingFilter(fields=order_fields)
 
                 new_class = super().__new__(
                     cls, name, bases, new_attrs | combined_filters
@@ -227,9 +241,15 @@ class BaseFilterSet:
         return self._params
 
     def filter_queryset(self, queryset):
-        for name, value in self.params.model_dump(exclude_unset=True).items():
+        params = self.params.model_dump(exclude_unset=True)
+        ordering_filters = []
+        for name, value in params.items():
             try:
                 filter_obj = self.filters[name]
+                if isinstance(filter_obj, OrderingFilter):
+                    ordering_filters.append((name, value, filter_obj))
+                    continue
+
                 model_field = self.model_fields_map[filter_obj.source_field]
 
                 if isinstance(model_field, JSONField):
@@ -253,6 +273,14 @@ class BaseFilterSet:
                 )
             except KeyError as e:
                 print("[ERROR]", e)
+
+        if ordering_filters:
+            for (name, value, filter_obj) in ordering_filters:
+                # TODO 支持多重排序
+                if value.replace("-", "") not in filter_obj.allow_order_fields:
+                    raise ValueError(f"Invalid value `{value}` for ordering")
+                queryset = queryset.order_by(value)
+        
         return queryset.distinct()
 
     @property

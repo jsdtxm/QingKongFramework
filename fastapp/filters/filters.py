@@ -303,3 +303,16 @@ class ListFilter(Filter[list], NestedFilter, list):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(child={self.child})"
+
+
+# OrderingFilter
+class OrderingFilter(CharFilter):
+    def __init__(self, fields: tuple[tuple[str, str]], **kwargs: Any) -> None:
+        self.order_fields = fields
+        self.allow_order_fields = {x[0] for x in fields}
+        kwargs.setdefault("max_length", DEFAULT_CHAR_LENGTH)
+        super().__init__(**kwargs)
+
+    def filter(self, queryset, value, model_field=None):
+        print("OrderingFilter", value, model_field)
+        return queryset
