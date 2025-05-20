@@ -14,7 +14,7 @@ from typing import (
 from uuid import UUID
 
 from pydantic import constr
-from tortoise.fields.base import Field
+from tortoise.fields.base import Field as RawField
 
 from fastapp.models.fields import data as models_data_fields
 
@@ -22,9 +22,19 @@ if TYPE_CHECKING:  # pragma: nocoverage
     from fastapp.serializers.base import Serializer
     from fastapp.serializers.model import ModelSerializer
 
+
 DEFAULT_CHAR_LENGTH = 4096
 
 VALUE = TypeVar("VALUE")
+
+
+if TYPE_CHECKING:
+
+    class Field(RawField[VALUE]):
+        @overload
+        def __get__(
+            self, instance: "Serializer", owner: Type["Serializer"]
+        ) -> VALUE: ...
 
 
 class SerializerMixin(Generic[VALUE]):
@@ -149,7 +159,10 @@ class BinaryField(SerializerMixin[bytes], models_data_fields.BinaryField):
     pass
 
 
-class JSONField(SerializerMixin[Union[dict, list]], models_data_fields.JSONField):
+JsonFieldType = TypeVar("JsonFieldType")
+
+
+class JSONField(SerializerMixin[JsonFieldType], models_data_fields.JSONField):
     pass
 
 
