@@ -5,6 +5,7 @@ from functools import update_wrapper
 from inspect import getmembers
 from typing import (
     Any,
+    ClassVar,
     Generic,
     Iterable,
     List,
@@ -13,7 +14,6 @@ from typing import (
     Self,
     Tuple,
     Type,
-    Union,
     overload,
 )
 
@@ -248,7 +248,7 @@ class ListSerializerWrapper:
         self.data = data
 
 
-class GenericAPIView(Generic[MODEL], APIView):
+class GenericAPIView(APIView, Generic[MODEL]):
     """
     Base class for all other generic views.
     """
@@ -259,7 +259,7 @@ class GenericAPIView(Generic[MODEL], APIView):
     # `get_queryset()` instead of accessing the `queryset` property directly,
     # as `queryset` will get evaluated only once, and those results are cached
     # for all subsequent requests.
-    queryset: Union[TortoiseQuerySet[MODEL], Manager[MODEL], MODEL]
+    queryset: ClassVar[TortoiseQuerySet[MODEL] | Manager[MODEL] | Type[MODEL] | MODEL]
     serializer_class: Optional[Type[serializers.BaseSerializer]] = None
 
     # If you want to use object lookups other than pk, set 'lookup_field'.
@@ -473,7 +473,7 @@ class GenericAPIView(Generic[MODEL], APIView):
         return self.paginator.get_paginated_response(data, self.total)
 
 
-class GenericViewSet(GenericAPIView):
+class GenericViewSet(GenericAPIView[MODEL]):
     action: str
 
     wrapper_class = GenericViewSetWrapper
@@ -560,7 +560,7 @@ class ModelViewSet(
     mixins.DestroyModelMixin,
     mixins.RetrieveModelMixin,
     mixins.ListModelMixin,
-    GenericViewSet,
+    GenericViewSet[MODEL],
 ):
     """
     A viewset that provides default `list()` and `retrieve()` actions.
