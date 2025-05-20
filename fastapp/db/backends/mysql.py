@@ -383,7 +383,21 @@ class MySQLSchemaGenerator(SchemaGeneratorMixin, schema_generator.MySQLSchemaGen
 
 
 def mysql_json_filter(field: Term, value: Dict) -> Criterion:
+    if len(value) > 1:
+        criterions = [
+            mysql_json_filter(
+                field,
+                dict([x]),
+            )
+            for x in value.items()
+        ]
+        wheres = criterions[0]
+        for c in criterions[1:]:
+            wheres &= c
+        return wheres
+
     ((key, filter_value),) = value.items()
+
     key_parts = [
         int(item)
         if item.isdigit()
