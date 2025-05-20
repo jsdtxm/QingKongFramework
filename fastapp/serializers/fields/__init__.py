@@ -35,7 +35,8 @@ if TYPE_CHECKING:
         def __get__(
             self, instance: "Serializer", owner: Type["Serializer"]
         ) -> VALUE: ...
-
+else:
+    Field = RawField
 
 class SerializerMixin(Generic[VALUE]):
     default_value = None
