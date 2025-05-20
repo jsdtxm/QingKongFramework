@@ -4,6 +4,7 @@ import typing
 from functools import update_wrapper
 from inspect import getmembers
 from typing import (
+    TYPE_CHECKING,
     Any,
     ClassVar,
     Generic,
@@ -495,7 +496,7 @@ class GenericViewSet(GenericAPIView[MODEL]):
         ]
 
     @classonlymethod  # type: ignore
-    def as_view(cls, **initkwargs):
+    def as_view(cls, **initkwargs) -> ViewWrapper:
         """Main entry point for a request-response process."""
         for key in initkwargs:
             if key in cls.http_method_names:
@@ -532,6 +533,11 @@ class GenericViewSet(GenericAPIView[MODEL]):
         update_wrapper(view, cls.dispatch, assigned=())
 
         return cls.wrapper_class(view, cls, initkwargs)
+
+    if TYPE_CHECKING:
+
+        @classmethod
+        def as_view(cls, **initkwargs) -> ViewWrapper: ...
 
     def setup(self, request: Request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
