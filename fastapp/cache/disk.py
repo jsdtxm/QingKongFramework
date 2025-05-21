@@ -41,9 +41,17 @@ class DiskCacheBackend(BaseCache):
         key = self.make_key(key, version=version)
         return await self.loop.run_in_executor(None, self._cache.get, key, default)
 
+    def sync_get(self, key, default=None, version=None):
+        key = self.make_key(key, version=version)
+        return self._cache.get(key, default)
+
     async def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_key(key, version=version)
         await self.loop.run_in_executor(None, self._cache.set, key, value, timeout)
+
+    def sync_set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
+        key = self.make_key(key, version=version)
+        self._cache.set(key, value, timeout)
 
     async def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_key(key, version=version)
