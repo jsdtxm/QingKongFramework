@@ -184,6 +184,7 @@ class FilterSetMetaclass(type):
             # 将类型包装为Optional（字段可空）
             optional_type = Optional[python_type]
 
+            # TODO 或许可以支持一下字段以及模型校验
             # 创建Pydantic字段：类型为Optional，并设置别名
             model_fields[filter_name] = (
                 optional_type,
@@ -272,15 +273,15 @@ class BaseFilterSet:
                     )
                 )
             except KeyError as e:
-                print("[ERROR]", e)
+                print("[Filter ERROR]", e)
 
         if ordering_filters:
-            for (name, value, filter_obj) in ordering_filters:
+            for name, value, filter_obj in ordering_filters:
                 # TODO 支持多重排序
                 if value.replace("-", "") not in filter_obj.allow_order_fields:
                     raise ValueError(f"Invalid value `{value}` for ordering")
                 queryset = queryset.order_by(value)
-        
+
         return queryset.distinct()
 
     @property
