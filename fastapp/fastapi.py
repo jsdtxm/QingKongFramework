@@ -71,7 +71,6 @@ class FastAPI(RawFastAPI):
         lifespan: Optional[Lifespan[AppType]] = None,
         include_healthz: bool = True,
         redirect_slashes=True,
-        middleware: Sequence[Middleware] = [],
         default_response_class=JsonResponse,
         auto_load_urls=True,
         **kwargs,
@@ -84,10 +83,14 @@ class FastAPI(RawFastAPI):
 
         package = inspect.stack()[1].frame.f_locals.get("__package__")
 
-        if not any((m.cls is TrustedHostMiddleware for m in middleware)):
-            middleware.append(
-                Middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
-            )
+        middleware: list[Middleware] = []
+        for m in settings.MIDDLEWARE:
+            middleware_class = import_string(m)
+            middleware_kwargs = {}
+            if middleware_class is TrustedHostMiddleware:
+                middleware_kwargs = {"allowed_hosts": settings.ALLOWED_HOSTS}
+
+            middleware.append(Middleware(middleware_class, **middleware_kwargs))
 
         super().__init__(
             lifespan=lifespan_wrapper(lifespan or default_lifespan),

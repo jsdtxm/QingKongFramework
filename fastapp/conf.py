@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from pydantic_settings import BaseSettings as PydanticBaseSettings
 from pydantic_settings import SettingsConfigDict
@@ -23,6 +23,10 @@ class BaseSettings(PydanticBaseSettings):
     ADD_CORS_HEADERS: bool = False
 
     INSTALLED_APPS: List[str] = []
+
+    MIDDLEWARE: List[str] = [
+        "fastapp.middleware.trustedhost.TrustedHostMiddleware"
+    ]
 
     NO_EXPORT_APPS: List[str] = []
 
