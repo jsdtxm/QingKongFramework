@@ -73,6 +73,7 @@ class DocumentCreateSerializer(serializers.ModelSerializer):
 ## model example
 ### File place in project_folder/apps/{app_name}/models.py
 ### You can add index to some fields if needed, ForeignKeyField will auto add index.
+### Don't add verbose_name to fields, it will be auto generated.
 ```python
 from fastapp import models
 from fastapp.models.choices import ChoiceItem, Choices
@@ -94,13 +95,13 @@ class Document(models.Model):
     current_version = models.IntegerField(default=1)
     versions: models.ReverseRelation["DocumentVersion"]
 
-    tags = models.ManyToManyField(Tag, verbose_name="Tags", null=True)
+    tags = models.ManyToManyField(Tag, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, related_name="documents")
 
     # Optional, add below lines to enable soft delete
-    is_deleted = models.BooleanField("Soft Delete", default=False)
+    is_deleted = models.BooleanField(default=False)
 
     # ForeignKeyField should add index like below lines.
     class Meta:
