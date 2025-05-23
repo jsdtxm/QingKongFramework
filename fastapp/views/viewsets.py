@@ -544,7 +544,7 @@ class GenericViewSet(GenericAPIView[MODEL]):
 
         self.kwargs = kwargs
 
-    async def dispatch(self, request: Request, *args, **kwargs):
+    async def dispatch(self, request: DjangoStyleRequest, *args, **kwargs):
         handler = getattr(self, self.action, self.http_method_not_allowed)
 
         return await handler(request, *args, **kwargs)
