@@ -40,8 +40,7 @@ def generate_partition_sql(part):
 
     # 处理子分区
     sub_partition_sql = ""
-    if "sub_partition" in part:
-        sub_part = part["sub_partition"]
+    if sub_part := part.get("sub_partition"):
         sub_type = sub_part["type"]
         primary_keys.extend(sub_part["fields"])
         sub_fields = ", ".join([f"`{f}`" for f in sub_part["fields"]])
