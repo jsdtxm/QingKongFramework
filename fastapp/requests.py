@@ -71,6 +71,10 @@ class DjangoStyleRequest:
         return self.request.headers
 
     @property
+    def url(self):
+        return self.request.url
+
+    @property
     def client(self):
         return self.request.client
 
