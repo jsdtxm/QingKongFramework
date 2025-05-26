@@ -1,6 +1,7 @@
 import inspect
 
 from fastapp import apps
+from fastapp.conf import settings
 from fastapp.contrib.dynamic_rbac.mixins import DynamicPermissionMixin
 from fastapp.contrib.dynamic_rbac.models import DynamicPermission
 
@@ -14,6 +15,14 @@ async def initialize_dynamic_permissions():
     """
 
     created_perms = set()
+
+    for target, perms in getattr(settings, "DYNAMIC_PERMISSIONS", {}).items():
+        for perm in perms:
+            await DynamicPermission.objects.get_or_create(
+                perm=perm,
+                target=target,
+            )
+            created_perms.add((perm, target))
 
     for app_config in apps.apps.app_configs.values():
         views_module = app_config.import_module("views")
