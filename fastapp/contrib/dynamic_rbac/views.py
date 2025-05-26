@@ -1,6 +1,6 @@
 from starlette import status
 
-from fastapp.contrib.auth.mixins import LoginRequiredMixin, SuperUserRequiredMixin
+from fastapp.contrib.auth.mixins import LoginRequiredMixin
 from fastapp.contrib.auth.views import AdminGroupViewSet
 from fastapp.contrib.dynamic_rbac.filters import DynamicPermissionFilterSet
 from fastapp.contrib.dynamic_rbac.models import DynamicPermission
@@ -18,7 +18,7 @@ from fastapp.views.decorators import action
 dynamic_rbac_router = APIRouter(tags=["Dynamic RBAC"])
 
 
-class DynamicPermissionViewSet(SuperUserRequiredMixin, viewsets.ReadOnlyModelViewSet):
+class DynamicPermissionViewSet(LoginRequiredMixin, viewsets.ReadOnlyModelViewSet):
     """
     A viewset that provides 'list' and 'retrieve' actions for DynamicPermission instances.
     Only superusers are allowed to access the views provided by this viewset.
