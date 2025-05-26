@@ -32,13 +32,26 @@ class DynamicPermissionMixin:
         if request.user is None or not request.user.is_authenticated:
             raise NotAuthenticated()
 
+        action = getattr(self, "action", None)
+        if not action or not getattr(self, action, None):
+            return await super().dispatch(request, *args, **kwargs)
+
         if request.user.is_superuser:
             return await super().dispatch(request, *args, **kwargs)
 
-        action = getattr(self, "action", None)
+        has_perm = await self.has_dynamic_permission(request)
+        if not has_perm:
+            return self.permission_denied(request, message="Permission denied")
+
+        return await super().dispatch(request, *args, **kwargs)
+
+    async def get_action_permission(self):
+        handler = getattr(self, self.action)
+        if perm := getattr(handler, "_perm", None):
+            return perm
 
         perm = self.get_action_permissions_map().get(
-            action,
+            self.action,
             {
                 "GET": "view",
                 "POST": "add",
@@ -48,14 +61,19 @@ class DynamicPermissionMixin:
             }.get(self.request.method, "view"),
         )
 
+        return perm
+
+    async def has_dynamic_permission(self, request):
+        perm = await self.get_action_permission()
+
+        handler = getattr(self, self.action)
+        target = getattr(handler, "_target", self.get_view_identifier())
+
         has_perm = await DynamicPermission.objects.filter(
-            perm=perm, target=self.get_view_identifier(), groups__user_set=request.user
+            perm=perm, target=target, groups__user_set=request.user
         ).exists()
 
-        if not has_perm:
-            return self.permission_denied(request, message="Permission denied")
-
-        return await super().dispatch(request, *args, **kwargs)
+        return has_perm
 
     @classmethod
     def get_action_permissions_map(cls):
