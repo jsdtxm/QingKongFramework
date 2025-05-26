@@ -23,3 +23,13 @@ class PermIDsSerializer(serializers.Serializer):
     perm_ids = serializers.ListField(
         child=serializers.IntegerField(), allow_empty=False
     )
+
+
+class DynamicPermissionCharSerializer(serializers.Serializer):
+    """
+    Serializer for handling a permission and its target as strings.
+    This serializer is used to convert and validate data where the permission and its target are represented as characters.
+    """
+
+    perm = serializers.CharField()
+    target = serializers.CharField()
