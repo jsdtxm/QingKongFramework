@@ -89,6 +89,7 @@ class IntegerField(SerializerMixin[int], models_data_fields.IntegerField):
 class BigIntegerField(SerializerMixin[int], models_data_fields.BigIntegerField):
     default_value = 0
 
+# TODO 添加PositiveIntegerField
 
 # Float
 class FloatField(SerializerMixin[float], models_data_fields.FloatField):

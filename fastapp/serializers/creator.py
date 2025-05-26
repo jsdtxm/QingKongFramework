@@ -442,6 +442,7 @@ def pydantic_model_creator(
             if fdesc.get("nullable"):
                 json_schema_extra["nullable"] = True
             if is_optional_field or field_default is not None or fdesc.get("nullable"):
+                # FIXME 应该修改一下判断逻辑，否则int字段的默认值是0，怎么解决呢。
                 ptype = Optional[ptype]
                 json_schema_extra["nullable"] = True
 
