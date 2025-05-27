@@ -24,9 +24,7 @@ class BaseSettings(PydanticBaseSettings):
 
     INSTALLED_APPS: List[str] = []
 
-    MIDDLEWARE: List[str] = [
-        "fastapp.middleware.trustedhost.TrustedHostMiddleware"
-    ]
+    MIDDLEWARE: List[str] = ["fastapp.middleware.trustedhost.TrustedHostMiddleware"]
 
     NO_EXPORT_APPS: List[str] = []
 
@@ -39,6 +37,11 @@ class BaseSettings(PydanticBaseSettings):
     WEBSOCKET_RATE_LIMITER_CLASS: str = (
         "fastapp.contrib.limiter.cache.WebSocketCacheRateLimiter"
     )
+
+    # LOGO
+    LOGO_FORE: Optional[str | int] = "BLUE"
+    LOGO_BACK: Optional[str] = None
+    LOGO_STYLE: Optional[str] = None
 
     XCAPTCHA_URL: Optional[str] = None
     XCAPTCHA_ENCRYPT_KEY: Optional[str] = None
