@@ -124,7 +124,6 @@ class CurrentUserDynamicPermissionView(LoginRequiredMixin, viewsets.APIView):
         """
 
         params = request.GET.to_dict()
-        print("params", params)
 
         filter_set = DynamicPermissionFilterSet(params, DynamicPermission)
 
