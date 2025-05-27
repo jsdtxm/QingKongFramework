@@ -97,6 +97,8 @@ async def _loaddata_inner(file_path):
 
     with open(file_path, "r") as f:
         data = json.loads(remove_comments(f.read()))
+        if not data:
+            return
         for item in data:
             app, model_name = item["model"].split(".")
             model = Tortoise.apps.get(app, {}).get(model_name)
