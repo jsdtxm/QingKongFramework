@@ -22,7 +22,8 @@ except ImportError:
 
 if uvloop is not None:
     uvloop.install()
-    print("[uvloop installed]")
+    if settings.UVLOOP_WARNING:
+        print("[uvloop installed]")
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):

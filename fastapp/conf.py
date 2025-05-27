@@ -87,6 +87,8 @@ class BaseSettings(PydanticBaseSettings):
 
     DEFAULT_PAGINATION_CLASS: Optional[str] = None
 
+    UVLOOP_WARNING: bool = False
+
 
 class LazySettings:
     """
