@@ -20,7 +20,7 @@ from apps.{app_name}.filters import FolderFilterSet
 class FolderViewSet(SuperUserRequiredMixin, CreatorMixin, ModelViewSet):
     queryset = Folder
     serializer_class = FolderSerializer
-    # Optional, add below lines to enable filter
+    # NOTE: Optional, add below lines to enable filter, and don't add comment to tell me you enable filter.
     filter_backends = [FilterBackend]
     filterset_class = FolderFilterSet
 
@@ -141,9 +141,9 @@ class FolderFilterSet(filters.FilterSet):
 
     class Meta:
         model = Folder
-        # Optional, if you want to specify filter method.
+        # NOTE:  Optional, by default, filterset will auto add all fields, this part use only if you want to specify filter method.
         fields = {
-            # if you don't specify filter method, it will use "exact" method.
+            # NOTE: if you don't specify filter method, it will use "exact" method.
             "name": LookupExprEnum.contains.value,  # Default is "exact".
             "created_at": [LookupExprEnum.gte.value, LookupExprEnum.lte.value], # Support multiple lookup expressions.
         }
