@@ -14,18 +14,24 @@ def about():
 
 
 @click.option("--mode", default="lite", type=click.STRING)
-def stubgen(mode="lite"):
+@click.option("--apps", multiple=True)
+def stubgen(mode="lite", apps=None):
+    """
+    stubgen
+    """
     # TODO 有bug，比如alert模型的外键会瞎设置
-    apps = init_apps(settings.INSTALLED_APPS)
+    installed_apps = init_apps(settings.INSTALLED_APPS)
     init_models()
 
     app_configs = [
         x
-        for x in apps.app_configs.values()
+        for x in installed_apps.app_configs.values()
         if not x.name.startswith("fastapp.contrib")
     ]
 
     for app_config in app_configs:
+        if apps and app_config.label not in apps:
+            continue
         if models := package_try_import(app_config.module, "models"):
             model_stub.generate(models.__name__, mode)
             complete(models.__name__)

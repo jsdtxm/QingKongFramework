@@ -14,6 +14,7 @@ CLASS_PATTERN = re.compile(
 )
 INCOMPLETE_PATTERN = re.compile(r"\s+([A-Za-z_][A-Za-z_0-9]*)\s*:\s*Incomplete")
 
+
 def remove_meta_class(code_lines):
     """
     删除嵌套在类中的 Meta 类及其内容。
@@ -60,11 +61,21 @@ def complete(module_name: str):
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
+    flag = False
+
     result_parts = []
     tmp_part = []
     model_name = None
     model_desc_dict = defaultdict(dict)
     for line in lines:
+        if "module_nodes" in line:
+            # print(line)
+            # print(CLASS_PATTERN.match(line))
+            # print(model_name,INCOMPLETE_PATTERN.match(line))
+            flag = True
+        else:
+            flag = False
+
         if m := CLASS_PATTERN.match(line):
             _model_name = m.group(1)
             model_class = getattr(module, _model_name)
@@ -72,11 +83,17 @@ def complete(module_name: str):
             if not issubclass(model_class, BaseModel):
                 tmp_part.append(line)
                 continue
-            
+
             model_name = _model_name
             for _, fields in filter(
                 lambda x: x[0]
-                in {"pk_field", "data_fields", "fk_fields", "backward_fk_fields"},
+                in {
+                    "pk_field",
+                    "data_fields",
+                    "fk_fields",
+                    "backward_fk_fields",
+                    "m2m_fields",
+                },
                 model_class.describe(serializable=False).items(),
             ):
                 if not isinstance(fields, list):
@@ -91,12 +108,18 @@ def complete(module_name: str):
 
         elif model_name and (m := INCOMPLETE_PATTERN.match(line)):
             field_name = m.group(1)
+
+            if flag:
+                print("FIND", field_name)
+                print(model_desc_dict[model_name][field_name])
+
             try:
                 desc = model_desc_dict[model_name][field_name]
             except Exception:
                 tmp_part.append(line)
                 continue
             field_type = desc["field_type"]
+
             if (
                 issubclass(field_type, relational.ForeignKeyFieldInstance)
                 or issubclass(field_type, relational.OneToOneFieldInstance)
@@ -111,7 +134,12 @@ def complete(module_name: str):
                 if ptype == "User":
                     ptype = 'typing.Union["User", "UserProtocol"]'
 
-                tmp_part.append(line.replace("Incomplete", ptype))
+                if issubclass(field_type, relational.ManyToManyFieldInstance):
+                    tmp_part.append(
+                        line.replace("Incomplete", f"ManyToManyRelation[{ptype}]")
+                    )
+                else:
+                    tmp_part.append(line.replace("Incomplete", ptype))
                 continue
 
             ptype = desc["python_type"]
