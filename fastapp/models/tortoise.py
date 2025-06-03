@@ -96,7 +96,12 @@ class Tortoise(RawTortoise):
             else:
                 fk_object = cast(ForeignKeyFieldInstance, model._meta.fields_map[field])
             related_app_name, related_model_name = split_reference(fk_object.model_name)
-            related_model = get_related_model(related_app_name, related_model_name)
+
+            # HACK for self-referential models
+            if related_app_name == "self" and related_model_name == "Self":
+                related_model = model
+            else:
+                related_model = get_related_model(related_app_name, related_model_name)
 
             if to_field := fk_object.to_field:
                 related_field = related_model._meta.fields_map.get(to_field)

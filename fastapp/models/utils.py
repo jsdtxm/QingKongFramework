@@ -15,7 +15,10 @@ def model_object_to_name(model: "Model"):
 
 def model_name_preprocess(model_name: Union[str, "Model"]):
     if isinstance(model_name, str):
-        if "." not in model_name:
+        # HACK for self-referential models
+        if model_name.lower() == "self":
+            return "self.Self"
+        elif "." not in model_name:
             package = inspect.stack()[2].frame.f_globals.get("__package__")
             apps: Apps = import_module("fastapp.apps").apps
             app_config = apps.get_app_config(package)
