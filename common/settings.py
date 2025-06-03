@@ -26,7 +26,7 @@ class Settings(BaseSettings):
             "LOCATION": "redis://[USERNAME]:[PASSWORD]@[IP]:[PORT]/[DB]",
         },
         "disk": {
-            "BACKEND": "DiskCache",
+            "BACKEND": "fastapp.cache.DiskCacheBackend",
             "DIRECTORY": "./.cache",
         },
     }
