@@ -3,7 +3,10 @@ Develop using our self-developed fastapp framework called `fastapp`.
 This framework is built on top of FastApi, and we do something to make it looks like a full async Django and Django REST Framework.
 We don't need to use decorator like `sync_to_async`, and don't use `aget` or `afilter` for asynchronous purposes on ORM.
 
+# You should follow the `# NOTE:` comments in code!
+
 ## view example
+### Remember @action function should use `id` as parameter name, not `pk`.
 ### File place in project_folder/apps/{app_name}/views.py
 ```python
 from fastapp.contrib.auth.mixins import CreatorMixin, SuperUserRequiredMixin
@@ -21,8 +24,8 @@ class FolderViewSet(SuperUserRequiredMixin, CreatorMixin, ModelViewSet):
     filter_backends = [FilterBackend]
     filterset_class = FolderFilterSet
 
-    @action(detail=True, methods=["get"], url_path="children")
-    async def list_sub_folder(self, request: DjangoStyleRequest, id: int):
+    @action(detail=True, methods=["get"], url_path="children")  # NOTE: url_path is optional, default is same as function name.
+    async def list_sub_folder(self, request: DjangoStyleRequest, id: int):  # NOTE: id is the parameter name, not pk.
         folder = await self.get_object()
         sub_folders = await folder.children.all()
 
