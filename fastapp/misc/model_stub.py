@@ -3,6 +3,7 @@ import sys
 from collections import defaultdict
 from itertools import chain
 
+from fastapp.misc.complete_type import CLASS_PATTERN
 from fastapp.models.base import BaseModel
 from fastapp.utils.module_loading import import_module
 
@@ -39,10 +40,6 @@ def generate(module_name: str, mode: str):
 
     file_path = module_name.replace(".", "/") + ".pyi"
 
-    class_pattern = re.compile(
-        r"class\s([A-Za-z_][A-Za-z_0-9]+)\([A-Za-z_][\S\s]+\):"
-    )
-
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
@@ -66,12 +63,17 @@ def generate(module_name: str, mode: str):
 
     model_name = None
     for line in lines:
-        if m := class_pattern.match(line):
+        if m := CLASS_PATTERN.match(line):
             model_name = m.group(1)
             model_class = getattr(module, model_name)
 
             modified_lines.append("\n")
-            modified_lines.append(line)
+
+            if re.search(r"\.\.\.", line):
+                new_line = re.sub(r"\.\.\.", "\n    pass", line)
+                modified_lines.append(new_line)
+            else:
+                modified_lines.append(line)
 
             if not issubclass(model_class, BaseModel):
                 model_name = None

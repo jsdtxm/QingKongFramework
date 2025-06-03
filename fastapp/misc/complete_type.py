@@ -10,7 +10,7 @@ from fastapp.utils.module_loading import import_module
 from fastapp.utils.typing import type_to_str
 
 CLASS_PATTERN = re.compile(
-    r"class\s([A-Za-z_][A-Za-z_0-9]*)\([A-Za-z_][A-Za-z_0-9.\[\]]+\):"
+    r"class\s([A-Za-z_][A-Za-z_0-9]*)\([A-Za-z_][A-Za-z_0-9.\[\]\s\,]+\):(\s+...)?"
 )
 INCOMPLETE_PATTERN = re.compile(r"\s+([A-Za-z_][A-Za-z_0-9]*)\s*:\s*Incomplete")
 
