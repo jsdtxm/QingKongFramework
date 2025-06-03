@@ -7,6 +7,7 @@ from .load_data import loaddata
 from .misc import about, stubgen
 from .server import gateway, runserver, runserver_aio, serve_static
 from .shell import shell
+from .tests import run_tests
 from .user import createsuperuser
 
 cli = Group()
