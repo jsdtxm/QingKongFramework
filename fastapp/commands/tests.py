@@ -9,7 +9,7 @@ from fastapp.commands.decorators import async_init_fastapp
 
 
 @async_init_fastapp
-async def async_run_tests(apps: list[str]):
+async def async_run_tests(apps: list[str], cases: list[str]):
     from fastapp.apps import Apps
 
     installed_apps: Apps = import_module("fastapp.apps").apps
@@ -32,6 +32,9 @@ async def async_run_tests(apps: list[str]):
                 if inspect.isfunction(obj) and (
                     name.startswith("test_") or name.startswith("perf_")
                 ):
+                    if cases and name not in cases:
+                        continue
+
                     print(f"Running {name}")
                     if asyncio.iscoroutinefunction(obj):
                         await obj()
@@ -40,8 +43,12 @@ async def async_run_tests(apps: list[str]):
 
 
 @click.option("--apps", multiple=True)
-def run_tests(apps=None):
+@click.option("--cases", multiple=True)
+def run_tests(apps=None, cases=None):
     if apps is None:
         apps = []
 
-    asyncio.run(async_run_tests(apps))
+    if cases is None:
+        cases = []
+
+    asyncio.run(async_run_tests(apps, cases))
