@@ -61,21 +61,11 @@ def complete(module_name: str):
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
-    flag = False
-
     result_parts = []
     tmp_part = []
     model_name = None
     model_desc_dict = defaultdict(dict)
     for line in lines:
-        if "module_nodes" in line:
-            # print(line)
-            # print(CLASS_PATTERN.match(line))
-            # print(model_name,INCOMPLETE_PATTERN.match(line))
-            flag = True
-        else:
-            flag = False
-
         if m := CLASS_PATTERN.match(line):
             _model_name = m.group(1)
             model_class = getattr(module, _model_name)
@@ -108,10 +98,6 @@ def complete(module_name: str):
 
         elif model_name and (m := INCOMPLETE_PATTERN.match(line)):
             field_name = m.group(1)
-
-            if flag:
-                print("FIND", field_name)
-                print(model_desc_dict[model_name][field_name])
 
             try:
                 desc = model_desc_dict[model_name][field_name]
