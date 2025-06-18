@@ -70,9 +70,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
             else:
                 engine = "fastapp.db.backends." + config["ENGINE"].rsplit(".", 1)[-1]
 
-            credentials = {
-                k.lower(): v for k, v in config.items() if k not in {"ENGINE", "NAME"}
-            }
+            credentials = {k.lower(): v for k, v in config.items() if k not in {"ENGINE", "NAME"}}
             credentials["database"] = config["NAME"]
             c = {
                 "engine": engine,
