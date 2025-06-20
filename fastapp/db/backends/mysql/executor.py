@@ -56,9 +56,13 @@ def mysql_json_filter(field: Term, value: Dict) -> Criterion:
 
     filter_value = _serialize_value(filter_value)
 
-    operator_ = operator.eq
     if key_parts[-1] in operator_keywords:
         operator_ = operator_keywords[str(key_parts.pop(-1))]  # type: ignore
+    elif filter_value is None:
+        # hack convert `JSONExtract()=NULL` to `JSONExtract() IS NULL`
+        return JSONExtract(field, key_parts).isnull()
+    else:
+        operator_ = operator.eq
 
     return operator_(JSONExtract(field, key_parts), filter_value)
 
