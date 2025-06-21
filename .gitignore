@@ -5,3 +5,5 @@ service_ports.json
 build
 dist
 fastapp.egg-info
+
+*.whl
