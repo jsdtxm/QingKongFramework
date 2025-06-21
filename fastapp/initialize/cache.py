@@ -5,6 +5,14 @@ from fastapp.cache import caches, connections
 from fastapp.utils.module_loading import import_string
 
 
+class FastAPICacheWrapper(FastAPICache):
+    @classmethod
+    def __getattribute__(cls, name):
+        if name in {"get", "set", "sync_get", "sync_set"} and hasattr(cls._backend, name):
+            return getattr(cls._backend, name)
+        raise AttributeError(f"Attribute {name} not found in {cls.__name__}")
+
+
 async def init_cache():
     for alias, config in settings.CACHES.items():
         backend: str = config["BACKEND"]
@@ -37,16 +45,16 @@ async def init_cache():
             continue
 
         if alias == "default":
-            cache_class = FastAPICache
+            cache_class = FastAPICacheWrapper
         else:
-            cache_class = type("", (FastAPICache,), {})
+            cache_class = type(alias, (FastAPICacheWrapper,), {})
 
         backend_class = import_string(backend)
 
         cache_class.init(
             backend_class(conn),
-            prefix="qk",
+            prefix="fastapp",
             expire=3600,
-            cache_status_header="X-QingKong-Cache",
+            cache_status_header="X-FastApp-Cache",
         )
         caches[alias] = cache_class
