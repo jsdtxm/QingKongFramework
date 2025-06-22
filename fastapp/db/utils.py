@@ -5,6 +5,7 @@ from tortoise import Model, Tortoise
 from tortoise.connection import connections
 from tortoise.exceptions import ConfigurationError
 
+from fastapp.apps import apps as installed_apps
 from fastapp.db.backends.sqlite import SqliteClient
 
 if TYPE_CHECKING:
@@ -106,18 +107,29 @@ def generate_hypertable_sql(table_name: str, config: dict) -> str:
 
 def get_create_schema_sql(
     self: "BaseSchemaGenerator", safe: bool = True, apps: list[str] = None
-) -> []:
+) -> list[str]:
     models_to_create: "List[Type[Model]]" = []
 
-    models_to_create = _get_models_to_create(self, models_to_create, apps)
+    models_to_create = _get_models_to_create(self, models_to_create, [])
 
-    extra_sql = []
+    extra_sql: list[str] = []
+
+    apps_label_dict = {
+        app.label
+        for app in installed_apps.app_configs.values()
+        if app.label in (apps or [])
+    }
 
     tables_to_create = []
     for model in models_to_create:
         data = self._get_table_sql(model, safe)
-        if hypertable := getattr(model.Meta, "hypertable", None):
-            extra_sql.append(generate_hypertable_sql(model._meta.db_table, hypertable))
+
+        # check in apps
+        if model._meta.app in apps_label_dict:
+            if hypertable := getattr(model.Meta, "hypertable", None):
+                extra_sql.append(
+                    generate_hypertable_sql(model._meta.db_table, hypertable)
+                )
 
         if model._meta.is_managed:
             tables_to_create.append(data)
@@ -146,10 +158,14 @@ def get_create_schema_sql(
         if (model := next_table_for_create["model"]) and getattr(
             getattr(model, "_meta", None), "is_managed", True
         ):
-            ordered_tables_for_create.append(
-                next_table_for_create["table_creation_string"]
-            )
-        m2m_tables_to_create += next_table_for_create["m2m_tables"]
+            # check in apps
+            if model._meta.app in apps_label_dict:
+                ordered_tables_for_create.append(
+                    next_table_for_create["table_creation_string"]
+                )
+        # check in apps
+        if model._meta.app in apps_label_dict:
+            m2m_tables_to_create += next_table_for_create["m2m_tables"]
 
     return chain(ordered_tables_for_create + m2m_tables_to_create + extra_sql)
 
