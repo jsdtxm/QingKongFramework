@@ -136,7 +136,6 @@ async def _loaddata_inner(file_path):
                 pg_get_serial_sequence('{table}', 'id'),
                 COALESCE((SELECT MAX("id") FROM "{table}"), 1)
             );''')
-            print("setval", res)
 
 
 async def _loaddata(file_path):

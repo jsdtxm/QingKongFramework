@@ -101,7 +101,6 @@ async def async_migrate(safe, guided, apps):
                 pg_get_serial_sequence('{table}', 'id'),
                 COALESCE((SELECT MAX("id") FROM "{table}"), 1)
             );''')
-            print("setval", res)
 
     await Tortoise.close_connections()
 
