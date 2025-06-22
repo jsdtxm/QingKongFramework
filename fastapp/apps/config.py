@@ -137,8 +137,8 @@ class AppConfig(metaclass=AppConfigMeta):
         if app_config_class is None:
             try:
                 app_config_class = import_string(entry)
-            except Exception:
-                pass
+            except Exception as e:
+                raise e
 
         # Check for obvious errors. (This check prevents duck typing, but
         # it could be removed if it became a problem in practice.)
