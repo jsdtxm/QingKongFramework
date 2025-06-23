@@ -73,6 +73,7 @@ class FastAPI(RawFastAPI):
         redirect_slashes=True,
         default_response_class=JsonResponse,
         auto_load_urls=True,
+        middleware: Optional[list[Middleware]]=None,
         **kwargs,
     ):
         apps = init_apps(settings.INSTALLED_APPS)
@@ -83,7 +84,7 @@ class FastAPI(RawFastAPI):
 
         package = inspect.stack()[1].frame.f_locals.get("__package__")
 
-        middleware: list[Middleware] = []
+        middleware: list[Middleware] = middleware or []
         for m in settings.MIDDLEWARE:
             middleware_class = import_string(m)
             middleware_kwargs = {}
