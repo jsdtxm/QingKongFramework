@@ -48,7 +48,11 @@ async def call_remote_api(base_url, end_point, all_kwargs):
     async with aiohttp.ClientSession() as session:
         async with session.post(f"http://{base_url}/_internal/{end_point}", json=all_kwargs) as response:
             content = await response.read()
-            return pickle.loads(content)
+            resp_object = pickle.loads(content)
+            if isinstance(resp_object, Exception):
+                raise resp_object
+
+            return resp_object
 
 
 def cross_service(func: Callable[P, R]) -> CrossServiceFunc[P, R]:
@@ -73,7 +77,10 @@ def cross_service(func: Callable[P, R]) -> CrossServiceFunc[P, R]:
         return call_remote_api(base_url, func.__name__, all_kwargs)
 
     async def use_post_body(kwargs: Dict):
-        result = await func(**kwargs)
+        try:
+            result = await func(**kwargs)
+        except Exception as e:
+            return Response(content=pickle.dumps(e), media_type="application/octet-stream", status_code=500)
 
         return Response(content=pickle.dumps(result), media_type="application/octet-stream")
 
