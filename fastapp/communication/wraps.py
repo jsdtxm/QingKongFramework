@@ -1,8 +1,10 @@
 import inspect
+import pickle
 from functools import lru_cache
-from typing import Callable, Dict, ParamSpec, Protocol, TypeVar, cast
+from typing import Awaitable, Callable, Dict, ParamSpec, Protocol, TypeVar, cast
 
 import aiohttp
+from starlette.responses import Response
 
 from fastapp.utils.fs import read_port_from_json
 from fastapp.utils.module_loading import cached_import_module
@@ -14,7 +16,7 @@ R = TypeVar("R")
 class CrossServiceFunc(Protocol[P, R]):
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R: ...
 
-    call: Callable[P, R]
+    call: Callable[P, Awaitable[R]]
 
 
 @lru_cache
@@ -45,7 +47,8 @@ def get_app_base_url(app: str) -> str:
 async def call_remote_api(base_url, end_point, all_kwargs):
     async with aiohttp.ClientSession() as session:
         async with session.post(f"http://{base_url}/_internal/{end_point}", json=all_kwargs) as response:
-            return await response.json()
+            content = await response.read()
+            return pickle.loads(content)
 
 
 def cross_service(func: Callable[P, R]) -> CrossServiceFunc[P, R]:
@@ -69,8 +72,10 @@ def cross_service(func: Callable[P, R]) -> CrossServiceFunc[P, R]:
 
         return call_remote_api(base_url, func.__name__, all_kwargs)
 
-    def use_post_body(kwargs: Dict):
-        return func(**kwargs)
+    async def use_post_body(kwargs: Dict):
+        result = await func(**kwargs)
+
+        return Response(content=pickle.dumps(result), media_type="application/octet-stream")
 
     func._cross_service = True
     func.call = call  # type: ignore[attr-defined]
