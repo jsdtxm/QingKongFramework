@@ -13,6 +13,7 @@ from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from starlette.types import Lifespan
+from fastapp.router import APIRouter
 
 import fastapp.patchs.fastapi.encoders as _
 import fastapp.patchs.starlette.requests as _
@@ -105,6 +106,17 @@ class FastAPI(RawFastAPI):
         if include_healthz:
             self.include_router(import_string("fastapp.contrib.healthz.views.router"))
 
+        internal_views = apps.app_configs[package].import_module("internal.views")
+        if internal_views:
+            router = APIRouter(prefix="/_internal", tags=["_internal"])
+            for name, cls in inspect.getmembers(internal_views, lambda x: hasattr(x, "_cross_service")):
+                router.add_api_route(
+                    path=f"/{name}",
+                    endpoint=cls.wrapped_view,
+                    methods=["POST"],
+                )
+            self.include_router(router)
+  
         if auto_load_urls:
             create_task(load_url_module(self, apps, package))
 
