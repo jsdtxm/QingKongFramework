@@ -1,7 +1,7 @@
 import inspect
 from asyncio import create_task
 from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional
 
 from fastapi import BackgroundTasks as BackgroundTasks  # type: ignore
 from fastapi import FastAPI as RawFastAPI
@@ -13,7 +13,6 @@ from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from starlette.types import Lifespan
-from fastapp.router import APIRouter
 
 import fastapp.patchs.fastapi.encoders as _
 import fastapp.patchs.starlette.requests as _
@@ -26,7 +25,7 @@ from fastapp.initialize.db import async_init_db, get_tortoise_config, init_model
 from fastapp.middleware.trustedhost import TrustedHostMiddleware
 from fastapp.models.tortoise import Tortoise
 from fastapp.responses import JsonResponse
-from fastapp.router import router_convert
+from fastapp.router import APIRouter, router_convert
 from fastapp.utils.module_loading import import_string
 from fastapp.utils.typing import copy_method_signature
 
@@ -74,7 +73,7 @@ class FastAPI(RawFastAPI):
         redirect_slashes=True,
         default_response_class=JsonResponse,
         auto_load_urls=True,
-        middleware: Optional[list[Middleware]]=None,
+        middleware: Optional[list[Middleware]] = None,
         **kwargs,
     ):
         apps = init_apps(settings.INSTALLED_APPS)
@@ -106,17 +105,20 @@ class FastAPI(RawFastAPI):
         if include_healthz:
             self.include_router(import_string("fastapp.contrib.healthz.views.router"))
 
-        internal_views = apps.app_configs[package].import_module("internal.views")
-        if internal_views:
+        if auto_load_urls and (
+            internal_views := apps.app_configs[package].import_module("internal.views")
+        ):
             router = APIRouter(prefix="/_internal", tags=["_internal"])
-            for name, cls in inspect.getmembers(internal_views, lambda x: hasattr(x, "_cross_service")):
+            for name, cls in inspect.getmembers(
+                internal_views, lambda x: hasattr(x, "_cross_service")
+            ):
                 router.add_api_route(
                     path=f"/{name}",
                     endpoint=cls.wrapped_view,
                     methods=["POST"],
                 )
             self.include_router(router)
-  
+
         if auto_load_urls:
             create_task(load_url_module(self, apps, package))
 
