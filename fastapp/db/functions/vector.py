@@ -16,4 +16,4 @@ class CosineSimilarity(Function):
         self.schema = None
 
     def get_function_sql(self, **kwargs: Any) -> str:
-        return f"(\"{self.field}\" <=> '{self.vector.tolist()}'::vector)"
+        return f"1 - (\"{self.field}\" <=> '{self.vector.tolist()}'::vector)"
