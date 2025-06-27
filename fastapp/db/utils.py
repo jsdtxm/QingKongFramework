@@ -117,7 +117,7 @@ def get_create_schema_sql(
     apps_label_dict = {
         app.label
         for app in installed_apps.app_configs.values()
-        if app.label in (apps or [])
+        if not apps or (app.label in apps)
     }
 
     tables_to_create = []
