@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from tortoise.models import MetaInfo as TortoiseMetaInfo
 from tortoise.models import Model
 
-from fastapp.models.base import Manager
+from fastapp.models.manager import Manager
 
 if TYPE_CHECKING:
     from fastapp.apps import AppConfig
