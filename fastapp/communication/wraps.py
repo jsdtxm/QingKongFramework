@@ -16,7 +16,7 @@ R = TypeVar("R")
 class CrossServiceFunc(Protocol[P, R]):
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R: ...
 
-    call: Callable[P, Awaitable[R]]
+    call: Callable[P, R]
 
 
 @lru_cache
