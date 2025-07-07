@@ -35,14 +35,11 @@ def runserver_aio(host, port, workers, reload):
 @click.option("--default-upstream", default="127.0.0.1", type=click.STRING)
 @click.option("--add-slashes", is_flag=True, type=click.BOOL)
 @click.option("--fastapi-redirect", is_flag=True, type=click.BOOL)
+@click.option("--redirect", is_flag=True, type=click.BOOL)
 @click.option("--debug", is_flag=True, type=click.BOOL)
-def gateway(
-    host, port, upstream, default_upstream, add_slashes, fastapi_redirect, debug
-):
+def gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirect, redirect, debug):
     print_logo()
-    run_gateway(
-        host, port, upstream, default_upstream, add_slashes, fastapi_redirect, debug
-    )
+    run_gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirect or redirect, debug)
 
 
 @click.option("--host", default="127.0.0.1", type=click.STRING)
@@ -52,6 +49,4 @@ def gateway(
 @click.option("--api-target", default="http://127.0.0.1:8000", type=click.STRING)
 def serve_static(host, port, root, api_prefix, api_target):
     print_logo()
-    run_static_server(
-        host, port, root_dir=root, api_prefix=api_prefix, api_target=api_target
-    )
+    run_static_server(host, port, root_dir=root, api_prefix=api_prefix, api_target=api_target)
