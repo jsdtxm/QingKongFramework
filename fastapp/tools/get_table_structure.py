@@ -38,17 +38,42 @@ class AsyncpgDumper(BaseSchemaDumper):
             "constraints": await self._get_constraints(conn, table),
             "indexes": await self._get_indexes(conn, table),
             "comment": await self._get_table_comment(conn, table),
+            "vector_info": await self._get_vector_column_info(conn, table),
         }
 
     async def _get_columns(self, conn: BaseDBAsyncClient, table: str) -> List[Dict]:
         query = """
             SELECT 
-                column_name, data_type, is_nullable, 
+                column_name, data_type, udt_name, is_nullable, 
                 column_default, ordinal_position,
-                character_maximum_length, numeric_precision
+                character_maximum_length, numeric_precision, numeric_scale
             FROM information_schema.columns
             WHERE table_name = $1 AND table_schema = 'public'
             ORDER BY ordinal_position
+        """
+        return await conn.execute_query_dict(query, [table])
+
+    async def _get_vector_column_info(self, conn: BaseDBAsyncClient, table: str) -> List[Dict]:
+        query = """
+            SELECT 
+                a.attname AS column_name,
+                a.atttypmod AS dimension
+            FROM 
+                pg_catalog.pg_attribute a
+            JOIN 
+                pg_catalog.pg_class c ON a.attrelid = c.oid
+            JOIN 
+                pg_catalog.pg_namespace n ON c.relnamespace = n.oid
+            JOIN 
+                pg_catalog.pg_type t ON a.atttypid = t.oid
+            WHERE 
+                c.relname = $1
+                AND n.nspname = 'public'
+                AND a.attnum > 0
+                AND NOT a.attisdropped
+                AND t.typname = 'vector'
+            ORDER BY 
+                a.attnum;
         """
         return await conn.execute_query_dict(query, [table])
 
@@ -89,10 +114,24 @@ class AsyncpgDumper(BaseSchemaDumper):
         except OperationalError:
             return ""
 
-    def _get_column_type(self, col: Dict) -> str:
+    def _get_column_type(self, col: Dict, meta: Dict) -> str:
         data_type = col["data_type"].upper()
 
-        length_data = map(str, filter(bool, [col["character_maximum_length"], col["numeric_precision"]]))
+        length_data = []
+
+        if data_type == "USER-DEFINED":
+            data_type = col["udt_name"]
+            if data_type == "vector":
+                vector_length = next(filter(lambda x: x["column_name"] == col["column_name"], meta["vector_info"]), {}).get(
+                    "dimension"
+                )
+                if vector_length is not None and vector_length != -1:
+                    length_data = [str(vector_length)]
+
+        # 有点hack的生成括号数据的方案
+        length_data = length_data or list(
+            map(str, filter(bool, [col["character_maximum_length"], col["numeric_precision"], col["numeric_scale"]]))
+        )
         if length_data:
             data_type += "(" + ",".join(length_data) + ")"
 
@@ -103,7 +142,7 @@ class AsyncpgDumper(BaseSchemaDumper):
         for col in meta["columns"]:
             col_def = [
                 f'"{col["column_name"]}"',
-                self._get_column_type(col),
+                self._get_column_type(col, meta),
                 "NOT NULL" if col["is_nullable"] == "NO" else "",
                 f"DEFAULT {col['column_default']}" if col["column_default"] else "",
             ]
