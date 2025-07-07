@@ -27,6 +27,8 @@ class SmallIntegerField(tortoise_data_fields.SmallIntField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(**kwargs)
 
     def describe(self, serializable: bool) -> dict:
@@ -44,6 +46,8 @@ class IntegerField(tortoise_data_fields.IntField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(**kwargs)
 
 
@@ -55,6 +59,8 @@ class PositiveIntegerField(tortoise_data_fields.IntField):
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         super().__init__(**kwargs)
 
@@ -79,6 +85,8 @@ class PositiveSmallIntegerField(tortoise_data_fields.SmallIntField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(**kwargs)
 
     @property
@@ -99,6 +107,8 @@ class BigIntegerField(tortoise_data_fields.BigIntField):
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         super().__init__(**kwargs)
 
@@ -126,6 +136,8 @@ class FloatField(tortoise_data_fields.FloatField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(**kwargs)
 
 
@@ -135,6 +147,8 @@ class DecimalField(tortoise_data_fields.DecimalField):
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         super().__init__(**kwargs)
 
@@ -154,6 +168,8 @@ class CharField(tortoise_data_fields.CharField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(**kwargs)
 
     def describe(self, serializable: bool) -> dict:
@@ -170,6 +186,8 @@ class TextField(tortoise_data_fields.TextField):
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         super().__init__(**kwargs)
 
@@ -188,6 +206,8 @@ class TimeField(tortoise_data_fields.TimeField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(**kwargs)
 
 
@@ -204,6 +224,8 @@ class DateField(tortoise_data_fields.DateField):
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         if auto_now_add and auto_now:
             raise ConfigurationError("You can choose only 'auto_now' or 'auto_now_add'")
@@ -228,6 +250,8 @@ class DateTimeField(tortoise_data_fields.DatetimeField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(auto_now, auto_now_add, **kwargs)
 
 
@@ -238,6 +262,8 @@ class TimeDeltaField(tortoise_data_fields.TimeDeltaField):
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         super().__init__(**kwargs)
 
@@ -250,6 +276,8 @@ class BooleanField(tortoise_data_fields.BooleanField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(**kwargs)
 
 
@@ -259,6 +287,8 @@ class BinaryField(tortoise_data_fields.BinaryField):
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         super().__init__(**kwargs)
 
@@ -270,6 +300,8 @@ class JSONField(tortoise_data_fields.JSONField):
         if db_column:
             kwargs["source_field"] = db_column
 
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
+
         super().__init__(**kwargs)
 
 
@@ -279,6 +311,8 @@ class UUIDField(tortoise_data_fields.UUIDField):
 
         if db_column:
             kwargs["source_field"] = db_column
+
+        kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         super().__init__(**kwargs)
 
