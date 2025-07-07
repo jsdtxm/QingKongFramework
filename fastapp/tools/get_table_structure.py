@@ -22,6 +22,10 @@ class AsyncpgDumper(BaseSchemaDumper):
         ddls = []
         conn = connections[self.conn_name]
         for table in self.tables:
+            exists = await self._check_exists(conn, table)
+            if not exists:
+                continue
+
             # 获取表元数据
             meta = await self._get_table_meta(conn, table)
             # 生成DDL
@@ -40,6 +44,15 @@ class AsyncpgDumper(BaseSchemaDumper):
             "comment": await self._get_table_comment(conn, table),
             "vector_info": await self._get_vector_column_info(conn, table),
         }
+
+    async def _check_exists(self, conn: BaseDBAsyncClient, table: str):
+        query = """
+            SELECT 
+                table_name
+            FROM information_schema.tables
+            WHERE table_name = $1 AND table_schema = 'public'
+        """
+        return await conn.execute_query_dict(query, [table])
 
     async def _get_columns(self, conn: BaseDBAsyncClient, table: str) -> List[Dict]:
         query = """
@@ -103,16 +116,13 @@ class AsyncpgDumper(BaseSchemaDumper):
         return await conn.execute_query_dict(query, [table])
 
     async def _get_table_comment(self, conn: BaseDBAsyncClient, table: str) -> str:
-        try:
-            query = """
-                SELECT description
-                FROM pg_description
-                WHERE objoid = $1::regclass
-            """
-            result = await conn.execute_query_dict(query, [table])
-            return next(iter(result), {}).get("description", "")
-        except OperationalError:
-            return ""
+        query = """
+            SELECT description
+            FROM pg_description
+            WHERE objoid = $1::regclass
+        """
+        result = await conn.execute_query_dict(query, [table])
+        return next(iter(result), {}).get("description", "")
 
     def _get_column_type(self, col: Dict, meta: Dict) -> str:
         data_type = col["data_type"].upper()

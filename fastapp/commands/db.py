@@ -206,10 +206,10 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
             changes = generate_diff_sql(old_schema, new_schema, dialect.lower())
 
             if changes and changes[0]:
-                alert_sql = "\n".join(changes[0])
-                alert_sql_list.append(alert_sql)
+                alert_sql = changes[0] if dialect.lower() == "postgres" else "\n".join(changes[0])
+                alert_sql_list.append((alert_sql, dialect.lower()))
 
-    for alert_sql in alert_sql_list:
+    for (alert_sql, dialect) in alert_sql_list:
         if not alert_sql:
             continue
 
@@ -233,7 +233,11 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
             return
 
         if user_input == "Y":
-            await conn.execute_query(alert_sql)
+            if dialect == "postgres":
+                for q in alert_sql:
+                    await conn.execute_query(q)
+            else:
+                await conn.execute_query(alert_sql)
         elif user_input == "N":
             continue
         elif user_input == "Q":

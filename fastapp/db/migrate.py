@@ -214,7 +214,7 @@ def calculate_similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 
-def generate_alter_statements(old_schema, new_schema, table_name):
+def generate_alter_statements(old_schema, new_schema, table_name, dialect):
     old_columns = old_schema.get("columns", {})
     new_columns = new_schema.get("columns", {})
     old_indexes = old_schema.get("indexes", [])
@@ -323,7 +323,11 @@ def generate_alter_statements(old_schema, new_schema, table_name):
             columns = ", ".join(idx["columns"]) if isinstance(idx["columns"], list) else idx["columns"]
             index_type = idx["type"].replace("_", " ").upper()
             # TODO fixme the columns may empty
-            alter_ops.append(f"CREATE {index_type} IF NOT EXISTS {idx['name']} ON {table_name} ({columns});")
+            if dialect == "postgres":
+                sql = f"CREATE INDEX IF NOT EXISTS {idx['name']} ON {table_name} USING {index_type} ({columns});"
+            else:
+                sql = f"CREATE {index_type} IF NOT EXISTS {idx['name']} ON {table_name} ({columns});"
+            alter_ops.append(sql)
 
     # 先删除旧索引，再创建新索引
     process_indexes(old_indexes, new_indexes)
@@ -345,7 +349,7 @@ def generate_diff_sql(old_schema, new_schema, dialect):
             )
             continue
 
-        alter_scripts = generate_alter_statements(old_schema[table_name], new_schema[table_name], table_name)
+        alter_scripts = generate_alter_statements(old_schema[table_name], new_schema[table_name], table_name, dialect)
         res.append(alter_scripts)
 
     return res
