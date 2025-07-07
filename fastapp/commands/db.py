@@ -45,20 +45,14 @@ async def async_migrate(safe, guided, apps):
     """
     auth_app_enabled = INTERNAL_AUTH_APP_LABEL in settings.INSTALLED_APPS
     guardian_app_enabled = INTERNAL_GUARDIAN_APP_LABEL in settings.INSTALLED_APPS
-    content_type_app_enabled = (
-        INTERNAL_CONTENTTYPES_APP_LABEL in settings.INSTALLED_APPS
-    )
+    content_type_app_enabled = INTERNAL_CONTENTTYPES_APP_LABEL in settings.INSTALLED_APPS
 
     if auth_app_enabled and not content_type_app_enabled:
-        click.echo(
-            f"ERROR {INTERNAL_AUTH_APP_LABEL} required {INTERNAL_CONTENTTYPES_APP_LABEL}"
-        )
+        click.echo(f"ERROR {INTERNAL_AUTH_APP_LABEL} required {INTERNAL_CONTENTTYPES_APP_LABEL}")
         return
 
     if guardian_app_enabled and not auth_app_enabled:
-        click.echo(
-            f"ERROR {INTERNAL_GUARDIAN_APP_LABEL} required {INTERNAL_AUTH_APP_LABEL}"
-        )
+        click.echo(f"ERROR {INTERNAL_GUARDIAN_APP_LABEL} required {INTERNAL_AUTH_APP_LABEL}")
         return
 
     init_apps(settings.INSTALLED_APPS)
@@ -81,14 +75,10 @@ async def async_migrate(safe, guided, apps):
     if content_type_app_enabled:
         # TODO 如果新建模型，不能自动添加content_type
         for x in sorted(
-            chain.from_iterable(
-                sub_dict.values() for sub_dict in Tortoise.apps.values()
-            ),
+            chain.from_iterable(sub_dict.values() for sub_dict in Tortoise.apps.values()),
             key=lambda x: x._meta.app_config.label,
         ):
-            content_type, _ = await ContentType.get_or_create(
-                app_label=x._meta.app_config.label, model=x.__name__
-            )
+            content_type, _ = await ContentType.get_or_create(app_label=x._meta.app_config.label, model=x.__name__)
 
             if auth_app_enabled:
                 for p in DefaultPerms:
@@ -229,11 +219,7 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
         try:
             while guided:
                 user_input = (
-                    input(
-                        "Please enter '[Y]' to execute the sql, 'N' to skip the sql, or 'Q' to quit: "
-                    )
-                    .strip()
-                    .upper()
+                    input("Please enter '[Y]' to execute the sql, 'N' to skip the sql, or 'Q' to quit: ").strip().upper()
                 )
                 if user_input == "":
                     user_input = "Y"

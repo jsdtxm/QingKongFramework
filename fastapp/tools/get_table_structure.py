@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.exceptions import OperationalError
 
 from fastapp.db import connections
 
@@ -31,9 +32,7 @@ class AsyncpgDumper(BaseSchemaDumper):
 
         return "\n\n".join(ddls)
 
-    async def _get_table_meta(
-        self, conn: BaseDBAsyncClient, table: str
-    ) -> Dict[str, Any]:
+    async def _get_table_meta(self, conn: BaseDBAsyncClient, table: str) -> Dict[str, Any]:
         return {
             "columns": await self._get_columns(conn, table),
             "constraints": await self._get_constraints(conn, table),
@@ -45,12 +44,13 @@ class AsyncpgDumper(BaseSchemaDumper):
         query = """
             SELECT 
                 column_name, data_type, is_nullable, 
-                column_default, ordinal_position
+                column_default, ordinal_position,
+                character_maximum_length, numeric_precision
             FROM information_schema.columns
             WHERE table_name = $1 AND table_schema = 'public'
             ORDER BY ordinal_position
         """
-        return await conn.execute_query_dict(query)
+        return await conn.execute_query_dict(query, [table])
 
     async def _get_constraints(self, conn: BaseDBAsyncClient, table: str) -> List[Dict]:
         query = """
@@ -66,7 +66,7 @@ class AsyncpgDumper(BaseSchemaDumper):
             WHERE rel.relname = $1 AND nsp.nspname = 'public'
             GROUP BY con.conname, con.contype, con.oid
         """
-        return await conn.execute_query_dict(query)
+        return await conn.execute_query_dict(query, [table])
 
     async def _get_indexes(self, conn: BaseDBAsyncClient, table: str) -> List[Dict]:
         query = """
@@ -74,30 +74,36 @@ class AsyncpgDumper(BaseSchemaDumper):
                 indexname AS name, indexdef AS definition
             FROM pg_indexes
             WHERE tablename = $1 AND schemaname = 'public'
-            AND indexname NOT IN (
-                SELECT conname 
-                FROM pg_constraint 
-                WHERE conrelid = $1::regclass
-            )
         """
-        return await conn.execute_query_dict(query)
+        return await conn.execute_query_dict(query, [table])
 
     async def _get_table_comment(self, conn: BaseDBAsyncClient, table: str) -> str:
-        query = """
-            SELECT description
-            FROM pg_description
-            WHERE objoid = $1::regclass
-        """
-        result = await conn.execute_query_dict(query)
-        print("_get_table_comment", result)
-        return ""
+        try:
+            query = """
+                SELECT description
+                FROM pg_description
+                WHERE objoid = $1::regclass
+            """
+            result = await conn.execute_query_dict(query, [table])
+            return next(iter(result), {}).get("description", "")
+        except OperationalError:
+            return ""
+
+    def _get_column_type(self, col: Dict) -> str:
+        data_type = col["data_type"].upper()
+
+        length_data = map(str, filter(bool, [col["character_maximum_length"], col["numeric_precision"]]))
+        if length_data:
+            data_type += "(" + ",".join(length_data) + ")"
+
+        return data_type
 
     async def _generate_table_ddl(self, meta: Dict) -> str:
         columns = []
         for col in meta["columns"]:
             col_def = [
                 f'"{col["column_name"]}"',
-                col["data_type"].upper(),
+                self._get_column_type(col),
                 "NOT NULL" if col["is_nullable"] == "NO" else "",
                 f"DEFAULT {col['column_default']}" if col["column_default"] else "",
             ]
@@ -115,9 +121,7 @@ class AsyncpgDumper(BaseSchemaDumper):
         ddl = [f"CREATE TABLE public.{self.tables[0]} (", ",\n  ".join(columns), ");"]
 
         if meta["comment"]:
-            ddl.append(
-                f"\nCOMMENT ON TABLE public.{self.tables[0]} IS '{meta['comment']}';"
-            )
+            ddl.append(f"\nCOMMENT ON TABLE public.{self.tables[0]} IS '{meta['comment']}';")
 
         return "\n".join(ddl)
 
