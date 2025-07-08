@@ -26,7 +26,9 @@ class ModelPermissionBackend(BasePermissionBackend):
             )
 
         if isinstance(principal, AbstractUser):
-            group_perm_qs = Permission.objects.filter(group_set=principal.groups.all())
+            group_perm_qs = Permission.objects.filter(
+                group_set=principal.groups.all(), perm=perm
+            )
             if obj is not None:
                 group_perm_qs = group_perm_qs.filter(
                     content_type__app_label=obj._meta.app,
