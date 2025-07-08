@@ -148,7 +148,7 @@ class AbstractUser(models.Model, LoadPermissionBackendMixin):
         related_query_name="user",
         through=f"{settings.INTERNAL_APP_PREFIX}_auth_user_groups",
     )
-    user_permissions = models.ManyToManyField(
+    permissions = models.ManyToManyField(
         Permission,
         blank=True,
         related_name="user_set",

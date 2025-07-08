@@ -21,19 +21,26 @@ class ModelPermissionBackend(BasePermissionBackend):
             if isinstance(obj, models.Model):
                 obj = obj.__class__
 
+            if isinstance(obj, models.QuerySet):
+                obj = obj.model
+
             perm_qs = perm_qs.filter(
                 content_type__app_label=obj._meta.app, content_type__model=obj.__name__
             )
 
+        group_perm_qs = None
         if isinstance(principal, AbstractUser):
             group_perm_qs = Permission.objects.filter(
-                group_set=principal.groups.all(), perm=perm
+                group_set__in=await principal.groups.all(), perm=perm
             )
             if obj is not None:
                 group_perm_qs = group_perm_qs.filter(
                     content_type__app_label=obj._meta.app,
                     content_type__model=obj.__name__,
                 )
+
+        if group_perm_qs is None:
+            return await perm_qs.exists()
 
         return await perm_qs.exists() or await group_perm_qs.exists()
 
