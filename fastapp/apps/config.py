@@ -137,6 +137,11 @@ class AppConfig(metaclass=AppConfigMeta):
         if app_config_class is None:
             try:
                 app_config_class = import_string(entry)
+            except ImportError as e:
+                raise ImproperlyConfigured(
+                    "Could not import '%s'. %s: %s."
+                    % (entry, e.__class__.__name__, e)
+                ) from None
             except Exception as e:
                 raise e
 
