@@ -74,15 +74,33 @@ async def async_migrate(safe, guided, apps):
 
     if content_type_app_enabled:
         # TODO 如果新建模型，不能自动添加content_type
+        existed_perms = {(x.content_type_id, x.perm): x for x in await Permission.all()}
         for x in sorted(
             chain.from_iterable(sub_dict.values() for sub_dict in Tortoise.apps.values()),
             key=lambda x: x._meta.app_config.label,
         ):
             content_type, _ = await ContentType.get_or_create(app_label=x._meta.app_config.label, model=x.__name__)
 
+            user_define_perms = getattr(x.Meta, "permissions", [])
+
             if auth_app_enabled:
-                for p in DefaultPerms:
-                    await Permission.get_or_create(content_type=content_type, perm=p)
+                for p in chain(user_define_perms, DefaultPerms):
+                    if isinstance(p, tuple):
+                        perm_args = {"perm": p[0], "description": p[1]}
+
+                    else:
+                        perm_args = {"perm": p, "description": f"Can {p} {x.__name__}"}
+
+                    if perm := existed_perms.get((content_type.id, perm_args["perm"])):
+                        if perm.description != perm_args["description"]:
+                            perm.description = perm_args["description"]
+                            await perm.save()
+                    else:
+                        await Permission.create(
+                            content_type_id=content_type.id,
+                            **perm_args,
+                        )
+                        existed_perms[(content_type.id, perm_args["perm"])] = perm
 
         conn = Tortoise.get_connection(ContentType._meta.default_connection)
         if "PostgreSQL" in conn.__class__.__name__:
@@ -209,7 +227,7 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
                 alert_sql = changes[0] if dialect.lower() == "postgres" else "\n".join(changes[0])
                 alert_sql_list.append((alert_sql, dialect.lower()))
 
-    for (alert_sql, dialect) in alert_sql_list:
+    for alert_sql, dialect in alert_sql_list:
         if not alert_sql:
             continue
 

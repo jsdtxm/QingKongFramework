@@ -1,13 +1,5 @@
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    Optional,
-    Self,
-    Tuple,
-    Type,
-)
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Self, Tuple, Type
 
 from tortoise.expressions import Q
 from tortoise.fields import relational
@@ -31,6 +23,7 @@ class BaseMeta:
     managed: bool = True
     ignore_schema: Optional[bool] = None
     app: str = "none"
+    permissions: List[tuple[str, str] | str] = []
 
 
 class ModelMetaClass(TortoiseModelMeta):
