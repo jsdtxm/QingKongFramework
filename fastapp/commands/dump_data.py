@@ -46,7 +46,7 @@ async def _dumpdata(model_name):
                     "pk": obj.id,
                     "fields": {},
                 }
-                for field_name in dump_field_set - {"id"}:
+                for field_name in dump_field_set - {"id", "created_at", "updated_at"}:
                     value = getattr(obj, field_name)
                     if value is None:
                         continue
