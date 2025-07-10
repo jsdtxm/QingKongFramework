@@ -40,7 +40,7 @@ async def _dumpdata(model_name):
                 dump_field_set.add(field_name)
 
             result_list = []
-            async for obj in model.all():
+            async for obj in model.all().order_by("id"):
                 result_item = {
                     "model": f"{model.app.label}.{model.__name__}",
                     "pk": obj.id,
