@@ -9,6 +9,7 @@ from common.settings import settings
 from fastapp.initialize.apps import init_apps
 from fastapp.initialize.db import async_init_db, get_tortoise_config
 from fastapp.models import BaseModel
+from fastapp.models.fields.relational import ForeignKeyFieldInstance
 from fastapp.models.tortoise import Tortoise
 from fastapp.utils.json import remove_comments
 
@@ -101,7 +102,7 @@ async def _loaddata_inner(file_path):
             return
         for item in data:
             app, model_name = item["model"].split(".")
-            model = Tortoise.apps.get(app, {}).get(model_name)
+            model: BaseModel = Tortoise.apps.get(app, {}).get(model_name)
 
             fields = await _handle_fields(model, item["fields"])
 
@@ -109,8 +110,43 @@ async def _loaddata_inner(file_path):
                 instance = model(**fields)
                 await instance.save()
             elif await model.objects.filter(id=item["pk"]).exists():
+                # 处理反向的foreign_key关联
+                after_process_fields = []
+                for field_name in set(fields.keys()) & model._meta.backward_fk_fields:
+                    field = model._meta.fields_map[field_name]
+                    real_related_field = field.related_model._meta.fields_map.get(
+                        field.relation_field
+                    )
+                    reference_field = real_related_field.reference
+                    if reference_field and isinstance(
+                        reference_field, ForeignKeyFieldInstance
+                    ):
+                        after_process_fields.append(
+                            (
+                                field_name,
+                                fields[field_name],
+                                field.related_model,
+                                reference_field,
+                            )
+                        )
+                        del fields[field_name]
+
                 await model.objects.filter(id=item["pk"]).update(**fields)
                 instance = await model.objects.get(id=item["pk"])
+
+                for (
+                    field_name,
+                    value,
+                    related_model,
+                    reference_field,
+                ) in after_process_fields:
+                    # 处理反向的foreign_key关联
+                    await related_model.filter(
+                        **{reference_field.source_field: instance.id}
+                    ).update(**{reference_field.source_field: None})
+                    await related_model.filter(id__in=value).update(
+                        **{reference_field.source_field: instance.id}
+                    )
             else:
                 instance = model(id=item["pk"], **fields)
                 await instance.save()
