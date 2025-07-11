@@ -8,9 +8,13 @@ from common.settings import settings
 from fastapp.initialize.apps import init_apps
 from fastapp.initialize.db import async_init_db, get_tortoise_config
 from fastapp.models.fields import ForeignKeyFieldInstance, ManyToManyFieldInstance
-from fastapp.models.fields.vector import VectorField
 from fastapp.models.tortoise import Tortoise
 from fastapp.utils.json import JSONEncoder
+
+try:
+    from fastapp.models.fields.vector import VectorField
+except ImportError:
+    VectorField = None
 
 
 async def _dumpdata(model_name):
@@ -34,7 +38,7 @@ async def _dumpdata(model_name):
                     ),
                 ):
                     continue
-                elif isinstance(field, VectorField):
+                elif VectorField and isinstance(field, VectorField):
                     continue
 
                 dump_field_set.add(field_name)
