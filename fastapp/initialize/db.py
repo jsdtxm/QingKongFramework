@@ -40,7 +40,9 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
 
     connection_routers = []
     for app_config in apps.app_configs.values():
-        if models := package_try_import(app_config.module, "models"):
+        if not isinstance(
+            models := package_try_import(app_config.module, "models"), Exception
+        ):
             if models_is_empty(models):
                 continue
 
@@ -53,6 +55,9 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
                 connection_routers.append(models_module_path + ".Router")
 
             tortoise_config["apps"][app_config.label] = app_model_config
+
+        else:
+            raise models
 
     for alias, config in databases.items():
         if re.search(r"sqlite3?$", config["ENGINE"]):
@@ -70,7 +75,9 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
             else:
                 engine = "fastapp.db.backends." + config["ENGINE"].rsplit(".", 1)[-1]
 
-            credentials = {k.lower(): v for k, v in config.items() if k not in {"ENGINE", "NAME"}}
+            credentials = {
+                k.lower(): v for k, v in config.items() if k not in {"ENGINE", "NAME"}
+            }
             credentials["database"] = config["NAME"]
             c = {
                 "engine": engine,
@@ -92,10 +99,14 @@ def init_models():
     apps: Apps = import_module("fastapp.apps").apps
 
     for app_config in apps.app_configs.values():
-        if models := package_try_import(app_config.module, "models"):
+        if not isinstance(
+            models := package_try_import(app_config.module, "models"), Exception
+        ):
             if models_is_empty(models):
                 continue
             Tortoise.init_models([f"{app_config.name}.models"], app_config.label)
+        else:
+            raise Exception(f"App {app_config.label} import error") from models
 
 
 async def async_init_db(config: dict):

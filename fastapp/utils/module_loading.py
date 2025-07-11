@@ -107,18 +107,18 @@ def module_has_submodule(package, module_name):
 def package_try_import(package, module_name):
     try:
         package_name = package.__name__
-    except AttributeError:
+    except AttributeError as e:
         # package isn't a package.
-        return False
+        return e
 
     full_module_name = package_name + "." + module_name
     try:
         module = import_module(full_module_name)
         return module
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as e:
         # When module_name is an invalid dotted path, Python raises
         # ModuleNotFoundError.
-        return False
+        return e
 
 
 def get_module_dir(module):

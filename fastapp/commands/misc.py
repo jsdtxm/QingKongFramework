@@ -32,7 +32,12 @@ def stubgen(mode="lite", apps=None):
     for app_config in app_configs:
         if apps and app_config.label not in apps:
             continue
-        if models := package_try_import(app_config.module, "models"):
+        if not isinstance(
+            models := package_try_import(app_config.module, "models"), Exception
+        ):
             model_stub.generate(models.__name__, mode)
             complete(models.__name__)
             complete_choices(models.__name__)
+
+        else:
+            raise models
