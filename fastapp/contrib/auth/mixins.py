@@ -110,7 +110,7 @@ class ModelUpdaterMixin:
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class UserAuditMixin(CreatorMixin[MODEL], UpdaterMixin):
+class UserAuditMixin(UpdaterMixin, CreatorMixin[MODEL]):
     pass
 
 
