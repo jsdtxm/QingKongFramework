@@ -16,8 +16,12 @@ from fastapp.models import BaseModel as FastappBaseModel
 from fastapp.models import QuerySet
 from fastapp.models.fields import DecimalField, JSONField
 from fastapp.models.fields.data import PositiveIntegerField, PositiveSmallIntegerField
-from fastapp.models.fields.vector import VectorField
 from fastapp.requests import QueryParamsWrap
+
+try:
+    from fastapp.models.fields.vector import VectorField
+except ImportError:
+    VectorField = None
 
 
 class FieldToFilter:
@@ -141,7 +145,7 @@ class FilterSetMetaclass(type):
                         )
 
                         # HACK ignore VectorField
-                        if isinstance(field, VectorField):
+                        if VectorField and isinstance(field, VectorField):
                             continue
 
                         filter_class = FieldToFilter.get(field.__class__)

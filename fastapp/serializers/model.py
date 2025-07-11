@@ -25,7 +25,6 @@ from tortoise.transactions import in_transaction
 
 from fastapp.models.base import BaseModel as BaseDBModel
 from fastapp.models.base import QuerySet
-from fastapp.models.fields.vector import VectorField
 from fastapp.serializers.base import (
     BaseSerializer,
     get_serializer_map,
@@ -35,6 +34,11 @@ from fastapp.serializers.base import (
 from fastapp.serializers.creator import pydantic_model_creator
 from fastapp.utils.context import BlankContextManager
 from fastapp.utils.functional import copy_method_signature
+
+try:
+    from fastapp.models.fields.vector import VectorField
+except ImportError:
+    VectorField = None
 
 
 def _get_fetch_fields(
@@ -456,7 +460,7 @@ class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
 
             # HACK exclude VectorField
             for k, v in meta.model._meta.fields_map.items():
-                if isinstance(v, VectorField):
+                if VectorField and isinstance(v, VectorField):
                     exclude += (k,)
 
             pydantic_model = pydantic_model_creator(
