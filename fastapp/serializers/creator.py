@@ -511,7 +511,7 @@ def pydantic_model_creator(
         return _MODEL_INDEX[_name]
 
     # Creating Pydantic class for the properties generated before
-    properties["model_config"] = pconfig
+    properties["__config__"] = pconfig
 
     model = create_model(
         _name,

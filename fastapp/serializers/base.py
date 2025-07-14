@@ -380,7 +380,7 @@ class SerializerMetaclass(ABCMeta):
 
             pydantic_model = create_model(
                 name,
-                model_config=pconfig,
+                __config__=pconfig,
                 __validators__=validators_map | serializers_map,
                 **fields_map,
             )
