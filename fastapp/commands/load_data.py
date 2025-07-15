@@ -131,8 +131,10 @@ async def _loaddata_inner(file_path):
                         )
                         del fields[field_name]
 
-                await model.objects.filter(id=item["pk"]).update(**fields)
                 instance = await model.objects.get(id=item["pk"])
+                # trigger save signal
+                await instance.update_from_dict(fields)
+                await instance.save()
 
                 for (
                     field_name,
