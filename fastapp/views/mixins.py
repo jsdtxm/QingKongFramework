@@ -51,11 +51,11 @@ class CreateModelMixin:
         self: "CreateModelMixinType", request: DjangoStyleRequest, *args, **kwargs
     ):
         serializer = await self.get_serializer(data=await request.data)
-        instance = await self.perform_create(serializer)  # type: ignore
+        self.instance = await self.perform_create(serializer)  # type: ignore
 
         return JSONResponse(
             (
-                await self.get_serializer(instance, override_action="retrieve")
+                await self.get_serializer(self.instance, override_action="retrieve")
             ).model_dump(),
             status_code=status.HTTP_201_CREATED,
         )
