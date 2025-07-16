@@ -80,6 +80,44 @@ async def _handle_fields(model: BaseModel, fields):
     return {k: v for k, v in fields.items() if k not in m2m_fields}
 
 
+def process_backward_fk_fields(model, fields):
+    after_process_fields = []
+    for field_name in set(fields.keys()) & model._meta.backward_fk_fields:
+        field = model._meta.fields_map[field_name]
+        real_related_field = field.related_model._meta.fields_map.get(
+            field.relation_field
+        )
+        reference_field = real_related_field.reference
+        if reference_field and isinstance(reference_field, ForeignKeyFieldInstance):
+            after_process_fields.append(
+                (
+                    field_name,
+                    fields[field_name],
+                    field.related_model,
+                    reference_field,
+                )
+            )
+            del fields[field_name]
+
+    return after_process_fields
+
+
+async def save_backward_fk_fields(after_process_fields, instance):
+    for (
+        _,
+        value,
+        related_model,
+        reference_field,
+    ) in after_process_fields:
+        # 处理反向的foreign_key关联
+        await related_model.filter(
+            **{reference_field.source_field: instance.id}
+        ).update(**{reference_field.source_field: None})
+        await related_model.filter(id__in=value).update(
+            **{reference_field.source_field: instance.id}
+        )
+
+
 async def _loaddata_inner(file_path):
     if "/" not in file_path and not os.path.exists(file_path):
         app_dirs = list(
@@ -103,6 +141,9 @@ async def _loaddata_inner(file_path):
         for item in data:
             app, model_name = item["model"].split(".")
             model: BaseModel = Tortoise.apps.get(app, {}).get(model_name)
+            # print(model._meta.backward_fk_fields)
+            # print(model._meta.backward_o2o_fields)
+            # print(model._meta.fields_map)
 
             fields = await _handle_fields(model, item["fields"])
 
@@ -111,47 +152,22 @@ async def _loaddata_inner(file_path):
                 await instance.save()
             elif await model.objects.filter(id=item["pk"]).exists():
                 # 处理反向的foreign_key关联
-                after_process_fields = []
-                for field_name in set(fields.keys()) & model._meta.backward_fk_fields:
-                    field = model._meta.fields_map[field_name]
-                    real_related_field = field.related_model._meta.fields_map.get(
-                        field.relation_field
-                    )
-                    reference_field = real_related_field.reference
-                    if reference_field and isinstance(
-                        reference_field, ForeignKeyFieldInstance
-                    ):
-                        after_process_fields.append(
-                            (
-                                field_name,
-                                fields[field_name],
-                                field.related_model,
-                                reference_field,
-                            )
-                        )
-                        del fields[field_name]
+                after_process_fields = process_backward_fk_fields(model, fields)
 
                 instance = await model.objects.get(id=item["pk"])
                 # trigger save signal
                 await instance.update_from_dict(fields)
                 await instance.save()
 
-                for (
-                    field_name,
-                    value,
-                    related_model,
-                    reference_field,
-                ) in after_process_fields:
-                    # 处理反向的foreign_key关联
-                    await related_model.filter(
-                        **{reference_field.source_field: instance.id}
-                    ).update(**{reference_field.source_field: None})
-                    await related_model.filter(id__in=value).update(
-                        **{reference_field.source_field: instance.id}
-                    )
+                await save_backward_fk_fields(after_process_fields, instance)
             else:
+                # 处理反向的foreign_key关联
+                after_process_fields = process_backward_fk_fields(model, fields)
+
                 instance = model(id=item["pk"], **fields)
                 await instance.save()
+
+                await save_backward_fk_fields(after_process_fields, instance)
 
             # m2m
             if m2m_fields := model._meta.m2m_fields & set(item["fields"].keys()):
