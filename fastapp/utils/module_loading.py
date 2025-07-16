@@ -108,7 +108,6 @@ def package_try_import(package, module_name):
     try:
         package_name = package.__name__
     except AttributeError as e:
-        # package isn't a package.
         return e
 
     full_module_name = package_name + "." + module_name
@@ -116,8 +115,10 @@ def package_try_import(package, module_name):
         module = import_module(full_module_name)
         return module
     except ModuleNotFoundError as e:
-        # When module_name is an invalid dotted path, Python raises
-        # ModuleNotFoundError.
+        if e.name == full_module_name:
+            return None
+        raise e
+    except Exception as e:
         return e
 
 
