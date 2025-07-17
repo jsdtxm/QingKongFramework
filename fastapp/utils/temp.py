@@ -12,6 +12,8 @@ def get_temp_directory():
     elif system_name == "Windows":
         # Windows 系统的临时文件夹通常是 %TEMP% 环境变量指向的路径
         return os.environ.get("TEMP")  # 或者 os.environ.get("TMP")
+    elif platform.system() == 'Darwin':  # macOS
+        return "/tmp"
     else:
-        # 其他操作系统（如 macOS）
+        # 其他操作系统
         return None
