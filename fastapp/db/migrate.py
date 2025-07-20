@@ -315,7 +315,10 @@ def generate_alter_statements(old_schema, new_schema, table_name, dialect):
         if drop_command:
             for key in old_idx_map.keys() - new_idx_map.keys():
                 idx = old_idx_map[key]
-                alter_ops.append(f"DROP INDEX {idx['name']} ON {table_name};")
+                if dialect == "postgres":
+                    alter_ops.append(f"DROP INDEX {idx['name']};")
+                else:
+                    alter_ops.append(f"DROP INDEX {idx['name']} ON {table_name};")
 
         # 新增索引
         for key in new_idx_map.keys() - old_idx_map.keys():
