@@ -18,5 +18,14 @@ class TimeZone:
         """utc"""
         return datetime.now(ZoneInfo(settings.TIME_ZONE))
 
+    @staticmethod
+    def utcnow():
+        """utc"""
+        return datetime.now(ZoneInfo("UTC"))
+
+    @staticmethod
+    def timedelta(*args, **kwargs):
+        return timedelta(*args, **kwargs)
+
 
 timezone = TimeZone()
