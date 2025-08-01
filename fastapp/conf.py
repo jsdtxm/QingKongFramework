@@ -12,6 +12,8 @@ class BaseSettings(PydanticBaseSettings):
     model_config = SettingsConfigDict(env_prefix="QK_")
 
     PROJECT_NAME: Optional[str] = None
+    
+    INCLUDE_HEALTHZ: bool = True
 
     TIME_ZONE: str = "Asia/Shanghai"
 

@@ -69,7 +69,7 @@ class FastAPI(RawFastAPI):
     def __init__(
         self,
         lifespan: Optional[Lifespan[AppType]] = None,
-        include_healthz: bool = True,
+        include_healthz: Optional[bool] = None,
         redirect_slashes=True,
         default_response_class=JsonResponse,
         auto_load_urls=True,
@@ -81,6 +81,9 @@ class FastAPI(RawFastAPI):
         init_models()
         create_task(async_init_db(get_tortoise_config(settings.DATABASES)))
         create_task(init_cache())
+
+        if include_healthz is None:
+            include_healthz = settings.INCLUDE_HEALTHZ
 
         package = inspect.stack()[1].frame.f_locals.get("__package__")
 
