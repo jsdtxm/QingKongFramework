@@ -294,7 +294,15 @@ def generate_alter_statements(old_schema, new_schema, table_name, dialect):
 
             constraints = " ".join(new_def["constraints"])
             default_clause = f" DEFAULT {new_def['default']}" if new_def["default"] is not None else ""
-            alter_ops.append(f"ALTER TABLE {table_name} MODIFY COLUMN {col} {new_def['type']}{default_clause} {constraints};")
+            if dialect == "postgres":
+                # TODO 并不能完全支持
+                alter_ops.append(f"ALTER TABLE {table_name} ALTER COLUMN {col} TYPE {new_def['type']} USING {col}::{new_def['type']};")
+                if default_clause:
+                    alter_ops.append(f"ALTER TABLE {table_name} ALTER COLUMN {col} SET DEFAULT {new_def['default']};")
+                if constraints:
+                    alter_ops.append(f"ALTER TABLE {table_name} ALTER COLUMN {col} SET {constraints};")
+            else:
+                alter_ops.append(f"ALTER TABLE {table_name} MODIFY COLUMN {col} {new_def['type']}{default_clause} {constraints};")
 
     # 处理索引
     def process_indexes(old_idx_list, new_idx_list, drop_command=True):
@@ -315,7 +323,10 @@ def generate_alter_statements(old_schema, new_schema, table_name, dialect):
         if drop_command:
             for key in old_idx_map.keys() - new_idx_map.keys():
                 idx = old_idx_map[key]
-                alter_ops.append(f"DROP INDEX {idx['name']} ON {table_name};")
+                if dialect == "postgres":
+                    alter_ops.append(f"DROP INDEX {idx['name']};")
+                else:
+                    alter_ops.append(f"DROP INDEX {idx['name']} ON {table_name};")
 
         # 新增索引
         for key in new_idx_map.keys() - old_idx_map.keys():

@@ -4,10 +4,10 @@ from starlette import status
 from tortoise.queryset import MODEL
 
 from fastapp.models.base import BaseModel, QuerySet
-from fastapp.models.fields import DateField, DateTimeField, RelationalField
 from fastapp.requests import DjangoStyleRequest
 from fastapp.responses import JSONResponse
 from fastapp.serializers.model import ModelSerializer
+from fastapp.utils.model import ger_full_fields_map, get_verbose_name_dict
 from fastapp.views.decorators import action
 
 if TYPE_CHECKING:
@@ -130,58 +130,16 @@ class ModelFieldsOperatorMixin:
         include_auto: bool = True,
         include_fk_id: bool = True,
     ):
-        model = self.get_queryset().model
-
-        fields_map = model._meta.fields_map
-
-        if not include_backward:
-            field_set = model._meta.backward_fk_fields | model._meta.backward_o2o_fields
-
-            fields_map = {k: v for k, v in fields_map.items() if k not in field_set}
-
-        if not include_m2m:
-            fields_map = {
-                k: v for k, v in fields_map.items() if k not in model._meta.m2m_fields
-            }
-
-        if not include_auto:
-            fields_map = {
-                k: v
-                for k, v in fields_map.items()
-                if not v.generated
-                and not (
-                    (isinstance(v, DateTimeField) or isinstance(v, DateField))
-                    and (v.auto_now or v.auto_now_add)
-                )
-            }
-
-        if not include_fk_id:
-            fk_id_field_set = {f"{x}_id" for x in model._meta.fk_fields}
-            fields_map = {
-                k: v for k, v in fields_map.items() if k not in fk_id_field_set
-            }
-
-        return fields_map
+        return ger_full_fields_map(
+            self.get_queryset().model,
+            include_backward,
+            include_m2m,
+            include_auto,
+            include_fk_id,
+        )
 
     def get_verbose_name_dict(self, extra_verbose_name_dict=None):  # type: ignore[misc]
-        res = {}
-        extra_verbose_name_dict = extra_verbose_name_dict or {}
-
-        for k, v in self.get_fields_map().items():
-            verbose_name = getattr(
-                v, "verbose_name", None
-            ) or extra_verbose_name_dict.get(k, k)
-            if verbose_name and verbose_name != k:
-                res[k] = verbose_name
-                if isinstance(v, RelationalField):
-                    res[f"{k}_id"] = f"{verbose_name}ID"
-                    for sk, sv in v.related_model._meta.fields_map.items():
-                        sub_verbose_name = getattr(
-                            sv, "verbose_name", None
-                        ) or extra_verbose_name_dict.get(sk, sk)
-                        res[f"{k}.{sk}"] = f"{verbose_name}.{sub_verbose_name}"
-
-        return res
+        return get_verbose_name_dict(self.get_fields_map(), extra_verbose_name_dict)
 
 
 if TYPE_CHECKING:
