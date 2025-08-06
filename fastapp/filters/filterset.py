@@ -133,6 +133,8 @@ class FilterSetMetaclass(type):
                             f"Field '{field_name}' does not exist in model '{model.__name__}'"
                         )
 
+                    order_fields.append((field_name, field_name))
+
                     field = non_related_fields_map[field_name]
                     kwargs = get_field_to_filter_kwargs(field)
 
@@ -169,9 +171,6 @@ class FilterSetMetaclass(type):
                             new_attrs[f"{field_name}_id"] = BigIntegerFilter(
                                 field_name=field_name,
                             )
-
-                    if getattr(field, "auto_now_add", False):
-                        order_fields.append((field_name, field_name))
 
                 new_attrs["o"] = OrderingFilter(fields=order_fields)
 
