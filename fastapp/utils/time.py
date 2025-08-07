@@ -27,5 +27,9 @@ class TimeZone:
     def timedelta(*args, **kwargs):
         return timedelta(*args, **kwargs)
 
+    @property
+    def datetime(self):
+        return datetime
+
 
 timezone = TimeZone()
