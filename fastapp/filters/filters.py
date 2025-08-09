@@ -41,6 +41,7 @@ class LookupExprEnum(Enum):
     isnull = "isnull"  # 是否为null
     regex = "regex"  # 正则表达式匹配
     iregex = "iregex"  # 忽略大小写的正则表达式匹配
+    not_ = "not"  # 非
 
     # 日期
     date = "date"
