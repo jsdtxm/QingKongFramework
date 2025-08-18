@@ -265,6 +265,9 @@ def handler_factory(proxy_loc: ProxyLocation):
                         print(request_content)
                         print(content)
 
+                    if "Content-Encoding" in headers:
+                        headers.pop("Content-Encoding")
+
                     return aiohttp.web.Response(
                         body=content, status=response.status, headers=headers
                     )
