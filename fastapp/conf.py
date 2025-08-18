@@ -33,7 +33,7 @@ class BaseSettings(PydanticBaseSettings):
     DATABASES: dict[str, dict[str, Any]]
     CACHES: dict[str, dict[str, Any]] = {}
 
-    EXTRA_PROXY: List[Tuple[str, str]] = []
+    EXTRA_PROXY: List[dict[str, Any]] = []
 
     RATE_LIMITER_CLASS: str = "fastapp.contrib.limiter.cache.CacheRateLimiter"
     WEBSOCKET_RATE_LIMITER_CLASS: str = (
