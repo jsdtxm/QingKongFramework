@@ -267,6 +267,14 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
         return cls
 
     @classmethod
+    def data_fields(cls, serializable: bool = True) -> list:
+        return [
+            field.describe(serializable)
+            for name, field in cls._meta.fields_map.items()
+            if name != cls._meta.pk_attr and name in (cls._meta.fields - cls._meta.fetch_fields)
+        ]
+
+    @classmethod
     def generate_query_params(cls, mode: Literal["full", "lite"] = "lite"):
         need_import, kwargs = generate_query_params_attrs(cls, mode)
 
