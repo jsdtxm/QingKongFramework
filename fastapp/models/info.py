@@ -29,3 +29,10 @@ class MetaInfo(TortoiseMetaInfo):
     @property
     def is_managed(self) -> bool:
         return self.external is False and self.managed is True
+
+    def data_fields(self, serializable: bool = True) -> list:
+        return [
+            field.describe(serializable)
+            for name, field in self.fields_map.items()
+            if name != self.pk_attr and name in (self.fields - self.fetch_fields)
+        ]
