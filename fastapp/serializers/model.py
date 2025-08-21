@@ -233,6 +233,7 @@ class ModelSerializerPydanticModel(PydanticModel):
                 m2m_fields, using_db=using_db
             )
 
+            # FIXME 更新时可能导致m2m字段丢失
             for f in m2m_fields:
                 field = getattr(instance, f["name"])
                 await field.clear()

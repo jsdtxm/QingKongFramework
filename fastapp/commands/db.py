@@ -34,7 +34,7 @@ INTERNAL_AUTH_APP_LABEL = "fastapp.contrib.auth"
 INTERNAL_GUARDIAN_APP_LABEL = "fastapp.contrib.guardian"
 
 
-async def async_migrate(safe, guided, apps):
+async def async_migrate(safe, guided, apps, models):
     """
     此函数用于异步执行数据库迁移操作。
 
@@ -45,19 +45,25 @@ async def async_migrate(safe, guided, apps):
     """
     auth_app_enabled = INTERNAL_AUTH_APP_LABEL in settings.INSTALLED_APPS
     guardian_app_enabled = INTERNAL_GUARDIAN_APP_LABEL in settings.INSTALLED_APPS
-    content_type_app_enabled = INTERNAL_CONTENTTYPES_APP_LABEL in settings.INSTALLED_APPS
+    content_type_app_enabled = (
+        INTERNAL_CONTENTTYPES_APP_LABEL in settings.INSTALLED_APPS
+    )
 
     if auth_app_enabled and not content_type_app_enabled:
-        click.echo(f"ERROR {INTERNAL_AUTH_APP_LABEL} required {INTERNAL_CONTENTTYPES_APP_LABEL}")
+        click.echo(
+            f"ERROR {INTERNAL_AUTH_APP_LABEL} required {INTERNAL_CONTENTTYPES_APP_LABEL}"
+        )
         return
 
     if guardian_app_enabled and not auth_app_enabled:
-        click.echo(f"ERROR {INTERNAL_GUARDIAN_APP_LABEL} required {INTERNAL_AUTH_APP_LABEL}")
+        click.echo(
+            f"ERROR {INTERNAL_GUARDIAN_APP_LABEL} required {INTERNAL_AUTH_APP_LABEL}"
+        )
         return
 
     init_apps(settings.INSTALLED_APPS)
     await async_init_db(get_tortoise_config(settings.DATABASES))
-    await generate_schemas(Tortoise, safe=safe, guided=guided, apps=apps)
+    await generate_schemas(Tortoise, safe=safe, guided=guided, apps=apps, models=models)
 
     if len(apps) > 0:
         await Tortoise.close_connections()
@@ -76,10 +82,14 @@ async def async_migrate(safe, guided, apps):
         # TODO 如果新建模型，不能自动添加content_type
         existed_perms = {(x.content_type_id, x.perm): x for x in await Permission.all()}
         for x in sorted(
-            chain.from_iterable(sub_dict.values() for sub_dict in Tortoise.apps.values()),
+            chain.from_iterable(
+                sub_dict.values() for sub_dict in Tortoise.apps.values()
+            ),
             key=lambda x: x._meta.app_config.label,
         ):
-            content_type, _ = await ContentType.get_or_create(app_label=x._meta.app_config.label, model=x.__name__)
+            content_type, _ = await ContentType.get_or_create(
+                app_label=x._meta.app_config.label, model=x.__name__
+            )
 
             user_define_perms = getattr(x.Meta, "permissions", [])
 
@@ -116,7 +126,8 @@ async def async_migrate(safe, guided, apps):
 @click.option("--safe", default=True)
 @click.option("--guided", default=True)
 @click.option("--apps", multiple=True)
-def migrate(safe=True, guided=True, apps=None):
+@click.option("--models", multiple=True)
+def migrate(safe=True, guided=True, apps=None, models=None):
     """
     此函数用于执行数据库迁移操作。
 
@@ -124,10 +135,13 @@ def migrate(safe=True, guided=True, apps=None):
         safe (bool): 表示是否安全迁移，默认为 True。
         guided (bool): 表示是否进行引导迁移，默认为 True。
         apps (list): 要处理的应用列表，默认为 None。
+        models (list): 要处理的模型列表，默认为 None。
     """
     if apps is None:
         apps = []
-    asyncio.run(async_migrate(safe, guided, apps))
+    if models is None:
+        models = []
+    asyncio.run(async_migrate(safe, guided, apps, models))
 
 
 async def print_result(func, *args, **kwargs):
@@ -224,7 +238,11 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
             changes = generate_diff_sql(old_schema, new_schema, dialect.lower())
 
             if changes and changes[0]:
-                alert_sql = changes[0] if dialect.lower() == "postgres" else "\n".join(changes[0])
+                alert_sql = (
+                    changes[0]
+                    if dialect.lower() == "postgres"
+                    else "\n".join(changes[0])
+                )
                 alert_sql_list.append((alert_sql, dialect.lower()))
 
     for alert_sql, dialect in alert_sql_list:
@@ -237,7 +255,11 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
         try:
             while guided:
                 user_input = (
-                    input("Please enter '[Y]' to execute the sql, 'N' to skip the sql, or 'Q' to quit: ").strip().upper()
+                    input(
+                        "Please enter '[Y]' to execute the sql, 'N' to skip the sql, or 'Q' to quit: "
+                    )
+                    .strip()
+                    .upper()
                 )
                 if user_input == "":
                     user_input = "Y"

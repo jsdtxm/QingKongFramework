@@ -106,7 +106,10 @@ def generate_hypertable_sql(table_name: str, config: dict) -> str:
 
 
 def get_create_schema_sql(
-    self: "BaseSchemaGenerator", safe: bool = True, apps: list[str] = None
+    self: "BaseSchemaGenerator",
+    safe: bool = True,
+    apps: list[str] = None,
+    models: list[str] = None,
 ) -> list[str]:
     models_to_create: "List[Type[Model]]" = []
 
@@ -117,11 +120,15 @@ def get_create_schema_sql(
     apps_label_dict = {
         app.label
         for app in installed_apps.app_configs.values()
-        if not apps or (app.label in apps)
+        if not apps or (app.label in apps)  # Skip app if not in apps
     }
 
     tables_to_create = []
     for model in models_to_create:
+        if models and (model.__name__ not in models):
+            # Skip model if not in models
+            continue
+
         data = self._get_table_sql(model, safe)
 
         # check in apps
@@ -170,7 +177,9 @@ def get_create_schema_sql(
     return chain(ordered_tables_for_create + m2m_tables_to_create + extra_sql)
 
 
-def get_schema_sql(client: "BaseDBAsyncClient", safe: bool, apps: list[str]) -> str:
+def get_schema_sql(
+    client: "BaseDBAsyncClient", safe: bool, apps: list[str], models: list[str]
+) -> str:
     """
     Generates the SQL schema for the given client.
 
@@ -178,11 +187,15 @@ def get_schema_sql(client: "BaseDBAsyncClient", safe: bool, apps: list[str]) -> 
     :param safe: When set to true, creates the table only when it does not already exist.
     """
     generator = client.schema_generator(client)
-    return get_create_schema_sql(generator, safe, apps)
+    return get_create_schema_sql(generator, safe, apps, models)
 
 
 async def generate_schema_for_client(
-    client: "BaseDBAsyncClient", safe: bool, guided: bool, apps: list[str]
+    client: "BaseDBAsyncClient",
+    safe: bool,
+    guided: bool,
+    apps: list[str],
+    models: list[str],
 ) -> None:
     """
     Generates and applies the SQL schema directly to the given client.
@@ -191,7 +204,7 @@ async def generate_schema_for_client(
     :param safe: When set to true, creates the table only when it does not already exist.
     """
     generator = client.schema_generator(client)
-    schema_list = get_schema_sql(client, safe, apps)
+    schema_list = get_schema_sql(client, safe, apps, models)
     for schema in schema_list:
         if not schema:  # pragma: nobranch
             continue
@@ -227,7 +240,11 @@ async def generate_schema_for_client(
 
 
 async def generate_schemas(
-    cls: Type[Tortoise], safe: bool = True, guided=False, apps: list[str] = None
+    cls: Type[Tortoise],
+    safe: bool = True,
+    guided=False,
+    apps: list[str] = None,
+    models: list[str] = None,
 ) -> None:
     """
     Generate schemas according to models provided to ``.init()`` method.
@@ -250,4 +267,6 @@ async def generate_schemas(
                 f"{connection.user}@{connection.host}:{connection.port}",
                 connection.database,
             )
-        await generate_schema_for_client(connection, safe, guided, apps or [])
+        await generate_schema_for_client(
+            connection, safe, guided, apps or [], models or []
+        )
