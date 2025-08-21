@@ -152,7 +152,7 @@ class ModelSerializerPydanticModel(PydanticModel):
             if config.get("nested_field")
         }
 
-    def to_model(self, **extra_fields):
+    async def to_model(self, **extra_fields):
         if self._instance_processed:
             return self._instance
 
@@ -181,24 +181,35 @@ class ModelSerializerPydanticModel(PydanticModel):
             + [x["name"] for x in backward_fk_fields]
         ) - {"id"}
 
-        self._instance = self.orig_model()(
-            **(
-                (
-                    {
-                        x["name"]: getattr(self._instance, x["name"])
-                        for x in raw_instance_fields
-                    }
-                    if self._instance
-                    else {}
-                )
-                | self.model_dump(
-                    exclude=exclude_fields,
-                    exclude_unset=True,
-                    exclude_write_only=False,
-                )  # type: ignore[call-arg]
-                | extra_fields
+        if self.id:
+            # 允许嵌套的部分更新
+            related_model = self.orig_model()
+            obj = await related_model.get(id=self.id)
+            model_data = {
+                k: getattr(obj, k)
+                for k in [x["name"] for x in related_model._meta.data_fields()]
+            }
+        else:
+            model_data = {}
+
+        model_data = model_data | (
+            (
+                {
+                    x["name"]: getattr(self._instance, x["name"])
+                    for x in raw_instance_fields
+                }
+                if self._instance
+                else {}
+            )
+            | self.model_dump(
+                exclude=exclude_fields,
+                exclude_unset=True,
+                exclude_write_only=False,
             )  # type: ignore[call-arg]
-        )
+            | extra_fields
+        )  # type: ignore[call-arg]
+
+        self._instance = self.orig_model()(**model_data)
 
         if self._instance.pk is not None:
             self._instance._saved_in_db = True
@@ -219,7 +230,8 @@ class ModelSerializerPydanticModel(PydanticModel):
         m2m_fields = self.model_description().get("m2m_fields", [])
         backward_fk_fields = self.model_description().get("backward_fk_fields", [])
 
-        instance = self.to_model(**extra_fields)
+        # print("[self]", self)
+        instance = await self.to_model(**extra_fields)
 
         transaction_context_manager = (
             BlankContextManager if is_in_transaction else in_transaction
@@ -227,6 +239,7 @@ class ModelSerializerPydanticModel(PydanticModel):
 
         async with transaction_context_manager(instance.app.default_connection):
             # TODO 这里需要识别创建的情况
+            # print("[instance]", instance, instance.id, update_fields, force_create, force_update)
             await instance.save(using_db, update_fields, force_create, force_update)
 
             m2m_objects = await self._build_related_objects(
