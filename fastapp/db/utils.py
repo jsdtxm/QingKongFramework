@@ -125,10 +125,6 @@ def get_create_schema_sql(
 
     tables_to_create = []
     for model in models_to_create:
-        if models and (model.__name__ not in models):
-            # Skip model if not in models
-            continue
-
         data = self._get_table_sql(model, safe)
 
         # check in apps
@@ -165,6 +161,9 @@ def get_create_schema_sql(
         if (model := next_table_for_create["model"]) and getattr(
             getattr(model, "_meta", None), "is_managed", True
         ):
+            if models and (model.__name__ not in models):
+                # Skip model if not in models
+                continue
             # check in apps
             if model._meta.app in apps_label_dict:
                 ordered_tables_for_create.append(
