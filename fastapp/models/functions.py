@@ -2,6 +2,8 @@ from tortoise.expressions import Function
 
 import fastapp.db.functions.json as json_func
 import fastapp.db.functions.string as string_func
+import fastapp.db.functions.number as number_func
+
 
 
 class Right(Function):
@@ -38,3 +40,19 @@ class JsonExtract(Function):
     """
 
     database_func = json_func.JsonExtract
+
+
+class Abs(Function):
+    """
+    ABS
+    """
+
+    database_func = number_func.Abs
+
+
+class Diff(Function):
+    """
+    DIFF
+    """
+
+    database_func = number_func.Diff

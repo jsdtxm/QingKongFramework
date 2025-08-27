@@ -8,7 +8,7 @@ from fastapp.db.index import ExpressionIndex
 
 from .base import BaseModel
 from .fields import *
-from .functions import Instr, JsonExtract, JsonUnquote, Right
+from .functions import Instr, JsonExtract, JsonUnquote, Right, Abs, Diff
 from .manager import Manager
 from .model import BaseMeta, Model
 from .queryset import QuerySet

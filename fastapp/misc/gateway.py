@@ -35,7 +35,14 @@ class ProxyLocation:
     rewrite: tuple[str, str]
 
     def __init__(
-        self, path, target, rewrite, add_slashes=False, fastapi_redirect=False
+        self,
+        path,
+        target,
+        rewrite,
+        add_slashes=False,
+        fastapi_redirect=False,
+        add_forwarded_host=True,
+        rewrite_host=False,
     ):
         self.path = path
         self.target = target
@@ -46,6 +53,11 @@ class ProxyLocation:
         self.add_slashes = add_slashes
         self.fastapi_redirect = fastapi_redirect
 
+        self.add_forwarded_host = add_forwarded_host
+        self.rewrite_host = rewrite_host
+
+        self.parsed_target = urlparse(self.target)
+
     def __repr__(self):
         return (
             f"ProxyLocation {self.prefix}/* -> {self.target}; Rewrite: {self.rewrite}"
@@ -55,7 +67,15 @@ class ProxyLocation:
         return f"ProxyLocation {click.style(f'{self.prefix}/*', fg='bright_blue')} -> {click.style(self.target, fg='bright_cyan')}; Rewrite: {click.style(self.rewrite, fg='magenta')}"
 
     @classmethod
-    def prefix_proxy(cls, prefix, target, add_slashes=False, fastapi_redirect=False):
+    def prefix_proxy(
+        cls,
+        prefix,
+        target,
+        add_slashes=False,
+        fastapi_redirect=False,
+        add_forwarded_host=True,
+        rewrite_host=False,
+    ):
         if prefix == "":
             return cls(
                 r"/{path:.*}",
@@ -63,6 +83,8 @@ class ProxyLocation:
                 (r"^/(.*)$", r"/$1"),
                 add_slashes=add_slashes,
                 fastapi_redirect=fastapi_redirect,
+                add_forwarded_host=add_forwarded_host,
+                rewrite_host=rewrite_host,
             )
 
         return cls(
@@ -71,6 +93,8 @@ class ProxyLocation:
             (r"^/" + prefix + r"/(.*)$", r"/$1"),
             add_slashes=add_slashes,
             fastapi_redirect=fastapi_redirect,
+            add_forwarded_host=add_forwarded_host,
+            rewrite_host=rewrite_host,
         )
 
     def rewrite_path(self, path):
@@ -150,7 +174,11 @@ def handler_factory(proxy_loc: ProxyLocation):
             request_url = proxy_loc.construct_target_url(request.path_qs)
             request_content = await request.read()
 
-            headers = parse_forwarded_for(request)
+            if proxy_loc.add_forwarded_host:
+                headers = parse_forwarded_for(request)
+
+            if proxy_loc.rewrite_host:
+                headers["Host"] = proxy_loc.parsed_target.hostname
 
             async with session.request(
                 method=request.method,
@@ -237,6 +265,9 @@ def handler_factory(proxy_loc: ProxyLocation):
                         print(request_content)
                         print(content)
 
+                    if "Content-Encoding" in headers:
+                        headers.pop("Content-Encoding")
+
                     return aiohttp.web.Response(
                         body=content, status=response.status, headers=headers
                     )
@@ -279,10 +310,12 @@ def run_gateway(
     proxy_rules.extend(
         [
             ProxyLocation.prefix_proxy(
-                p[0],
-                p[1],
-                add_slashes=add_slashes,
-                fastapi_redirect=fastapi_redirect,
+                p["prefix"],
+                p["url"],
+                add_slashes=p.get("add_slashes", add_slashes),
+                fastapi_redirect=p.get("fastapi_redirect", fastapi_redirect),
+                add_forwarded_host=p.get("add_forwarded_host", True),
+                rewrite_host=p.get("rewrite_host", False),
             )
             for p in settings.EXTRA_PROXY
         ]
