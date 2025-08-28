@@ -1,18 +1,18 @@
 from typing import Any, Optional, SupportsInt
 
-from tortoise.backends import asyncpg
-from tortoise.backends.asyncpg import schema_generator
+from tortoise.backends import psycopg
+from tortoise.backends.psycopg import schema_generator
 
 from .mixin import SchemaGeneratorMixin
 
 
 class PostgreSQLSchemaGenerator(
-    SchemaGeneratorMixin, schema_generator.AsyncpgSchemaGenerator
+    SchemaGeneratorMixin, schema_generator.PsycopgSchemaGenerator
 ):
     pass
 
 
-class PostgreSQLClient(asyncpg.AsyncpgDBClient):
+class PostgreSQLClient(psycopg.PsycopgClient):
     schema_generator = PostgreSQLSchemaGenerator
 
     def __init__(
