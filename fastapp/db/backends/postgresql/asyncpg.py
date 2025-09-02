@@ -30,5 +30,11 @@ class PostgreSQLClient(asyncpg.AsyncpgDBClient):
             kwargs["init"] = kwargs.pop("configure")
         super().__init__(user, password, database, host, port, **kwargs)
 
+    async def _translate_exceptions(self, func, *args, **kwargs) -> Exception:
+        try:
+            return await func(self, *args, **kwargs)
+        finally:
+            await self._expire_connections()
+
 
 client_class = PostgreSQLClient
