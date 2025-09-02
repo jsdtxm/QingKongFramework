@@ -1,18 +1,18 @@
 from typing import Any, Optional, SupportsInt
 
-from tortoise.backends import psycopg
-from tortoise.backends.psycopg import schema_generator
+from tortoise.backends import asyncpg
+from tortoise.backends.asyncpg import schema_generator
 
-from .mixin import SchemaGeneratorMixin
+from fastapp.db.backends.mixin import SchemaGeneratorMixin
 
 
 class PostgreSQLSchemaGenerator(
-    SchemaGeneratorMixin, schema_generator.PsycopgSchemaGenerator
+    SchemaGeneratorMixin, schema_generator.AsyncpgSchemaGenerator
 ):
     pass
 
 
-class PostgreSQLClient(psycopg.PsycopgClient):
+class PostgreSQLClient(asyncpg.AsyncpgDBClient):
     schema_generator = PostgreSQLSchemaGenerator
 
     def __init__(
@@ -24,7 +24,10 @@ class PostgreSQLClient(psycopg.PsycopgClient):
         port: SupportsInt = 5432,
         **kwargs: Any,
     ) -> None:
-        kwargs.pop("charset")
+        if "charset" in kwargs:
+            kwargs.pop("charset")
+        if "configure" in kwargs:
+            kwargs["init"] = kwargs.pop("configure")
         super().__init__(user, password, database, host, port, **kwargs)
 
 

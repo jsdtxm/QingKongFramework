@@ -70,7 +70,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
                 },
             }
         else:
-            if "." in config["ENGINE"] and not config["ENGINE"].startswith("fastapp"):
+            if "." in config["ENGINE"]:
                 engine = config["ENGINE"]
             else:
                 engine = "fastapp.db.backends." + config["ENGINE"].rsplit(".", 1)[-1]
