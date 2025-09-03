@@ -22,7 +22,7 @@ class FileLock:
     """
 
     def __init__(
-        self, name: str, dir: Optional[str] = None, timeout: Optional[float] = 5
+        self, name: str, dir: Optional[str] = None, timeout: Optional[float] = 60
     ):
         """
         基于文件的锁，支持 with 语法
