@@ -4,6 +4,7 @@ from typing import (
     Any,
     Dict,
     Generator,
+    Iterable,
     List,
     Literal,
     Optional,
@@ -12,11 +13,15 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 
+from pypika import Table
 from tortoise import connections
 from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.exceptions import FieldError
 from tortoise.expressions import Q
+from tortoise.fields.relational import RelationalField
 from tortoise.filters import FilterInfoDict
 from tortoise.queryset import MODEL
 from tortoise.queryset import QuerySet as TortoiseQuerySet
@@ -81,6 +86,71 @@ class ValuesListQuery(TortoiseValuesListQuery):
 
 
 class QuerySet(TortoiseQuerySet[MODEL]):
+    def __init__(self, model: Type[MODEL]) -> None:
+        super().__init__(model)
+        self._fields_for_exclude: Tuple[str, ...] = ()
+
+    def _clone(self) -> "QuerySet[MODEL]":
+        queryset = super()._clone()
+        queryset._fields_for_exclude = self._fields_for_exclude
+        return queryset
+
+    def _join_table_with_select_related(
+        self,
+        model: MODEL,
+        table: Table,
+        field: str,
+        forwarded_fields: str,
+        path: Iterable[Optional[str]],
+    ) -> Tuple[Table, str]:
+        if field in model._meta.fields_db_projection and forwarded_fields:
+            raise FieldError(
+                f'Field "{field}" for model "{model.__name__}" is not relation'
+            )
+
+        field_object = cast(RelationalField, model._meta.fields_map.get(field))
+        if not field_object:
+            raise FieldError(f'Unknown field "{field}" for model "{model.__name__}"')
+
+        table = self._join_table_by_field(table, field, field_object)
+        related_fields = field_object.related_model._meta.db_fields
+        append_item = (
+            field_object.related_model,
+            len(related_fields),
+            field,
+            model,
+            path,
+        )
+
+        # FEAT: support defer
+        related_defer_field = filter(
+            lambda x: x.startswith(f"{field}__"), self._fields_for_exclude
+        )
+
+        if append_item not in self._select_related_idx:
+            self._select_related_idx.append(append_item)
+        for related_field in related_fields:
+            # FEAT: support defer
+            if related_defer_field and related_field in related_defer_field:
+                continue
+            self.query = self.query.select(
+                table[related_field].as_(f"{table.get_table_name()}.{related_field}")
+            )
+        if forwarded_fields:
+            field, __, forwarded_fields_ = forwarded_fields.partition("__")
+            self.query = self._join_table_with_select_related(
+                model=field_object.related_model,
+                table=table,
+                field=field,
+                forwarded_fields=forwarded_fields_,
+                path=(*path, field),
+            )
+            return self.query
+        return self.query
+
+    # def _make_query(self) -> None:
+    # TODO
+
     @classmethod
     def as_manager(cls):
         from fastapp.models.manager import Manager
@@ -129,6 +199,14 @@ class QuerySet(TortoiseQuerySet[MODEL]):
 
     def using(self, name: str) -> "QuerySet[MODEL]":
         return self.using_db(connections.get(name))
+
+    def defer(self, *fields_for_exclude: str) -> "QuerySet[MODEL]":
+        """
+        Fetch EXCLUDE the specified fields to create a partial model.
+        """
+        queryset = self._clone()
+        queryset._fields_for_exclude = fields_for_exclude
+        return queryset
 
     if TYPE_CHECKING:
 
