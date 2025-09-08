@@ -48,7 +48,7 @@ class AppConfig(metaclass=AppConfigMeta):
         if settings.ENABLE_PORT_MAP_FILE:
             with FileLock(
                 name=f"{settings.PROJECT_NAME or settings.BASE_DIR.name}_choice_port.lock",
-                timeout=5,
+                timeout=60,
             ):
                 if self.port:
                     write_port_to_json(name, self.port, address="127.0.0.1")
