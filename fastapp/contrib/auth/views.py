@@ -30,6 +30,7 @@ from fastapp.filters import FilterBackend
 from fastapp.responses import JSONResponse
 from fastapp.router import APIRouter
 from fastapp.security.jwt import create_token
+from fastapp.utils import timezone
 from fastapp.views import viewsets
 from fastapp.views.decorators import action
 
@@ -81,6 +82,8 @@ async def token_obtain(req: TokenObtainReq):
         timedelta(seconds=settings.REFRESH_TOKEN_LIFETIME),
         version_key=user.password,
     )
+
+    await User.objects.filter(id=user.id).update(last_login=timezone.now())
 
     return {
         "access": access_token,
