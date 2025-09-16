@@ -231,13 +231,20 @@ class BaseFilterSet:
 
         self._params = None
 
-        if queryset:
-            if (
-                isinstance(queryset, type) and issubclass(queryset, FastappBaseModel)
-            ) or isinstance(queryset, FastappBaseModel):
-                self.model_fields_map = queryset._meta.fields_map
-            else:
-                self.model_fields_map = queryset.model._meta.fields_map
+        if self.queryset:
+            self.model_fields_map = self.get_model_fields_map(self.queryset)
+        else:
+            self.model_fields_map = None
+
+    def get_model_fields_map(self, queryset):
+        if (
+            isinstance(queryset, type) and issubclass(queryset, FastappBaseModel)
+        ) or isinstance(queryset, FastappBaseModel):
+            model_fields_map = queryset._meta.fields_map
+        else:
+            model_fields_map = queryset.model._meta.fields_map
+
+        return model_fields_map
 
     @property
     def params(self):
@@ -250,6 +257,9 @@ class BaseFilterSet:
         return self._params
 
     def filter_queryset(self, queryset):
+        if self.model_fields_map is None:
+            self.model_fields_map = self.get_model_fields_map(queryset)
+
         params = self.params.model_dump(exclude_unset=True)
         ordering_filters = []
         for name, value in params.items():
