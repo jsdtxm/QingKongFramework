@@ -225,9 +225,10 @@ class BaseFilterSet:
         request=None,
         **kwargs,
     ):
-        self.data = data
         self.queryset = queryset
         self.request = request
+
+        self.data = data or request.GET
 
         self._params = None
 
