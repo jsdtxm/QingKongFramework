@@ -3,7 +3,6 @@ import multiprocessing
 import signal
 import sys
 from collections import Counter
-from copy import deepcopy
 from pathlib import Path
 
 import uvicorn
@@ -11,7 +10,7 @@ import uvicorn._subprocess
 
 from common.settings import settings
 from fastapp.initialize.apps import init_apps
-from fastapp.logging import log_config_template
+from fastapp.logging import get_log_config_template
 from fastapp.patchs.uvicorn.subprocess import subprocess_started
 from fastapp.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
 
@@ -40,7 +39,7 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         WatchFilesReload_init
     )
 
-    log_config = deepcopy(log_config_template)
+    log_config = get_log_config_template()
     for formatter in log_config["formatters"].values():
         formatter["app_label"] = app_config.label
 
@@ -131,5 +130,5 @@ def serve_app_aio(host: str = "127.0.0.1", port: int = 8080, workers=1, reload=F
         workers=workers,
         reload=reload,
         reload_dirs=[] if reload else None,
-        log_config=log_config_template,
+        log_config=get_log_config_template(),
     )

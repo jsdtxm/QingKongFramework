@@ -12,7 +12,7 @@ class BaseSettings(PydanticBaseSettings):
     model_config = SettingsConfigDict(env_prefix="QK_")
 
     PROJECT_NAME: Optional[str] = None
-    
+
     INCLUDE_HEALTHZ: bool = True
 
     TIME_ZONE: str = "Asia/Shanghai"
@@ -90,6 +90,9 @@ class BaseSettings(PydanticBaseSettings):
     DEFAULT_PAGINATION_CLASS: Optional[str] = None
 
     UVLOOP_WARNING: bool = False
+
+    # LOGGING
+    LOGGING_CONFIG: dict[str, Any] = {}
 
 
 class LazySettings:

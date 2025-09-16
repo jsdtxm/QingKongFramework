@@ -4,6 +4,8 @@ from typing import Any
 import click
 from uvicorn.logging import AccessFormatter, DefaultFormatter
 
+from common.settings import settings
+
 log_config_template: dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -45,6 +47,12 @@ log_config_template: dict[str, Any] = {
 }
 
 
+def get_log_config_template():
+    if settings.LOGGING_CONFIG:
+        return deepcopy(settings.LOGGING_CONFIG)
+    return deepcopy(log_config_template)
+
+
 class LoggingAppLabelMixin:
     app_label = "Default"
 
@@ -73,7 +81,7 @@ class QingKongAccessFormatter(LoggingAppLabelMixin, AccessFormatter):
 
 
 def generate_app_logging_config(app_label):
-    log_config = deepcopy(log_config_template)
+    log_config = get_log_config_template()
     for formatter in log_config["formatters"].values():
         formatter["app_label"] = app_label
 
