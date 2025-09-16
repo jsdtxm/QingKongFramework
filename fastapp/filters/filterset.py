@@ -257,7 +257,7 @@ class BaseFilterSet:
 
         return self._params
 
-    def filter_queryset(self, queryset):
+    def filter_queryset(self, queryset, distinct=True):
         if self.model_fields_map is None:
             self.model_fields_map = self.get_model_fields_map(queryset)
 
@@ -301,7 +301,9 @@ class BaseFilterSet:
                     raise ValueError(f"Invalid value `{value}` for ordering")
                 queryset = queryset.order_by(value)
 
-        return queryset.distinct()
+        if distinct:
+            return queryset.distinct()
+        return queryset
 
     @property
     def qs(self):
