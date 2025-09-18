@@ -230,7 +230,7 @@ class BaseFilterSet:
 
         self.data = data or (request.GET if request else None)
 
-        self._params = None
+        self._params_data = None
 
         if self.queryset:
             self.model_fields_map = self.get_model_fields_map(self.queryset)
@@ -248,20 +248,20 @@ class BaseFilterSet:
         return model_fields_map
 
     @property
-    def params(self):
-        if self._params is None:
+    def _params(self):
+        if self._params_data is None:
             data = self.data
             if not isinstance(data, dict):
                 data = data.to_dict()
-            self._params = self.PydanticModel.model_validate(data)
+            self._params_data = self.PydanticModel.model_validate(data)
 
-        return self._params
+        return self._params_data
 
     def filter_queryset(self, queryset, distinct=True):
         if self.model_fields_map is None:
             self.model_fields_map = self.get_model_fields_map(queryset)
 
-        params = self.params.model_dump(exclude_unset=True)
+        params = self._params.model_dump(exclude_unset=True)
         ordering_filters = []
         for name, value in params.items():
             try:
