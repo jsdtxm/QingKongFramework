@@ -75,6 +75,7 @@ class Filter(Generic[VALUE]):
         method=None,
         distinct=False,
         exclude=False,
+        many=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -92,6 +93,7 @@ class Filter(Generic[VALUE]):
         self.method = method
         self.distinct = distinct
         self.exclude = exclude
+        self.many = many
 
         self.extra = kwargs
         self.extra.setdefault("required", False)
@@ -150,6 +152,10 @@ class Filter(Generic[VALUE]):
         params = {
             f"{self.field_name}{f'__{lookup_expr}' if lookup_expr else ''}": value
         }
+
+        if self.many and isinstance(value, list):
+            params = {f"{self.field_name}__in": value}
+
         if self.exclude:
             return queryset.exclude(**params)
 

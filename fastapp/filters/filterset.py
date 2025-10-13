@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Optional, Type
+from typing import TYPE_CHECKING, Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field, create_model
 from tortoise.fields.base import Field as TortoiseField
@@ -188,6 +188,10 @@ class FilterSetMetaclass(type):
         for filter_name, filter_instance in declared_filters.items():
             # 获取字段的Python类型（如str、datetime）
             python_type = filter_instance.field_type
+
+            # 允许传入多个值
+            if filter_instance.many:
+                python_type = List[python_type] | python_type
 
             # 将类型包装为Optional（字段可空）
             optional_type = Optional[python_type]
