@@ -7,6 +7,7 @@ from tortoise.expressions import F
 from tortoise.expressions import Function as TortoiseFunction
 
 import fastapp.db.functions.json as json_func
+import fastapp.db.functions.misc as misc_func
 import fastapp.db.functions.number as number_func
 import fastapp.db.functions.string as string_func
 
@@ -46,6 +47,14 @@ class Function(TortoiseFunction):
     def __sub__(self, other):
         self.arithmetics.append((operator.sub, other))
         return self
+
+
+class Cast(Function):
+    """
+    CAST
+    """
+
+    database_func = misc_func.Cast
 
 
 class Right(Function):
