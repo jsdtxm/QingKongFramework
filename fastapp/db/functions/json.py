@@ -1,4 +1,4 @@
-from pypika.terms import Function
+from fastapp.db.functions.base import Function
 
 
 class JsonUnquote(Function):

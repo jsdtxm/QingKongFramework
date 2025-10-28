@@ -1,5 +1,6 @@
-from pypika.terms import Function
 from typing import Any
+
+from fastapp.db.functions.base import Function
 
 
 class Abs(Function):
@@ -19,4 +20,4 @@ class Diff(Function):
         self.schema = None
 
     def get_function_sql(self, **kwargs: Any) -> str:
-        return f'ABS({self.field} - {self.value})'
+        return f"ABS({self.field} - {self.value})"

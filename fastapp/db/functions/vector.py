@@ -1,7 +1,8 @@
 from typing import Any
 
 import numpy as np
-from pypika.terms import Function
+
+from fastapp.db.functions.base import Function
 
 
 class CosineSimilarity(Function):
