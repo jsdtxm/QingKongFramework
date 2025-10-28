@@ -1,9 +1,18 @@
 import errno
 import os
+import threading
 import time
-from typing import Optional
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Optional, Union
 
+from redis.asyncio.lock import Lock as RawRedisAsyncioLock
+
+from common.settings import settings
+from fastapp.cache.redis import get_redis_connection
 from fastapp.utils.temp import get_temp_directory
+
+if TYPE_CHECKING:
+    from redis.asyncio import Redis, RedisCluster
 
 
 class FileLock:
@@ -93,3 +102,78 @@ class FileLock:
             os.remove(self.lock_file)
         except FileNotFoundError:
             pass
+
+
+class RedisLock(RawRedisAsyncioLock):
+    def __init__(
+        self,
+        name: Optional[Union[str, bytes, memoryview]] = None,
+        redis: Optional[Union["Redis", "RedisCluster"]] = None,
+        timeout: Optional[float] = None,
+        sleep: float = 0.1,
+        blocking: bool = True,
+        blocking_timeout: Optional[float] = None,
+        thread_local: bool = True,
+    ):
+        """
+        Create a new Lock instance named ``name`` using the Redis client
+        supplied by ``redis``.
+
+        ``timeout`` indicates a maximum life for the lock in seconds.
+        By default, it will remain locked until release() is called.
+        ``timeout`` can be specified as a float or integer, both representing
+        the number of seconds to wait.
+
+        ``sleep`` indicates the amount of time to sleep in seconds per loop
+        iteration when the lock is in blocking mode and another client is
+        currently holding the lock.
+
+        ``blocking`` indicates whether calling ``acquire`` should block until
+        the lock has been acquired or to fail immediately, causing ``acquire``
+        to return False and the lock not being acquired. Defaults to True.
+        Note this value can be overridden by passing a ``blocking``
+        argument to ``acquire``.
+
+        ``blocking_timeout`` indicates the maximum amount of time in seconds to
+        spend trying to acquire the lock. A value of ``None`` indicates
+        continue trying forever. ``blocking_timeout`` can be specified as a
+        float or integer, both representing the number of seconds to wait.
+
+        ``thread_local`` indicates whether the lock token is placed in
+        thread-local storage. By default, the token is placed in thread local
+        storage so that a thread only sees its token, not a token set by
+        another thread. Consider the following timeline:
+
+            time: 0, thread-1 acquires `my-lock`, with a timeout of 5 seconds.
+                     thread-1 sets the token to "abc"
+            time: 1, thread-2 blocks trying to acquire `my-lock` using the
+                     Lock instance.
+            time: 5, thread-1 has not yet completed. redis expires the lock
+                     key.
+            time: 5, thread-2 acquired `my-lock` now that it's available.
+                     thread-2 sets the token to "xyz"
+            time: 6, thread-1 finishes its work and calls release(). if the
+                     token is *not* stored in thread local storage, then
+                     thread-1 would see the token value as "xyz" and would be
+                     able to successfully release the thread-2's lock.
+
+        In some use cases it's necessary to disable thread local storage. For
+        example, if you have code where one thread acquires a lock and passes
+        that lock instance to a worker thread to release later. If thread
+        local storage isn't disabled in this case, the worker thread won't see
+        the token set by the thread that acquired the lock. Our assumption
+        is that these cases aren't common and as such default to using
+        thread local storage.
+        """
+        self.redis = redis or get_redis_connection()
+        self.name = name or settings.PROJECT_NAME
+        if not self.name:
+            raise ValueError("RedisLock name must be set")
+        self.timeout = timeout
+        self.sleep = sleep
+        self.blocking = blocking
+        self.blocking_timeout = blocking_timeout
+        self.thread_local = bool(thread_local)
+        self.local = threading.local() if self.thread_local else SimpleNamespace()
+        self.local.token = None
+        self.register_scripts()
