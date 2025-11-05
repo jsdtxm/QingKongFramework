@@ -79,9 +79,14 @@ class DocumentCreateSerializer(serializers.ModelSerializer):
 ### File place in project_folder/apps/{app_name}/models.py
 ### You can add index to some fields if needed, ForeignKey will auto add index.
 ### Don't add verbose_name to fields, it will be auto generated.
+### ForeignKey field should import target model, and use it directly; only can use `models.ForeignKey("app_name.ModelName")` when self-reference or circular reference.
+
 ```python
 from fastapp import models
 from fastapp.models.choices import ChoiceItem, Choices
+from fastapp.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class StatusChoices(Choices[str]):
     PENDING = ChoiceItem[str]("待办")
