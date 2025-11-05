@@ -64,7 +64,6 @@ def cached(
             # 尝试从缓存获取
             cached_value = await cache.get(cache_key)
             if cached_value is not None:
-                print("use cache")
                 # 使用pickle反序列化
                 return pickle.loads(cached_value)
 
