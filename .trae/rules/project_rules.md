@@ -77,7 +77,7 @@ class DocumentCreateSerializer(serializers.ModelSerializer):
 
 ## model example
 ### File place in project_folder/apps/{app_name}/models.py
-### You can add index to some fields if needed, ForeignKeyField will auto add index.
+### You can add index to some fields if needed, ForeignKey will auto add index.
 ### Don't add verbose_name to fields, it will be auto generated.
 ```python
 from fastapp import models
@@ -108,7 +108,7 @@ class Document(models.Model):
     # Optional, add below lines to enable soft delete
     is_deleted = models.BooleanField(default=False)
 
-    # ForeignKeyField should add index like below lines.
+    # You can add index like below lines.
     class Meta:
         indexes = [
             models.Index(fields=("status",)),
