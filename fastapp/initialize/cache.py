@@ -1,14 +1,16 @@
 from fastapi_cache import FastAPICache
 
 from common.settings import settings
-from fastapp.cache import caches, connections
+from fastapp.cache.states import backends, connections
 from fastapp.utils.module_loading import import_string
 
 
 class FastAPICacheWrapper(FastAPICache):
     @classmethod
     def __getattribute__(cls, name):
-        if name in {"get", "set", "sync_get", "sync_set"} and hasattr(cls._backend, name):
+        if name in {"get", "set", "sync_get", "sync_set"} and hasattr(
+            cls._backend, name
+        ):
             return getattr(cls._backend, name)
         raise AttributeError(f"Attribute {name} not found in {cls.__name__}")
 
@@ -37,12 +39,12 @@ async def init_cache():
         else:
             raise Exception(f"Unknown Backend {backend}")
 
-        connections[alias] = conn
-
-        # HACK
         if backend.endswith("DiskCacheBackend"):
-            caches[alias] = conn
+            # HACK
+            backends[alias] = conn
             continue
+        else:
+            connections[alias] = conn
 
         if alias == "default":
             cache_class = FastAPICacheWrapper
@@ -57,4 +59,4 @@ async def init_cache():
             expire=3600,
             cache_status_header="X-FastApp-Cache",
         )
-        caches[alias] = cache_class
+        backends[alias] = cache_class
