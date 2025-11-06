@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from redis.asyncio.lock import Lock as RawRedisAsyncioLock
 
-from common.settings import settings
 from fastapp.cache.redis import get_redis_connection
+from fastapp.conf import settings
 from fastapp.utils.temp import get_temp_directory
 
 if TYPE_CHECKING:
