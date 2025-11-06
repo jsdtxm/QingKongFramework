@@ -232,7 +232,7 @@ class BaseFilterSet:
         self.queryset = queryset
         self.request = request
 
-        self.data = data or (request.GET if request else None)
+        self.data = data or (request.GET if request else {})
 
         self._params_data = None
 
