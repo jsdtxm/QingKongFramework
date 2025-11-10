@@ -1,6 +1,7 @@
 import inspect
 from asyncio import create_task
 from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
+from pathlib import Path
 from typing import Callable, Optional
 
 from fastapi import BackgroundTasks as BackgroundTasks  # type: ignore
@@ -8,6 +9,7 @@ from fastapi import FastAPI as RawFastAPI
 from fastapi import WebSocket as WebSocket  # type: ignore
 from fastapi.applications import AppType
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -15,8 +17,8 @@ from starlette.responses import HTMLResponse
 from starlette.types import Lifespan
 
 import fastapp.patchs.fastapi.encoders as _
-import fastapp.patchs.tortoise.fields as _
 import fastapp.patchs.starlette.requests as _
+import fastapp.patchs.tortoise.fields as _
 from common.settings import settings
 from fastapp.cache import connections
 from fastapp.exception_handlers import get_default_exception_handlers
@@ -140,11 +142,12 @@ class FastAPI(RawFastAPI):
                 oauth2_redirect_url=oauth2_redirect_url,
                 init_oauth=self.swagger_ui_init_oauth,
                 swagger_ui_parameters=self.swagger_ui_parameters,
-                swagger_js_url="https://cdn.bootcdn.net/ajax/libs/swagger-ui/5.9.0/swagger-ui-bundle.js",
-                swagger_css_url="https://cdn.bootcdn.net/ajax/libs/swagger-ui/5.9.0/swagger-ui.css",
-                swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+                swagger_js_url="/docs/static/swagger-ui/5.9.0/swagger-ui-bundle.min.js",
+                swagger_css_url="/docs/static/swagger-ui/5.9.0/swagger-ui.min.css",
+                swagger_favicon_url="/docs/static/img/favicon.png",
             )
 
         self.add_route("/docs", custom_swagger_ui_html, include_in_schema=False)
+        self.mount("/docs/static", StaticFiles(directory=Path(__file__).parent / "static"))
 
         add_pagination(self)
