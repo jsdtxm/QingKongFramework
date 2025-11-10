@@ -30,6 +30,7 @@ from fastapp.contrib.auth.utils import OptionalCurrentUser
 from fastapp.models import BaseModel as BaseDBModel
 from fastapp.models import Manager, Model, get_object_or_404
 from fastapp.paginate.base import BasePaginate
+from fastapp.paginate.serializers import PaginateResponse
 from fastapp.permissions.base import BasePermission
 from fastapp.requests import DjangoStyleRequest
 from fastapp.responses import JSONResponse
@@ -72,6 +73,9 @@ class GenericViewSetWrapper(ViewWrapper):
     view_class: Type["GenericViewSet"]
 
     def get_typed_view(self, view, method: str):
+        """
+        为视图方法添加类型注解
+        """
         view.__name__ = f"{view_set_name_clear(self.view_class.__name__)}_{method}"
 
         return view
@@ -112,7 +116,9 @@ class GenericViewSetWrapper(ViewWrapper):
             f"{match}: {type_to_str(parameters_annotations_map.get(match, int))}"
             for match in matches
         ]
+
         if route.action in ("create", "update"):
+            # 添加 body 参数的类型注解
             extra_params.append(
                 "body: "
                 + (
@@ -122,19 +128,21 @@ class GenericViewSetWrapper(ViewWrapper):
                 )
             )
 
+        response_type = ""
+        if route.action == "retrieve":
+            response_type = " -> serializer_class"
+        elif route.action == "list":
+            response_type = " -> PaginateResponse[serializer_class]"
+
         extra_params_str = ", ".join(extra_params)
         extra_params_send = ", ".join([f"{match}={match}" for match in matches])
 
         function_definition = f"""def view_wrapper_factory(route, self):
-    async def view_wrapper(request: Request, user: OptionalCurrentUser, {extra_params_str}):
+    async def view_wrapper(request: Request, user: OptionalCurrentUser, {extra_params_str}){response_type}:
         return await self.view_method(
             route.action, await self.django_request_adapter(request, user), {extra_params_send} 
         )
     return view_wrapper"""
-
-        # HACK for get_serializer_class
-        for k in filter(lambda x: x.endswith("serializer_class"), dir(self.view_class)):
-            setattr(route, k, getattr(self.view_class, k))
 
         local_env = {}
         exec(
@@ -144,6 +152,7 @@ class GenericViewSetWrapper(ViewWrapper):
                 "Request": Request,
                 "SkipValidation": SkipValidation,
                 "OptionalCurrentUser": OptionalCurrentUser,
+                "PaginateResponse": PaginateResponse,
                 "serializer_class": self.view_class.get_serializer_class(route),
             },
             local_env,
@@ -152,10 +161,17 @@ class GenericViewSetWrapper(ViewWrapper):
         return local_env["view_wrapper_factory"](route, self)
 
     def as_router(self, name=None, response_model=None, response_class=None):
-        # AS Router
+        """
+        将视图集转换为 APIRouter
+        """
 
         router = APIRouter()
         for route_item in self.get_routers(self.view_class):
+            for k in filter(
+                lambda x: x.endswith("serializer_class"), dir(self.view_class)
+            ):
+                setattr(route_item, k, getattr(self.view_class, k))
+
             router.add_api_route(
                 route_item.url,
                 self.get_typed_view(self.view(route_item), route_item.action),
