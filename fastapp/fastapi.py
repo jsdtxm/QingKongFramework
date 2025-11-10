@@ -73,6 +73,7 @@ class FastAPI(RawFastAPI):
         self,
         lifespan: Optional[Lifespan[AppType]] = None,
         include_healthz: Optional[bool] = None,
+        use_local_swagger_ui: bool = False,
         redirect_slashes=True,
         default_response_class=JsonResponse,
         auto_load_urls=True,
@@ -136,18 +137,32 @@ class FastAPI(RawFastAPI):
             if oauth2_redirect_url:
                 oauth2_redirect_url = root_path + oauth2_redirect_url
 
+            if use_local_swagger_ui:
+                assets_params = {
+                    "swagger_js_url": "/docs/static/swagger-ui/5.9.0/swagger-ui-bundle.min.js",
+                    "swagger_css_url": "/docs/static/swagger-ui/5.9.0/swagger-ui.min.css",
+                    "swagger_favicon_url": "/docs/static/img/favicon.png",
+                }
+            else:
+                assets_params = {
+                    "swagger_js_url": "https://cdn.bootcdn.net/ajax/libs/swagger-ui/5.9.0/swagger-ui-bundle.js",
+                    "swagger_css_url": "https://cdn.bootcdn.net/ajax/libs/swagger-ui/5.9.0/swagger-ui.css",
+                    "swagger_favicon_url": "https://fastapi.tiangolo.com/img/favicon.png",
+                }
+
             return get_swagger_ui_html(
                 openapi_url=openapi_url,
                 title=f"{self.title} - Swagger UI",
                 oauth2_redirect_url=oauth2_redirect_url,
                 init_oauth=self.swagger_ui_init_oauth,
                 swagger_ui_parameters=self.swagger_ui_parameters,
-                swagger_js_url="/docs/static/swagger-ui/5.9.0/swagger-ui-bundle.min.js",
-                swagger_css_url="/docs/static/swagger-ui/5.9.0/swagger-ui.min.css",
-                swagger_favicon_url="/docs/static/img/favicon.png",
+                **assets_params,
             )
 
         self.add_route("/docs", custom_swagger_ui_html, include_in_schema=False)
-        self.mount("/docs/static", StaticFiles(directory=Path(__file__).parent / "static"))
+        if use_local_swagger_ui:
+            self.mount(
+                "/docs/static", StaticFiles(directory=Path(__file__).parent / "static")
+            )
 
         add_pagination(self)
