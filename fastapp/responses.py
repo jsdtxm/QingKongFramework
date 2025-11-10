@@ -29,6 +29,7 @@ def orjson_default(obj):
         return f"{obj:f}"
     if isinstance(obj, BaseModel):
         return obj.model_dump()
+
     raise TypeError
 
 
@@ -43,7 +44,7 @@ class JSONResponse(StarletteJSONResponse):
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
-        orjson_parse_datetime: bool = False,
+        orjson_parse_datetime: bool = True,
         json_replace_nan: bool = False,
     ) -> None:
         self.orjson_parse_datetime = orjson_parse_datetime

@@ -4,6 +4,8 @@ import json
 import math
 import uuid
 
+from fastapp.conf import settings
+
 
 def remove_comments(jsonc_content: str):
     """移除JSONC内容中的注释"""
@@ -116,14 +118,9 @@ class JSONEncoder(json.JSONEncoder):
 
         # See "Date Time String Format" in the ECMA-262 specification.
         if isinstance(o, datetime.datetime):
-            r = o.isoformat()
-            if o.microsecond:
-                r = r[:23] + r[26:]
-            if r.endswith("+00:00"):
-                r = r.removesuffix("+00:00") + "Z"
-            return r
+            return o.strftime(settings.DATETIME_FORMAT)
         elif isinstance(o, datetime.date):
-            return o.isoformat()
+            return o.strftime(settings.DATE_FORMAT)
         elif isinstance(o, datetime.time):
             if is_aware(o):
                 raise ValueError("JSON can't represent timezone-aware times.")

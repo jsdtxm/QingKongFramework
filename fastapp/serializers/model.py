@@ -3,7 +3,6 @@ from collections import defaultdict
 from datetime import date, datetime
 from typing import (
     Any,
-    Callable,
     Dict,
     Iterable,
     List,
@@ -14,7 +13,7 @@ from typing import (
     Union,
 )
 
-from pydantic import BaseModel, ValidationInfo, model_serializer, model_validator
+from pydantic import BaseModel, ValidationInfo, model_validator
 from pydantic._internal import _model_construction
 from pydantic.main import IncEx
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -23,6 +22,7 @@ from tortoise.fields import Field
 from tortoise.fields.relational import BackwardFKRelation
 from tortoise.transactions import in_transaction
 
+from fastapp.conf import settings
 from fastapp.models.base import BaseModel as BaseDBModel
 from fastapp.models.base import QuerySet
 from fastapp.serializers.base import (
@@ -96,20 +96,23 @@ class ModelSerializerPydanticModel(PydanticModel):
         self._field_config = {}  # store property config when serializer as a field
         self._field_config["null"] = null
 
-    @model_serializer(mode="wrap")
-    def serialize(
-        self, original_serializer: Callable[[Self], dict[str, Any]]
-    ) -> dict[str, Any]:
-        result = original_serializer(self)
-        # TODO 或许不再需要，直接放到response阶段处理
+    # @model_serializer(mode="wrap")
+    # def serialize(
+    #     self, original_serializer: Callable[[Self], dict[str, Any]]
+    # ) -> dict[str, Any]:
+    #     """
+    #     FUCK, 这会导致pydantic的serialization模式触发回退机制
+    #     已弃用，在后续流程中处理
+    #     """
+    #     result = original_serializer(self)
 
-        for k, v in result.items():
-            if isinstance(v, datetime):
-                result[k] = v.strftime("%Y-%m-%d %H:%M:%S")
-            elif isinstance(v, date):
-                result[k] = v.strftime("%Y-%m-%d")
+    #     for k, v in result.items():
+    #         if isinstance(v, datetime):
+    #             result[k] = v.strftime("%Y-%m-%d %H:%M:%S")
+    #         elif isinstance(v, date):
+    #             result[k] = v.strftime("%Y-%m-%d")
 
-        return result
+    #     return result
 
     @copy_method_signature(PydanticModel.model_dump)
     def model_dump(
@@ -401,6 +404,11 @@ class ModelSerializerPydanticModel(PydanticModel):
             }
 
             schema["properties"] = props
+
+        json_encoders = {
+            datetime: lambda v: v.strftime(settings.DATETIME_FORMAT),
+            date: lambda v: v.strftime(settings.DATE_FORMAT),
+        }
 
 
 def remove_hidden_fields_builder(fields):

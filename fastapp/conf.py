@@ -40,6 +40,9 @@ class BaseSettings(PydanticBaseSettings):
         "fastapp.contrib.limiter.cache.WebSocketCacheRateLimiter"
     )
 
+    DATE_FORMAT: str = "%Y-%m-%d"
+    DATETIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
+
     # LOGO
     LOGO_FORE: Optional[str | int] = "BLUE"
     LOGO_BACK: Optional[str] = None
