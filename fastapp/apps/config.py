@@ -1,7 +1,10 @@
 import inspect
+import os
+import socket
 import types
 from typing import Optional, Tuple, Type
 
+from fastapp.conf import settings
 from fastapp.exceptions import ImproperlyConfigured
 from fastapp.utils.fs import get_existed_ports, read_port_from_json, write_port_to_json
 from fastapp.utils.lock import FileLock
@@ -43,25 +46,31 @@ class AppConfig(metaclass=AppConfigMeta):
         self.name = name
         self.module = module
 
-        from common.settings import settings
-
         if settings.ENABLE_PORT_MAP_FILE:
+            host = os.environ.get("FASTAPP_SERVER_HOST", socket.gethostname())
             with FileLock(
                 name=f"{settings.PROJECT_NAME or settings.BASE_DIR.name}_choice_port.lock",
                 timeout=60,
             ):
                 if self.port:
-                    write_port_to_json(name, self.port, address="127.0.0.1")
+                    write_port_to_json(name, self.port, address=host, lock=False)
                 elif self.has_module("urls"):
                     if name not in settings.NO_EXPORT_APPS:
-                        exists_config = read_port_from_json(name)
+                        exists_config = read_port_from_json(name, lock=False)
                         if exists_config and (p := exists_config.get("port")):
                             self.port = p
                         else:
                             self.port = find_free_port(
                                 exclude_ports=get_existed_ports()
                             )
-                            write_port_to_json(name, self.port, address="127.0.0.1")
+                            write_port_to_json(
+                                name, self.port, address=host, lock=False
+                            )
+
+                        if exists_config and exists_config.get("address") != host:
+                            write_port_to_json(
+                                name, self.port, address=host, lock=False
+                            )
 
     def __str__(self):
         return f"<QingKongFramework.AppConfig {self.name}>"
@@ -139,8 +148,7 @@ class AppConfig(metaclass=AppConfigMeta):
                 app_config_class = import_string(entry)
             except ImportError as e:
                 raise ImproperlyConfigured(
-                    "Could not import '%s'. %s: %s."
-                    % (entry, e.__class__.__name__, e)
+                    "Could not import '%s'. %s: %s." % (entry, e.__class__.__name__, e)
                 ) from None
             except Exception as e:
                 raise e

@@ -1,6 +1,8 @@
 import inspect
 import multiprocessing
+import os
 import signal
+import socket
 import sys
 from collections import Counter
 from pathlib import Path
@@ -77,6 +79,10 @@ def _serve_app(config):
 
 
 def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
+    os.environ["FASTAPP_SERVER_HOST"] = (
+        host if host not in ["0.0.0.0", "::"] else socket.gethostname()
+    )
+
     apps = init_apps(settings.INSTALLED_APPS)
 
     app_configs = [
