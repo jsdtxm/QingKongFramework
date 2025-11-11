@@ -1,6 +1,5 @@
 import inspect
 import os
-import socket
 import types
 from typing import Optional, Tuple, Type
 
@@ -47,7 +46,7 @@ class AppConfig(metaclass=AppConfigMeta):
         self.module = module
 
         if settings.ENABLE_PORT_MAP_FILE:
-            host = os.environ.get("FASTAPP_SERVER_HOST", socket.gethostname())
+            host = os.environ.get("FASTAPP_SERVER_HOST", "127.0.0.1")
             with FileLock(
                 name=f"{settings.PROJECT_NAME or settings.BASE_DIR.name}_choice_port.lock",
                 timeout=60,
