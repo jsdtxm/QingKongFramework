@@ -6,7 +6,12 @@ import portalocker
 
 
 def write_port_to_json(
-    app_name, port, address=None, json_file_path="service_ports.json", timeout=2
+    app_name,
+    port,
+    address=None,
+    json_file_path="service_ports.json",
+    lock=True,
+    timeout=2,
 ):
     """
     将服务的端口号写入JSON文件中，并处理文件锁。
@@ -23,27 +28,37 @@ def write_port_to_json(
     if not os.path.exists(json_file_path):
         with open(json_file_path, "w", encoding="utf8") as f:
             json.dump({}, f)
-    try:
-        with portalocker.Lock(json_file_path, mode="r+", timeout=timeout) as fh:
-            # 读取现有内容
-            try:
-                data = json.load(fh)
-            except json.JSONDecodeError:
-                data = {}
-            # 更新字典
-            data[app_name] = f"{address}:{port}"
-            # 回到文件开头并写入更新后的数据
-            fh.seek(0)
-            json.dump(data, fh, indent=4)
-            fh.truncate()  # 清除文件末尾可能遗留的内容
-            # 刷新并同步到文件系统
-            fh.flush()
-            os.fsync(fh.fileno())
-    except portalocker.exceptions.LockException as e:
-        raise e
+
+    def _write(fh):
+        # 读取现有内容
+        try:
+            data = json.load(fh)
+        except json.JSONDecodeError:
+            data = {}
+        # 更新字典
+        data[app_name] = f"{address}:{port}"
+        # 回到文件开头并写入更新后的数据
+        fh.seek(0)
+        json.dump(data, fh, indent=4)
+        fh.truncate()  # 清除文件末尾可能遗留的内容
+        # 刷新并同步到文件系统
+        fh.flush()
+        os.fsync(fh.fileno())
+
+    if lock:
+        try:
+            with portalocker.Lock(json_file_path, mode="r+", timeout=timeout) as fh:
+                _write(fh)
+        except portalocker.exceptions.LockException as e:
+            raise e
+    else:
+        with open(json_file_path, "r+", encoding="utf8") as fh:
+            _write(fh)
 
 
-def read_port_from_json(app_name, json_file_path="service_ports.json", timeout=10):
+def read_port_from_json(
+    app_name, json_file_path="service_ports.json", lock=True, timeout=10
+):
     """
     从JSON文件中读取服务的端口号，并处理文件锁。
     :param app_name: 应用程序名称
@@ -53,23 +68,32 @@ def read_port_from_json(app_name, json_file_path="service_ports.json", timeout=1
     """
     # 确保文件存在
     if not os.path.exists(json_file_path):
-        with open(json_file_path, "w") as f:
+        with open(json_file_path, "w", encoding="utf8") as f:
             json.dump({}, f)
-    try:
-        # 使用portalocker获取共享锁（允许其他读操作）
-        with portalocker.Lock(
-            json_file_path,
-            mode="r+",  # 读写模式以便加锁
-            timeout=timeout,
-        ) as fh:
-            # 读取JSON内容
-            try:
+
+    if lock:
+        try:
+            # 使用portalocker获取共享锁（允许其他读操作）
+            with portalocker.Lock(
+                json_file_path,
+                mode="r+",  # 读写模式以便加锁
+                timeout=timeout,
+            ) as fh:
+                # 读取JSON内容
+                try:
+                    data = json.load(fh)
+                    result = data.get(app_name, None)
+                except json.JSONDecodeError:  # JSON解析错误处理
+                    result = None
+        except portalocker.exceptions.LockException as e:
+            raise e
+    else:
+        try:
+            with open(json_file_path, "r", encoding="utf8") as fh:
                 data = json.load(fh)
                 result = data.get(app_name, None)
-            except json.JSONDecodeError:  # JSON解析错误处理
-                result = None
-    except portalocker.exceptions.LockException as e:
-        raise e
+        except json.JSONDecodeError:  # JSON解析错误处理
+            result = None
 
     if result is not None:
         address, port = result.split(":")

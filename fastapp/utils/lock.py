@@ -31,7 +31,11 @@ class FileLock:
     """
 
     def __init__(
-        self, name: str, dir: Optional[str] = None, timeout: Optional[float] = 60
+        self,
+        name: str,
+        dir: Optional[str] = None,
+        timeout: Optional[float] = 60,
+        interval: Optional[float] = 0.1,
     ):
         """
         基于文件的锁，支持 with 语法
@@ -41,6 +45,7 @@ class FileLock:
         """
         self.lock_file = os.path.join(dir or get_temp_directory(), name)
         self.timeout = timeout
+        self.interval = interval
         self.fd = None
 
     def __enter__(self):
@@ -60,7 +65,7 @@ class FileLock:
                 # 超时判断
                 if self.timeout and (time.time() - start_time) >= self.timeout:
                     raise TimeoutError(f"无法在 {self.timeout} 秒内获取锁")
-                time.sleep(0.1)
+                time.sleep(self.interval)
             except:
                 self._cleanup()
                 raise
