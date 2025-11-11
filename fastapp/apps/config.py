@@ -47,29 +47,35 @@ class AppConfig(metaclass=AppConfigMeta):
 
         if settings.ENABLE_PORT_MAP_FILE:
             host = os.environ.get("FASTAPP_SERVER_HOST", "127.0.0.1")
-            with FileLock(
-                name=f"{settings.PROJECT_NAME or settings.BASE_DIR.name}_choice_port.lock",
-                timeout=60,
+            app_name = os.environ.get("FASTAPP_SERVER_APP")
+            if (
+                app_name is None
+                or self.name == app_name
+                or self.name == f"apps.{app_name}"
             ):
-                if self.port:
-                    write_port_to_json(name, self.port, address=host, lock=False)
-                elif self.has_module("urls"):
-                    if name not in settings.NO_EXPORT_APPS:
-                        exists_config = read_port_from_json(name, lock=False)
-                        if exists_config and (p := exists_config.get("port")):
-                            self.port = p
-                        else:
-                            self.port = find_free_port(
-                                exclude_ports=get_existed_ports()
-                            )
-                            write_port_to_json(
-                                name, self.port, address=host, lock=False
-                            )
+                with FileLock(
+                    name=f"{settings.PROJECT_NAME or settings.BASE_DIR.name}_choice_port.lock",
+                    timeout=60,
+                ):
+                    if self.port:
+                        write_port_to_json(name, self.port, address=host, lock=False)
+                    elif self.has_module("urls"):
+                        if name not in settings.NO_EXPORT_APPS:
+                            exists_config = read_port_from_json(name, lock=False)
+                            if exists_config and (p := exists_config.get("port")):
+                                self.port = p
+                            else:
+                                self.port = find_free_port(
+                                    exclude_ports=get_existed_ports()
+                                )
+                                write_port_to_json(
+                                    name, self.port, address=host, lock=False
+                                )
 
-                        if exists_config and exists_config.get("address") != host:
-                            write_port_to_json(
-                                name, self.port, address=host, lock=False
-                            )
+                            if exists_config and exists_config.get("address") != host:
+                                write_port_to_json(
+                                    name, self.port, address=host, lock=False
+                                )
 
     def __str__(self):
         return f"<QingKongFramework.AppConfig {self.name}>"

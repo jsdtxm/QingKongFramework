@@ -28,6 +28,11 @@ if uvloop is not None:
 
 
 def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
+    os.environ["FASTAPP_SERVER_HOST"] = (
+        host if host not in ["0.0.0.0", "::"] else socket.gethostname()
+    )
+    os.environ["FASTAPP_SERVER_APP"] = app_name
+
     apps = init_apps(settings.INSTALLED_APPS)
 
     try:
