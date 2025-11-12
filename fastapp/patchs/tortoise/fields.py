@@ -1,5 +1,10 @@
 from functools import partial
-from typing import Any, List, Optional, Type, Union
+from typing import Any, List, Optional, Set, Type, Union
+
+from tortoise.exceptions import (
+    ConfigurationError,
+    OperationalError,
+)
 
 
 def describe(self, serializable: bool) -> dict:
@@ -54,6 +59,51 @@ def describe(self, serializable: bool) -> dict:
     return desc
 
 
+def _set_kwargs(self, kwargs: dict) -> Set[str]:
+    meta = self._meta
+
+    # Assign values and do type conversions
+    passed_fields = {*kwargs.keys()} | meta.fetch_fields
+
+    for key, value in kwargs.items():
+        if key in meta.fk_fields or key in meta.o2o_fields:
+            if value and not value._saved_in_db:
+                raise OperationalError(
+                    f"You should first call .save() on {value} before referring to it"
+                )
+            setattr(self, key, value)
+            passed_fields.add(meta.fields_map[key].source_field)
+        elif key in meta.fields_db_projection:
+            field_object = meta.fields_map[key]
+            if field_object.pk and field_object.generated:
+                self._custom_generated_pk = True
+            if value is None:
+                if field_object.default is not None:
+                    value = field_object.default
+                elif not field_object.null:
+                    raise ValueError(
+                        f"{key} is non nullable field, but null was passed"
+                    )
+            setattr(self, key, field_object.to_python_value(value))
+        elif key in meta.backward_fk_fields:
+            raise ConfigurationError(
+                "You can't set backward relations through init, change related model instead"
+            )
+        elif key in meta.backward_o2o_fields:
+            raise ConfigurationError(
+                "You can't set backward one to one relations through init,"
+                " change related model instead"
+            )
+        elif key in meta.m2m_fields:
+            raise ConfigurationError(
+                "You can't set m2m relations through init, use m2m_manager instead"
+            )
+
+    return passed_fields
+
+
+from tortoise import models
 from tortoise.fields import base
 
 base.Field.describe = describe
+models.Model._set_kwargs = _set_kwargs
