@@ -9,6 +9,7 @@ We don't need to use decorator like `sync_to_async`, and don't use `aget` or `af
 ### Remember @action function should use `id` as parameter name, not `pk`.
 ### If you want to get field from serializer, don't use `serializer.validated_data["field_name"]`, instead use `serializer.field_name`.
 ### For serializer_class, you only need to define one ModelSerializer, then use it in ViewSet. don't define multiple serializers for different actions.
+### The type of `request` is `DjangoStyleRequest`, you can get request data like Django.
 ### File place in project_folder/apps/{app_name}/views.py
 ```python
 from fastapp.contrib.auth.mixins import CreatorMixin, SuperUserRequiredMixin
@@ -16,6 +17,7 @@ from fastapp.filters import FilterBackend
 from fastapp.views.viewsets import ModelViewSet
 from fastapp.views.decorators import action
 from fastapp.responses import JSONResponse
+from fastapp.requests import DjangoStyleRequest
 
 from apps.{app_name}.models import Folder
 from apps.{app_name}.serializers import FolderSerializer
