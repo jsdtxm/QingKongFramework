@@ -127,6 +127,7 @@ class Document(models.Model):
 ## filter example
 ### File place in project_folder/apps/{app_name}/filters.py
 ### You can change field filter operator, if you don't specify it, it will use `exact`.
+### Meta.fields is optional, if you don't specify it, it will use all fields.
 ```python
 from apps.{app_name}.models import Document, Folder
 from fastapp import filters
