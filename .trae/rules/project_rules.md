@@ -224,6 +224,7 @@ class FolderFilterSet(filters.FilterSet):
 
 ## Model with choices field
 ### add choices field to model.py follow below code, model serializer will auto verify choices field.
+### notice: `[str]` is the type of choices field, you can also use `[int]` as well.
 ```python
 from fastapp.models.choices import ChoiceItem, Choices
 
