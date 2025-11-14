@@ -8,6 +8,7 @@ We don't need to use decorator like `sync_to_async`, and don't use `aget` or `af
 ## view example
 ### Remember @action function should use `id` as parameter name, not `pk`.
 ### If you want to get field from serializer, don't use `serializer.validated_data["field_name"]`, instead use `serializer.field_name`.
+### For serializer_class, you only need to define one ModelSerializer, then use it in ViewSet. don't define multiple serializers for different actions.
 ### File place in project_folder/apps/{app_name}/views.py
 ```python
 from fastapp.contrib.auth.mixins import CreatorMixin, SuperUserRequiredMixin
