@@ -7,6 +7,7 @@ We don't need to use decorator like `sync_to_async`, and don't use `aget` or `af
 
 ## view example
 ### Remember @action function should use `id` as parameter name, not `pk`.
+### If you want to get field from serializer, don't use `serializer.validated_data["field_name"]`, instead use `serializer.field_name`.
 ### File place in project_folder/apps/{app_name}/views.py
 ```python
 from fastapp.contrib.auth.mixins import CreatorMixin, SuperUserRequiredMixin
@@ -36,6 +37,9 @@ class FolderViewSet(SuperUserRequiredMixin, CreatorMixin, ModelViewSet):
         )
 
         return JSONResponse(serializer.model_dump())
+
+    async def perform_create(self, serializer):
+        value = serializer.field_name
 
     async def perform_destroy(self, instance):
         instance.is_deleted = True
