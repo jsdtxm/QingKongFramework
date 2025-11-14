@@ -4,6 +4,7 @@ from typing import Callable, Optional, Type
 from starlette.requests import Request
 from starlette.responses import Response
 
+from fastapp.conf import settings
 from fastapp.contrib.limiter.depends import RateLimiter
 from fastapp.contrib.xcaptcha import XCaptchaLimiter
 from fastapp.contrib.xcaptcha.client import XCaptchaClient
@@ -23,6 +24,9 @@ class IntelligenceLimiter(RateLimiter):
         callback: Optional[Callable] = None,
         limiter: Type[XCaptchaLimiter] = XCaptchaLimiter,
     ):
+        if not settings.XCAPTCHA_ENABLE:
+            return
+
         self.rules = rules
 
         self.identifier = identifier
@@ -35,6 +39,9 @@ class IntelligenceLimiter(RateLimiter):
         asyncio.new_event_loop().run_until_complete(self.client.close())
 
     async def _check(self, key) -> Optional[ThrottledException]:
+        if not settings.XCAPTCHA_ENABLE:
+            return None
+
         try:
             response = await self.client.risk_assessment(
                 key, rules=list(map(lambda r: r.to_dict(), self.rules))
@@ -59,6 +66,9 @@ class IntelligenceLimiter(RateLimiter):
         return None
 
     async def __call__(self, request: Request, response: Response):
+        if not settings.XCAPTCHA_ENABLE:
+            return None
+
         route_index, dep_index = self.get_dep_index(request)
 
         # moved here because constructor run before app startup

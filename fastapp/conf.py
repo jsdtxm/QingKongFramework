@@ -48,6 +48,7 @@ class BaseSettings(PydanticBaseSettings):
     LOGO_BACK: Optional[str] = None
     LOGO_STYLE: Optional[str] = None
 
+    XCAPTCHA_ENABLE: bool = False
     XCAPTCHA_URL: Optional[str] = None
     XCAPTCHA_ENCRYPT_KEY: Optional[str] = None
     XCAPTCHA_API_KEY: Optional[str] = None
