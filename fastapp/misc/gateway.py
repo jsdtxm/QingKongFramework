@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import logging.config
 import os
@@ -118,13 +119,18 @@ def swagger_proxy_middleware(
         content = re.sub(
             rb"url:\s*\'(/openapi.json)\'", b"url: './openapi.json'", content
         )
-    elif re.match(rf"^/{proxy_loc.prefix}/openapi.json", request.path):
-        content = (
-            content[:-1]
-            + b',"servers": [{"url": "/'
-            + proxy_loc.prefix.encode()
-            + b'","description": "Default server"}]}'
+        content = re.sub(
+            rb"/docs/static/", f"/{proxy_loc.prefix}/docs/static/".encode(), content
         )
+    elif re.match(rf"^/{proxy_loc.prefix}/openapi.json", request.path):
+        data = json.loads(content)
+        new_paths = {}
+        for k, v in data["paths"].items():
+            new_paths[f"/{proxy_loc.prefix}{k}"] = v
+
+        data["paths"] = new_paths
+
+        content = json.dumps(data, ensure_ascii=False).encode()
 
     return content
 
