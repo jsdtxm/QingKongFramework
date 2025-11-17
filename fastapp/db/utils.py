@@ -134,8 +134,7 @@ def get_create_schema_sql(
                     generate_hypertable_sql(model._meta.db_table, hypertable)
                 )
 
-        if model._meta.is_managed:
-            tables_to_create.append(data)
+        tables_to_create.append(data)
 
     if not tables_to_create:
         return []

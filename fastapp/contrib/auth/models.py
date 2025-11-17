@@ -147,6 +147,7 @@ class AbstractUser(models.Model, LoadPermissionBackendMixin):
         related_name="user_set",
         related_query_name="user",
         through=f"{settings.INTERNAL_APP_PREFIX}_auth_user_groups",
+        db_constraint=settings.AUTH_USER_DB_CONSTRAINT,
     )
     permissions = models.ManyToManyField(
         Permission,
@@ -154,6 +155,7 @@ class AbstractUser(models.Model, LoadPermissionBackendMixin):
         related_name="user_set",
         related_query_name="user",
         through=f"{settings.INTERNAL_APP_PREFIX}_auth_user_permissions",
+        db_constraint=settings.AUTH_USER_DB_CONSTRAINT,
     )
 
     objects: Union[UserManager[Self], QuerySet[Self]]

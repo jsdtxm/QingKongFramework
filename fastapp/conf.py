@@ -59,6 +59,7 @@ class BaseSettings(PydanticBaseSettings):
     ETCD_URL: str = "etcd://root:wskj123456@etcd:2379"
 
     AUTH_USER_MODEL: str = "fastapp.contrib.auth.models.User"
+    AUTH_USER_DB_CONSTRAINT: bool = True
 
     ACCESS_TOKEN_LIFETIME: int = 60 * 60
     REFRESH_TOKEN_LIFETIME: int = 60 * 60 * 24 * 7
