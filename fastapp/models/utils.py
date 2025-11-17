@@ -50,7 +50,12 @@ def model_to_dict(
 
     opts = instance._meta
     data = {}
-    for f in chain(opts.fields, opts.m2m_fields, opts.fk_fields, opts.o2o_fields):
+    default_exclude_fields = (
+        opts.backward_fk_fields | opts.m2m_fields | opts.fk_fields | opts.o2o_fields
+    )
+    for f in opts.fields:
+        if fields is None and f in default_exclude_fields:
+            continue
         if fields is not None and f not in fields:
             continue
         if exclude and f in exclude:
