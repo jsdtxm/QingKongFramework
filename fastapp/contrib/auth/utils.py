@@ -131,7 +131,7 @@ def get_current_user_factory(
         settings.AUTH_CURRENT_USER_FACTORY
         != "fastapp.contrib.auth.utils._get_current_user_factory"
     ):
-        func = import_string(settings.AUTH_USER_MODEL)
+        func = import_string(settings.AUTH_CURRENT_USER_FACTORY)
         return func(token_type, raw, raise_exception, extra_action, version_checker)
 
     return _get_current_user_factory(
