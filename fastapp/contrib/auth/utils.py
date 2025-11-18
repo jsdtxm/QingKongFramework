@@ -1,25 +1,19 @@
 import base64
 import hashlib
-from enum import Enum
 from typing import Annotated, Awaitable, Callable, Optional, Type
 
 import jwt
 from fastapi import Depends, HTTPException, status
 from jwt.exceptions import InvalidTokenError
 
-from common.settings import settings
-from fastapp.contrib.auth.typing import UserProtocol
+from fastapp.conf import settings
+from fastapp.contrib.auth.typing import TokenTypeEnum, UserProtocol
 from fastapp.django.hashers import check_password
 from fastapp.exceptions import ImproperlyConfigured
 from fastapp.security.jwt import ALGORITHM, global_bearer_token_header
 from fastapp.utils.module_loading import import_string
 
 ANONYMOUS_USERNAME = "anonymous"
-
-
-class TokenTypeEnum(Enum):
-    ACCESS = "acc"
-    REFRESH = "ref"
 
 
 decode = jwt.decode

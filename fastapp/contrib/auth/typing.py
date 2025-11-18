@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import TYPE_CHECKING, Iterable, Optional, Protocol, Self, Type, Union
 
 if TYPE_CHECKING:
@@ -45,5 +46,11 @@ class UserProtocol(Protocol):
     ) -> Self: ...
 
 
+class TokenTypeEnum(Enum):
+    ACCESS = "acc"
+    REFRESH = "ref"
+
+
 if TYPE_CHECKING:
+
     class UserProtocol(AbstractUser, UserProtocol): ...
