@@ -7,7 +7,11 @@ from fastapp.contrib.guardian.manager import BaseObjectPermissionManager
 
 
 class UserObjectPermission(models.Model):
-    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)  # type: ignore
+    user = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        db_constraint=settings.AUTH_USER_DB_CONSTRAINT,
+    )  # type: ignore
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
 
