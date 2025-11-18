@@ -73,7 +73,7 @@ async def authenticate_user(
     return user
 
 
-def get_current_user_factory(
+def _get_current_user_factory(
     token_type: Optional[TokenTypeEnum] = None,
     raw: bool = False,
     raise_exception: bool = True,
@@ -106,9 +106,9 @@ def get_current_user_factory(
             if version_checker:
                 if not version_checker(user, payload.get("ver")):
                     raise credentials_exception
-        except (InvalidTokenError, HTTPException):
+        except (InvalidTokenError, HTTPException) as e:
             if raise_exception:
-                raise credentials_exception
+                raise credentials_exception from e
             else:
                 return (None, None) if raw else None
 
@@ -118,6 +118,25 @@ def get_current_user_factory(
         return (payload, user) if raw else user
 
     return get_current_user
+
+
+def get_current_user_factory(
+    token_type: Optional[TokenTypeEnum] = None,
+    raw: bool = False,
+    raise_exception: bool = True,
+    extra_action: Optional[Callable] = None,
+    version_checker: Optional[Callable] = None,
+):
+    if (
+        settings.AUTH_CURRENT_USER_FACTORY
+        != "fastapp.contrib.auth.utils._get_current_user_factory"
+    ):
+        func = import_string(settings.AUTH_USER_MODEL)
+        return func(token_type, raw, raise_exception, extra_action, version_checker)
+
+    return _get_current_user_factory(
+        token_type, raw, raise_exception, extra_action, version_checker
+    )
 
 
 def default_version_checker(user: UserProtocol, ver: str):
