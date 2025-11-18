@@ -32,6 +32,7 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         host if host not in ["0.0.0.0", "::"] else socket.gethostname()
     )
     os.environ["FASTAPP_SERVER_APP"] = app_name
+    os.environ["FASTAPP_COMMAND"] = "runserver"
 
     apps = init_apps(settings.INSTALLED_APPS)
 
@@ -87,6 +88,7 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
     os.environ["FASTAPP_SERVER_HOST"] = (
         host if host not in ["0.0.0.0", "::"] else socket.gethostname()
     )
+    os.environ["FASTAPP_COMMAND"] = "runserver"
 
     apps = init_apps(settings.INSTALLED_APPS)
 
@@ -117,7 +119,9 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
 
     # Create and start each process manually
     for param in app_params:
-        p = multiprocessing.Process(target=_serve_app, args=(param,), daemon=False, name=param[0])
+        p = multiprocessing.Process(
+            target=_serve_app, args=(param,), daemon=False, name=param[0]
+        )
         p.daemon = False  # Set daemon to False
         p.start()
         processes.append(p)

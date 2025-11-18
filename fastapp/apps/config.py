@@ -48,6 +48,17 @@ class AppConfig(metaclass=AppConfigMeta):
         if settings.ENABLE_PORT_MAP_FILE:
             host = os.environ.get("FASTAPP_SERVER_HOST", "127.0.0.1")
             app_name = os.environ.get("FASTAPP_SERVER_APP")
+            command = os.environ.get("FASTAPP_COMMAND", "unknown")
+
+            if command != "runserver":
+                exists_config = read_port_from_json(name, lock=False)
+                if exists_config and (p := exists_config.get("port")):
+                    self.port = p
+                elif self.has_module("urls") and name not in settings.NO_EXPORT_APPS:
+                    raise Exception(f"App {name} port not found in service_ports.json")
+
+                return
+
             if (
                 app_name is None
                 or self.name == app_name
