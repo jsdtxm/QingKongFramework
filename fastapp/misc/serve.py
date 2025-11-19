@@ -137,6 +137,7 @@ def serve_apps(host: str = "127.0.0.1", workers=1, reload=False, exclude=[]):
 
 
 def serve_app_aio(host: str = "127.0.0.1", port: int = 8080, workers=1, reload=False):
+    os.environ["FASTAPP_COMMAND"] = "runserver"
     uvicorn.run(
         "fastapp.serve.aio:asgi_app",
         host=host,
