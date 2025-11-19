@@ -1,8 +1,13 @@
+<p align="left">
+    <a href="README_CN.md">中文</a>&nbsp ｜ &nbspEnglish
+</p>
+
 # QingKongFramework (fastapp)
 
 ⚠️ **IMPORTANT: This repository contains documentation intended solely for AI consumption and does not provide documentation meant for human readers.**
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jsdtxm/QingKongFramework)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ## Overview
 
