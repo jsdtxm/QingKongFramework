@@ -2,6 +2,8 @@
 
 ⚠️ **IMPORTANT: This repository contains documentation intended solely for AI consumption and does not provide documentation meant for human readers.**
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jsdtxm/QingKongFramework)
+
 ## Overview
 
 QingKongFramework (package name: `fastapp`) is a full-stack async web framework built on top of FastAPI, designed to provide a Django-like development experience with full async support.
