@@ -45,12 +45,13 @@ class AppConfig(metaclass=AppConfigMeta):
         self.name = name
         self.module = module
 
-        if settings.ENABLE_PORT_MAP_FILE:
+        command = os.environ.get("FASTAPP_COMMAND", "unknown")
+
+        if settings.ENABLE_PORT_MAP_FILE and command in ["runserver", "gateway"]:
             host = os.environ.get("FASTAPP_SERVER_HOST", "127.0.0.1")
             app_name = os.environ.get("FASTAPP_SERVER_APP")
-            command = os.environ.get("FASTAPP_COMMAND", "unknown")
 
-            if command != "runserver":
+            if command == "gateway":
                 exists_config = read_port_from_json(name, lock=False)
                 if exists_config and (p := exists_config.get("port")):
                     self.port = p

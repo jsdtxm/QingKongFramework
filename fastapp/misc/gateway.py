@@ -290,6 +290,8 @@ def run_gateway(
     fastapi_redirect=False,
     debug=False,
 ):
+    os.environ["FASTAPP_COMMAND"] = "gateway"
+
     global debug_flag
 
     debug_flag = debug
