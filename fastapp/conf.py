@@ -33,6 +33,8 @@ class BaseSettings(PydanticBaseSettings):
     DATABASES: dict[str, dict[str, Any]]
     CACHES: dict[str, dict[str, Any]] = {}
 
+    SERVE_AIO_ASGI_APP: str = "fastapp.serve.aio:asgi_app"
+
     EXTRA_PROXY: List[dict[str, Any]] = []
 
     RATE_LIMITER_CLASS: str = "fastapp.contrib.limiter.cache.CacheRateLimiter"
