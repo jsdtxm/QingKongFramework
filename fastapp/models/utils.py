@@ -50,9 +50,7 @@ def model_to_dict(
 
     opts = instance._meta
     data = {}
-    default_exclude_fields = (
-        opts.backward_fk_fields | opts.m2m_fields | opts.fk_fields | opts.o2o_fields
-    )
+    default_exclude_fields = opts.backward_fk_fields | opts.m2m_fields | opts.fk_fields | opts.o2o_fields
     for f in opts.fields:
         if fields is None and f in default_exclude_fields:
             continue
@@ -60,7 +58,11 @@ def model_to_dict(
             continue
         if exclude and f in exclude:
             continue
-        data[f] = getattr(instance, f)
+
+        value = getattr(instance, f)
+        if value.__class__.__name__ == "ndarray":
+            continue
+        data[f] = value
     return data
 
 
