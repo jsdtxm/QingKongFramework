@@ -36,7 +36,8 @@ class IntelligenceLimiter(RateLimiter):
         self.client = XCaptchaClient.from_config()
 
     def __del__(self):
-        asyncio.new_event_loop().run_until_complete(self.client.close())
+        if hasattr(self, "client"):
+            asyncio.new_event_loop().run_until_complete(self.client.close())
 
     async def _check(self, key) -> Optional[ThrottledException]:
         if not settings.XCAPTCHA_ENABLE:
