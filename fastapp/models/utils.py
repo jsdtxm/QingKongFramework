@@ -60,7 +60,7 @@ def model_to_dict(
             continue
 
         value = getattr(instance, f)
-        if value.__class__.__name__ == "ndarray":
+        if value is not None and value.__class__.__name__ == "ndarray":
             continue
         data[f] = value
     return data
