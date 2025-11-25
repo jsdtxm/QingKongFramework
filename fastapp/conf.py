@@ -21,6 +21,8 @@ class BaseSettings(PydanticBaseSettings):
     SECRET_KEY: str = "longlivethegreatunityofthepeople"
 
     ALLOWED_HOSTS: List[str] = ["127.0.0.1", "localhost"]
+    ALLOW_LOCAL_CLIENT: bool = True
+    AUTO_ALLOWED_LOCAL_HOSTNAME: bool = True
 
     ADD_CORS_HEADERS: bool = False
 

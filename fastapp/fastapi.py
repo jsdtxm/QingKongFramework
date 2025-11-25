@@ -1,4 +1,5 @@
 import inspect
+import socket
 from asyncio import create_task
 from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
 from pathlib import Path
@@ -96,7 +97,13 @@ class FastAPI(RawFastAPI):
             middleware_class = import_string(m)
             middleware_kwargs = {}
             if middleware_class is TrustedHostMiddleware:
-                middleware_kwargs = {"allowed_hosts": settings.ALLOWED_HOSTS}
+                allowed_hosts = settings.ALLOWED_HOSTS
+                if settings.AUTO_ALLOWED_LOCAL_HOSTNAME:
+                    allowed_hosts.append(socket.gethostname())
+                middleware_kwargs = {
+                    "allowed_hosts": allowed_hosts,
+                    "allow_local_client": settings.ALLOW_LOCAL_CLIENT,
+                }
 
             middleware.append(Middleware(middleware_class, **middleware_kwargs))
 
