@@ -25,6 +25,8 @@ import sqlglot
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect
 
+from fastapp.db.fix import fix_comment_before_constraints
+
 NUMBER_TYPE_SET = {
     exp.DataType.Type.BIGINT,
     exp.DataType.Type.UBIGINT,
@@ -58,19 +60,22 @@ def merge_and_sort_columns(data):
     return result
 
 
-def parse_sql(file_path, is_content=False, dialect="mysql"):
+def parse_sql(file_path, is_content=False, dialect_name="mysql"):
     """解析 SQL 文件并返回包含表结构和索引的字典"""
-    # print(file_path)
     if is_content:
         sql = file_path
     else:
         with open(file_path, "r", encoding="utf-8") as f:
             sql = f.read()
 
-    dialect = Dialect.get_or_raise(dialect)
+    if dialect_name == "mysql":
+        sql = fix_comment_before_constraints(sql)
+
+    dialect = Dialect.get_or_raise(dialect_name)
 
     tables = {}
     table_name = None
+
     statements = sqlglot.parse(sql, read=dialect, dialect=dialect)
 
     generator = dialect.Generator()
@@ -79,7 +84,11 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
 
     for stmt in statements:
         # 处理 CREATE TABLE 语句
-        if isinstance(stmt, exp.Create) and isinstance(stmt.this, exp.Schema) and isinstance(stmt.this.this, exp.Table):
+        if (
+            isinstance(stmt, exp.Create)
+            and isinstance(stmt.this, exp.Schema)
+            and isinstance(stmt.this.this, exp.Table)
+        ):
             schema = stmt.this
             table: exp.Table = schema.this
 
@@ -96,11 +105,22 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
                     index_name = constraint.this.name
 
                     if isinstance(constraint, exp.IndexColumnConstraint):
-                        index_fields = [x.this.this.this for x in constraint.expressions]
+                        index_fields = [
+                            x.this.this.this for x in constraint.expressions
+                        ]
                     elif isinstance(constraint, exp.Constraint):
                         if len(constraint.expressions) == 1:
-                            # 写于pg处理fastapp_content_type的场景
-                            index_fields = [x.this for x in constraint.expressions[0].this.expressions]
+                            if dialect_name == "postgres":
+                                # 写于pg处理fastapp_content_type的场景
+                                index_fields = [
+                                    x.this
+                                    for x in constraint.expressions[0].this.expressions
+                                ]
+                            elif dialect_name == "mysql":
+                                index_fields = [
+                                    x.this
+                                    for x in constraint.expressions[0].expressions
+                                ]
                         else:
                             raise Exception("暂不支持多字段索引")
                     else:
@@ -116,7 +136,9 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
                         ]
                     else:
                         # 写于pg处理fastapp_content_type的场景
-                        unique_key_dict[constraint.parent.name] = [x.this for x in constraint.this.expressions]
+                        unique_key_dict[constraint.parent.name] = [
+                            x.this for x in constraint.this.expressions
+                        ]
 
                 else:
                     # 貌似和上面处理的情况一样，再看看
@@ -153,7 +175,9 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
             for constraint in stmt.find_all(exp.Constraint):
                 kind = constraint.args.get("kind")
                 if kind == "PRIMARY KEY":
-                    index_columns = [col.name for col in constraint.find_all(exp.Identifier)]
+                    index_columns = [
+                        col.name for col in constraint.find_all(exp.Identifier)
+                    ]
                     indexes.append(
                         {
                             "name": "PRIMARY",
@@ -164,8 +188,12 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
                 elif kind == "UNIQUE":
                     name = constraint.args.get("name")
                     name = name.name if name else None
-                    index_columns = [col.name for col in constraint.find_all(exp.Identifier)]
-                    indexes.append({"name": name, "columns": index_columns, "type": "UNIQUE"})
+                    index_columns = [
+                        col.name for col in constraint.find_all(exp.Identifier)
+                    ]
+                    indexes.append(
+                        {"name": name, "columns": index_columns, "type": "UNIQUE"}
+                    )
 
             tables[table_name] = {"columns": columns, "indexes": indexes, "stmt": stmt}
 
@@ -185,16 +213,22 @@ def parse_sql(file_path, is_content=False, dialect="mysql"):
                 index_type = "UNIQUE" if stmt.args.get("unique") else "BTREE"
 
             if table_name in tables:
-                tables[table_name]["indexes"].append({"name": index_name, "columns": columns, "type": index_type})
+                tables[table_name]["indexes"].append(
+                    {"name": index_name, "columns": columns, "type": index_type}
+                )
 
         if not table_name:
             continue
 
         # 合并同名index字段
-        tables[table_name]["indexes"] = merge_and_sort_columns(tables[table_name]["indexes"])
+        tables[table_name]["indexes"] = merge_and_sort_columns(
+            tables[table_name]["indexes"]
+        )
         for index_name, columns in unique_key_dict.items():
             if next(
-                filter(lambda x: x["name"] == index_name, tables[table_name]["indexes"]),
+                filter(
+                    lambda x: x["name"] == index_name, tables[table_name]["indexes"]
+                ),
                 None,
             ):
                 continue
@@ -240,12 +274,18 @@ def generate_alter_statements(old_schema, new_schema, table_name, dialect):
     for old_col, new_col, _ in possible_renames:
         if old_col in handled or new_col in handled:
             continue
-        response = input(f"是否将字段 '{old_col}' 重命名为 '{new_col}'? [Y/N]: ").strip().upper()
+        response = (
+            input(f"是否将字段 '{old_col}' 重命名为 '{new_col}'? [Y/N]: ")
+            .strip()
+            .upper()
+        )
         if response == "Y":
             renamed_columns[old_col] = new_col
             handled.add(old_col)
             handled.add(new_col)
-            alter_ops.append(f"ALTER TABLE {table_name} RENAME COLUMN {old_col} TO {new_col};")
+            alter_ops.append(
+                f"ALTER TABLE {table_name} RENAME COLUMN {old_col} TO {new_col};"
+            )
 
     # 更新删除和新增字段列表
     deleted_cols = [c for c in deleted_cols if c not in renamed_columns]
@@ -262,7 +302,9 @@ def generate_alter_statements(old_schema, new_schema, table_name, dialect):
         default = col_def["default"]
         constraints = " ".join(col_def["constraints"])
         default_clause = f" DEFAULT {default}" if default is not None else ""
-        alter_ops.append(f"ALTER TABLE {table_name} ADD COLUMN {col} {type_def}{default_clause} {constraints};")
+        alter_ops.append(
+            f"ALTER TABLE {table_name} ADD COLUMN {col} {type_def}{default_clause} {constraints};"
+        )
 
     # 处理修改字段
     common_cols = set(old_columns.keys()) & set(new_columns.keys())
@@ -274,7 +316,11 @@ def generate_alter_statements(old_schema, new_schema, table_name, dialect):
             or old_def["default"] != new_def["default"]
             or old_def["constraints"] != new_def["constraints"]
         ):
-            if old_def["type"] != new_def["type"] and "kind" in old_def and "kind" in new_def:
+            if (
+                old_def["type"] != new_def["type"]
+                and "kind" in old_def
+                and "kind" in new_def
+            ):
                 old_kind, new_kind = old_def["kind"], new_def["kind"]
 
                 if old_kind.this == new_kind.this and new_kind.this in NUMBER_TYPE_SET:
@@ -282,27 +328,48 @@ def generate_alter_statements(old_schema, new_schema, table_name, dialect):
                         # 跳过new_schema没有数字类型长度的问题
                         continue
 
-                if str(old_kind).upper() == "TINYINT(1)" and str(new_def["kind"]).upper() == "BOOLEAN":
+                if (
+                    str(old_kind).upper() == "TINYINT(1)"
+                    and str(new_def["kind"]).upper() == "BOOLEAN"
+                ):
                     continue
 
-                if str(old_kind).upper() == "BIGINT(64)" and str(new_def["kind"]).upper() == "BIGSERIAL":
+                if (
+                    str(old_kind).upper() == "BIGINT(64)"
+                    and str(new_def["kind"]).upper() == "BIGSERIAL"
+                ):
                     continue
 
-                if str(old_kind).upper() == "TEXT" and str(new_def["kind"]).upper() == "JSON":
+                if (
+                    str(old_kind).upper() == "TEXT"
+                    and str(new_def["kind"]).upper() == "JSON"
+                ):
                     # TODO这边似乎是mysql的锅
                     continue
 
             constraints = " ".join(new_def["constraints"])
-            default_clause = f" DEFAULT {new_def['default']}" if new_def["default"] is not None else ""
+            default_clause = (
+                f" DEFAULT {new_def['default']}"
+                if new_def["default"] is not None
+                else ""
+            )
             if dialect == "postgres":
                 # TODO 并不能完全支持
-                alter_ops.append(f"ALTER TABLE {table_name} ALTER COLUMN {col} TYPE {new_def['type']} USING {col}::{new_def['type']};")
+                alter_ops.append(
+                    f"ALTER TABLE {table_name} ALTER COLUMN {col} TYPE {new_def['type']} USING {col}::{new_def['type']};"
+                )
                 if default_clause:
-                    alter_ops.append(f"ALTER TABLE {table_name} ALTER COLUMN {col} SET DEFAULT {new_def['default']};")
+                    alter_ops.append(
+                        f"ALTER TABLE {table_name} ALTER COLUMN {col} SET DEFAULT {new_def['default']};"
+                    )
                 if constraints:
-                    alter_ops.append(f"ALTER TABLE {table_name} ALTER COLUMN {col} SET {constraints};")
+                    alter_ops.append(
+                        f"ALTER TABLE {table_name} ALTER COLUMN {col} SET {constraints};"
+                    )
             else:
-                alter_ops.append(f"ALTER TABLE {table_name} MODIFY COLUMN {col} {new_def['type']}{default_clause} {constraints};")
+                alter_ops.append(
+                    f"ALTER TABLE {table_name} MODIFY COLUMN {col} {new_def['type']}{default_clause} {constraints};"
+                )
 
     # 处理索引
     def process_indexes(old_idx_list, new_idx_list, drop_command=True):
@@ -331,11 +398,17 @@ def generate_alter_statements(old_schema, new_schema, table_name, dialect):
         # 新增索引
         for key in new_idx_map.keys() - old_idx_map.keys():
             idx = new_idx_map[key]
-            columns = ", ".join(idx["columns"]) if isinstance(idx["columns"], list) else idx["columns"]
+            columns = (
+                ", ".join(idx["columns"])
+                if isinstance(idx["columns"], list)
+                else idx["columns"]
+            )
             index_type = idx["type"].replace("_", " ").upper()
             # TODO fixme the columns may empty
             if dialect == "postgres":
                 sql = f"CREATE INDEX IF NOT EXISTS {idx['name']} ON {table_name} USING {index_type} ({columns});"
+            elif dialect == "mysql":
+                sql = f"CREATE INDEX {idx['name']} ON {table_name} ({columns}) USING {index_type};"
             else:
                 sql = f"CREATE {index_type} IF NOT EXISTS {idx['name']} ON {table_name} ({columns});"
             alter_ops.append(sql)
@@ -360,7 +433,9 @@ def generate_diff_sql(old_schema, new_schema, dialect):
             )
             continue
 
-        alter_scripts = generate_alter_statements(old_schema[table_name], new_schema[table_name], table_name, dialect)
+        alter_scripts = generate_alter_statements(
+            old_schema[table_name], new_schema[table_name], table_name, dialect
+        )
         res.append(alter_scripts)
 
     return res
