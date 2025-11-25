@@ -63,6 +63,7 @@ urlpatterns = [
 ```
 
 ## serializer example
+### IMPORTANT: Don't need to specify fields in class Meta, because it will be auto generated. Only if you want to exclude some field, you need to specify them.
 ### File place in project_folder/apps/{app_name}/serializers.py
 ```python
 from apps.{app_name}.models import Document, DocumentVersion, Folder
