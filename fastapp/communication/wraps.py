@@ -47,6 +47,7 @@ def get_app_base_url(app: str) -> str:
 async def call_remote_api(base_url, end_point, all_kwargs):
     async with aiohttp.ClientSession() as session:
         async with session.post(f"http://{base_url}/_internal/{end_point}", json=all_kwargs) as response:
+            response.raise_for_status()
             content = await response.read()
             resp_object = pickle.loads(content)
             if isinstance(resp_object, Exception):
