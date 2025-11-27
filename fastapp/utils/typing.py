@@ -1,7 +1,7 @@
-from datetime import datetime, date
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Callable, Concatenate, ParamSpec, TypeVar
 from uuid import UUID
-from decimal import Decimal
 
 SP = ParamSpec("SP")
 TR = TypeVar("TR")
@@ -14,15 +14,25 @@ def copy_method_signature(
     return lambda _: _  # type: ignore[return-value]
 
 
+TYPE_MAPPING = {
+    int: "int",
+    str: "str",
+    datetime: "datetime.datetime",
+    date: "datetime.date",
+    float: "float",
+    bool: "bool",
+    bytes: "bytes",
+    UUID: "uuid.UUID",
+    Decimal: "decimal.Decimal",
+}
+
+try:
+    from numpy import ndarray
+
+    TYPE_MAPPING[ndarray] = "numpy.ndarray"
+except ImportError:
+    pass
+
+
 def type_to_str(t):
-    return {
-        int: "int",
-        str: "str",
-        datetime: "datetime.datetime",
-        date: "datetime.date",
-        float: "float",
-        bool: "bool",
-        bytes: "bytes",
-        UUID: "uuid.UUID",
-        Decimal: "decimal.Decimal"
-    }.get(t, str(t))
+    return TYPE_MAPPING.get(t, str(t))

@@ -53,8 +53,15 @@ def generate(module_name: str, mode: str):
         "from fastapp.contrib.auth.typing import UserProtocol\n",
         "from fastapp.models.base import QuerySet\n",
         "from fastapp.models.choices import ChoiceItem, Choices\n",
-        "from fastapp.models.fields import ManyToManyRelation\n"
+        "from fastapp.models.fields import ManyToManyRelation\n",
     ]
+
+    try:
+        import numpy as _
+
+        pre_import_lines.append("import numpy\n")
+    except ImportError:
+        pass
 
     # TODO 需要对abstractUser特殊处理
     # TODO model的方法会丢失

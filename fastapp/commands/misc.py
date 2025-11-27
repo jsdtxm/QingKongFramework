@@ -35,6 +35,8 @@ def stubgen(mode="lite", apps=None):
         if not isinstance(
             models := package_try_import(app_config.module, "models"), Exception
         ):
+            if not models:
+                continue
             model_stub.generate(models.__name__, mode)
             complete(models.__name__)
             complete_choices(models.__name__)
