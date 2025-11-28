@@ -148,8 +148,20 @@ class QuerySet(TortoiseQuerySet[MODEL]):
             return self.query
         return self.query
 
-    # def _make_query(self) -> None:
-    # TODO
+    def _make_query(self) -> None:
+        if self._fields_for_exclude:
+            if self._fields_for_select:
+                # TODO 处理 exclude 与 select 冲突
+                pass
+            else:
+                self._fields_for_select = tuple(
+                    [
+                        field
+                        for field in self.model._meta.db_fields
+                        if field not in self._fields_for_exclude
+                    ]
+                )
+        super()._make_query()
 
     @classmethod
     def as_manager(cls):
