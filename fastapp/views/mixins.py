@@ -19,7 +19,7 @@ class RetrieveModelMixin:
     Retrieve a model instance.
     """
 
-    async def retrieve(self: "GenericViewSet", request, *args, **kwargs):  # type: ignore
+    async def retrieve(self, request, *args, **kwargs):  # type: ignore
         instance = await self.get_object()
         serializer = await self.get_serializer(instance)
         return JSONResponse(serializer.model_dump())
@@ -30,7 +30,7 @@ class ListModelMixin:
     List a queryset.
     """
 
-    async def list(self: "GenericViewSet", request, *args, **kwargs) -> QuerySet:  # type: ignore
+    async def list(self, request, *args, **kwargs):  # type: ignore
         queryset = await self.filter_queryset(self.get_queryset())
 
         page = await self.paginate_queryset(queryset)
