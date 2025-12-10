@@ -10,6 +10,9 @@ from fastapp.models.base import TortoiseModel
 from fastapp.models.tortoise import Tortoise
 from fastapp.utils.module_loading import package_try_import
 
+async_lock = asyncio.Lock()
+is_init_db = False
+
 
 def models_is_empty(models):
     for member_name in dir(models):
@@ -110,7 +113,13 @@ def init_models():
 
 
 async def async_init_db(config: dict):
-    await Tortoise.init(config)
+    global is_init_db
+
+    async with async_lock:
+        if is_init_db:
+            return
+        await Tortoise.init(config)
+        is_init_db = True
 
 
 def init_db(config: dict):
