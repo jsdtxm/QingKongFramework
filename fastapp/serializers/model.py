@@ -120,6 +120,8 @@ class ModelSerializerPydanticModel(PydanticModel):
     ) -> dict[str, Any]:
         exclude = exclude or []
         if exclude_write_only:
+            if isinstance(exclude, set):
+                exclude = list(exclude)
             exclude = exclude + self.write_only_fields()
         return super().model_dump(exclude=exclude, **kwargs)
 
