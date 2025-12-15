@@ -186,7 +186,7 @@ class ModelSerializerPydanticModel(PydanticModel):
             + [x["name"] for x in backward_fk_fields]
         ) - {"id"}
 
-        if self.id:
+        if getattr(self, "id", None):
             # 允许嵌套的部分更新
             related_model = self.orig_model()
             obj = await related_model.get(id=self.id)
