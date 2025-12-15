@@ -313,8 +313,14 @@ class ModelSerializerPydanticModel(PydanticModel):
                                     using_db=using_db, is_in_transaction=True
                                 )
                         else:
-                            # FIXME 这个地方是导致m2m异常clear的原因
-                            related_object = sub_value.to_model()
+                            if field["field_type"] is BackwardFKRelation:
+                                # HACK 有限地允许反向FK的更新
+                                related_object = sub_value.save(
+                                    using_db=using_db, is_in_transaction=True
+                                )
+                            else:
+                                # FIXME 这个地方是导致m2m异常clear的原因，目前使用了以下的to_model方式来绕过
+                                related_object = sub_value.to_model()
 
                         related_objects.append(related_object)
                     else:
