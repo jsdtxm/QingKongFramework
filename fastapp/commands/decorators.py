@@ -8,7 +8,7 @@ from fastapp.models.tortoise import Tortoise
 
 
 def async_init_fastapp(func):
-    @functools.wraps(func)  # 使用wraps以保留原始函数的元信息
+    @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         init_apps(settings.INSTALLED_APPS)
         await init_cache()
