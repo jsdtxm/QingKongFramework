@@ -20,6 +20,7 @@ from starlette.types import Lifespan
 import fastapp.patchs.fastapi.encoders as _
 import fastapp.patchs.starlette.requests as _
 import fastapp.patchs.tortoise.fields as _
+import fastapp.patchs.tortoise.filters as _
 from common.settings import settings
 from fastapp.cache import connections
 from fastapp.exception_handlers import get_default_exception_handlers

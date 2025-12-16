@@ -25,6 +25,9 @@ from tortoise.filters import (
     starts_with,
 )
 
+from fastapp.db.backends.mysql.functions import mysql_json_endswith
+from fastapp.db.filters import json_endswith
+
 
 def mysql_json_filter(field: Term, value: Dict) -> Criterion:
     if len(value) > 1:
@@ -80,5 +83,6 @@ class MySQLExecutor(RawMySQLExecutor):
         json_contains: executor.mysql_json_contains,
         json_contained_by: executor.mysql_json_contained_by,
         json_filter: mysql_json_filter,
+        json_endswith: mysql_json_endswith,
         posix_regex: executor.mysql_posix_regex,
     }
