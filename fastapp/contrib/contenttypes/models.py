@@ -25,6 +25,25 @@ class ContentType(models.Model):
             app_label=model._meta.app_config.label, model=model.__class__.__name__
         )
 
+    @classmethod
+    def from_model_as_q(
+        cls, model: models.Model | Type[models.Model], prefix="content_type"
+    ) -> models.Q:
+        if isinstance(model, type):
+            return models.Q(
+                **{
+                    f"{prefix}__app_label": model._meta.app_config.label,
+                    f"{prefix}__model": model.__name__,
+                },
+            )
+
+        return models.Q(
+            **{
+                f"{prefix}__app_label": model._meta.app_config.label,
+                f"{prefix}__model": model.__class__.__name__,
+            },
+        )
+
     @property
     def model_class(self) -> Type[models.Model]:
         from fastapp.models.tortoise import Tortoise
