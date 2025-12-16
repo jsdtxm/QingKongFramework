@@ -1,9 +1,10 @@
+import asyncio
 import errno
 import os
 import threading
 import time
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, Optional, Union
+from types import SimpleNamespace, TracebackType
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 from redis.asyncio.lock import Lock as RawRedisAsyncioLock
 
@@ -13,6 +14,11 @@ from fastapp.utils.temp import get_temp_directory
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis, RedisCluster
+
+try:
+    import fcntl
+except:
+    fcntl = None
 
 
 class FileLock:
@@ -107,6 +113,81 @@ class FileLock:
             os.remove(self.lock_file)
         except FileNotFoundError:
             pass
+
+
+class AsyncFileLock:
+    """
+    一个基于 asyncio 和 fcntl 的异步文件锁。
+    注意：fcntl 仅适用于 Unix/Linux/macOS 系统。
+    """
+
+    def __init__(self, name: str, timeout: float = 5.0, poll_interval: float = 0.1):
+        """
+        :param name: 锁文件的路径
+        :param timeout: 获取锁的超时时间（秒）
+        :param poll_interval: 尝试获取锁的轮询间隔（秒）
+        """
+        self.name = name
+        self.timeout = timeout
+        self.poll_interval = poll_interval
+        self._file_obj = None
+        self._fd: Optional[int] = None
+
+    async def __aenter__(self):
+        # 1. 在线程池中打开文件，避免阻塞事件循环
+        # 'w' 模式会创建文件，对于锁文件通常是可以的
+        self._file_obj = await asyncio.to_thread(open, self.name, "w")
+        self._fd = self._file_obj.fileno()
+
+        try:
+            # 2. 使用 Python 3.11+ 的 asyncio.timeout 控制超时
+            async with asyncio.timeout(self.timeout):
+                while True:
+                    try:
+                        # 3. 尝试获取非阻塞排他锁 (LOCK_EX | LOCK_NB)
+                        # 如果锁已被占用，会立即抛出 OSError (EAGAIN/EACCES)
+                        fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+                        # 锁定成功
+                        return self
+                    except (BlockingIOError, OSError):
+                        # 4. 锁定失败，等待一段时间后重试
+                        await asyncio.sleep(self.poll_interval)
+
+        except TimeoutError:
+            # 超时清理
+            await self._close()
+            raise TimeoutError(
+                f"Could not acquire lock on '{self.name}' within {self.timeout}s"
+            )
+        except Exception:
+            # 其他异常清理
+            await self._close()
+            raise
+
+    async def __aexit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        # 释放锁并关闭文件
+        await self._close()
+
+    async def _close(self):
+        """释放锁并关闭文件描述符"""
+        if self._fd:
+            try:
+                # 显式解锁（虽然关闭文件也会自动解锁，但显式更安全）
+                fcntl.flock(self._fd, fcntl.LOCK_UN)
+            except OSError:
+                pass
+            self._fd = None
+
+        if self._file_obj:
+            # 在线程中关闭文件，避免 IO 阻塞
+            await asyncio.to_thread(self._file_obj.close)
+            self._file_obj = None
 
 
 class RedisLock(RawRedisAsyncioLock):
