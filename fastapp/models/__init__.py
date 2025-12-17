@@ -1,5 +1,5 @@
 from tortoise.expressions import F, Q, RawSQL, Subquery
-from tortoise.fields.base import OnDelete
+from tortoise.fields.base import Field, OnDelete
 from tortoise.functions import Count, Max, Min, Sum, Trim
 from tortoise.indexes import Index
 
