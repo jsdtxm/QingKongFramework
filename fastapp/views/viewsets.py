@@ -270,6 +270,9 @@ class GenericAPIView(APIView, Generic[MODEL]):
     Base class for all other generic views.
     """
 
+    # HACK
+    skip_serializer_class_check: bool = True
+
     # You'll need to either set these attributes,
     # or override `get_queryset()`/`get_serializer_class()`.
     # If you are overriding a view method, it is important that you call
@@ -371,10 +374,12 @@ class GenericAPIView(APIView, Generic[MODEL]):
 
         (Eg. admins get full serialization, others get basic serialization)
         """
-        assert self.serializer_class is not None, (
-            "'%s' should either include a `serializer_class` attribute, "
-            "or override the `get_serializer_class()` method." % self.__class__.__name__
-        )
+        if not self.skip_serializer_class_check:
+            assert self.serializer_class is not None, (
+                "'%s' should either include a `serializer_class` attribute, "
+                "or override the `get_serializer_class()` method."
+                % self.__class__.__name__
+            )
 
         return self.serializer_class
 
@@ -517,8 +522,8 @@ class GenericViewSet(GenericAPIView[MODEL]):
         for key in initkwargs:
             if key in cls.http_method_names:
                 raise TypeError(
-                    "The method name %s is not accepted as a keyword argument "
-                    "to %s()." % (key, cls.__name__)
+                    "The method name %s is not accepted as a keyword argument to %s()."
+                    % (key, cls.__name__)
                 )
             if not hasattr(cls, key):
                 raise TypeError(
@@ -573,7 +578,7 @@ class ReadOnlyModelViewSet(
     A viewset that provides default `list()` and `retrieve()` actions.
     """
 
-    pass
+    skip_serializer_class_check: bool = False
 
 
 class ModelViewSet(
@@ -588,4 +593,4 @@ class ModelViewSet(
     A viewset that provides default `list()` and `retrieve()` actions.
     """
 
-    pass
+    skip_serializer_class_check: bool = False
