@@ -374,7 +374,7 @@ class GenericAPIView(APIView, Generic[MODEL]):
 
         (Eg. admins get full serialization, others get basic serialization)
         """
-        if not self.skip_serializer_class_check:
+        if not getattr(self, "skip_serializer_class_check", False):
             assert self.serializer_class is not None, (
                 "'%s' should either include a `serializer_class` attribute, "
                 "or override the `get_serializer_class()` method."
