@@ -110,6 +110,19 @@ async def valueerror_exception_handler(
     )
 
 
+async def permission_error_exception_handler(
+    request: "Request", exc: PermissionError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN,
+        content={
+            "error": exc.__class__.__name__,
+            "message": str(exc),
+            "detail": str(exc),
+        },
+    )
+
+
 def get_default_exception_handlers():
     return {
         HTTPException: http_exception_handler,
@@ -120,4 +133,5 @@ def get_default_exception_handlers():
         TortoiseValidationError: tortoise_validation_exception_handler,
         PydanticValidationError: pydantic_validation_exception_handler,
         ValueError: valueerror_exception_handler,
+        PermissionError: permission_error_exception_handler,
     }
