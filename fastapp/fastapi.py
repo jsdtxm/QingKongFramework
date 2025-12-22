@@ -1,6 +1,6 @@
+import asyncio
 import inspect
 import socket
-from asyncio import create_task
 from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
 from pathlib import Path
 from typing import Callable, Optional
@@ -45,6 +45,9 @@ def lifespan_wrapper(lifespan: Callable[[RawFastAPI], _AsyncGeneratorContextMana
     async def wrapper(
         app: RawFastAPI,
     ):
+        await async_init_db(get_tortoise_config(settings.DATABASES))
+        await init_cache()
+
         if p := settings.RATE_LIMITER_CLASS:
             import_string(p).init()
 
@@ -85,8 +88,6 @@ class FastAPI(RawFastAPI):
         apps = init_apps(settings.INSTALLED_APPS)
 
         init_models()
-        create_task(async_init_db(get_tortoise_config(settings.DATABASES)))
-        create_task(init_cache())
 
         if include_healthz is None:
             include_healthz = settings.INCLUDE_HEALTHZ
@@ -135,7 +136,7 @@ class FastAPI(RawFastAPI):
             self.include_router(router)
 
         if auto_load_urls:
-            create_task(load_url_module(self, apps, package))
+            asyncio.create_task(load_url_module(self, apps, package))
 
         # static assets
         async def custom_swagger_ui_html(req: Request) -> HTMLResponse:
