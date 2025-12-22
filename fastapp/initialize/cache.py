@@ -15,7 +15,7 @@ class FastAPICacheWrapper(FastAPICache):
         raise AttributeError(f"Attribute {name} not found in {cls.__name__}")
 
 
-async def init_cache():
+async def _init_cache():
     for alias, config in settings.CACHES.items():
         backend: str = config["BACKEND"]
 
@@ -60,3 +60,14 @@ async def init_cache():
             cache_status_header="X-FastApp-Cache",
         )
         backends[alias] = cache_class
+
+
+_cache_inited = False
+
+
+async def init_cache():
+    global _cache_inited
+    if _cache_inited:
+        return
+    await _init_cache()
+    _cache_inited = True
