@@ -94,7 +94,7 @@ def get_tortoise_config(databases: dict[str, dict[str, Any]]):
     return tortoise_config
 
 
-def init_models():
+def _init_models():
     """
     init_models
     """
@@ -110,6 +110,20 @@ def init_models():
             Tortoise.init_models([f"{app_config.name}.models"], app_config.label)
         else:
             raise Exception(f"App {app_config.label} import error") from models
+
+
+models_inited = False
+
+
+def init_models():
+    """
+    init_models
+    """
+    global models_inited
+    if models_inited:
+        return
+    _init_models()
+    models_inited = True
 
 
 async def async_init_db(config: dict):
