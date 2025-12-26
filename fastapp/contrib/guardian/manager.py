@@ -39,7 +39,7 @@ class BaseObjectPermissionManager(models.Manager[MODEL]):
             "object_pk": obj.pk,
         }
 
-        obj_perm, _ = self.get_or_create(**kwargs)
+        obj_perm, _ = await self.get_or_create(**kwargs)
         return obj_perm
 
     async def bulk_assign_perm(self, perm, user_or_group, queryset: QuerySet):
