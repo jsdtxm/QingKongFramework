@@ -86,3 +86,19 @@ class ObjectPermissionActionMixin:
             {"data": result},
             status_code=status.HTTP_200_OK,
         )
+
+    @action(detail=True, methods=["get"])
+    async def my_perms(self, request, id=None):
+        instance = await self.get_object()
+
+        UserObjPermsModel = get_user_obj_perms_model_class()
+        perms = await UserObjPermsModel.objects.filter(
+            user=request.user,
+            content_type=await ContentType.from_model(instance),
+            object_id=instance.id,
+        ).prefetch_related("permission")
+
+        return JSONResponse(
+            {"perms": [perm.permission.perm for perm in perms]},
+            status_code=status.HTTP_200_OK,
+        )
