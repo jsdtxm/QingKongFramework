@@ -9,13 +9,14 @@ from fastapp.contrib.guardian.utils import (
     get_user_obj_perms_model_class,
 )
 from fastapp.models import BaseModel, Model, Q, Subquery
+from fastapp.models.queryset import QuerySet
 from fastapp.utils.module_loading import import_string
 
 
 async def get_objects_for_user(
     user: UserProtocol,
     perms: str | List[str],
-    klass: Type[Model],
+    klass: Type[Model] | QuerySet[Model],
     use_groups=True,
     with_superuser=True,
     accept_model_perms=True,
@@ -31,7 +32,7 @@ async def get_objects_for_user(
 
     perms = perms[0]
 
-    queryset = klass.objects.all()
+    queryset = klass if isinstance(klass, QuerySet) else klass.objects.all()
 
     # First check if user is superuser and if so, return queryset immediately
     if with_superuser and user.is_superuser:
