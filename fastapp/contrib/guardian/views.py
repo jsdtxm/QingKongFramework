@@ -102,3 +102,20 @@ class ObjectPermissionActionMixin:
             {"perms": [perm.permission.perm for perm in perms]},
             status_code=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["get"], url_path="my_perms")
+    async def my_all_perms(self, request, id=None):
+        UserObjPermsModel = get_user_obj_perms_model_class()
+        perms = await UserObjPermsModel.objects.filter(
+            user=request.user,
+            content_type=await ContentType.from_model(self.queryset),
+        ).prefetch_related("permission")
+
+        perms_dict = defaultdict(list)
+        for perm in perms:
+            perms_dict[perm.object_id].append(perm.permission.perm)
+
+        return JSONResponse(
+            {"perms": perms_dict},
+            status_code=status.HTTP_200_OK,
+        )
