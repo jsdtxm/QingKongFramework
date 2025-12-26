@@ -33,6 +33,7 @@ async def get_objects_for_user(
     perms = perms[0]
 
     queryset = klass if isinstance(klass, QuerySet) else klass.objects.all()
+    klass = klass.model if isinstance(klass, QuerySet) else klass
 
     # First check if user is superuser and if so, return queryset immediately
     if with_superuser and user.is_superuser:
