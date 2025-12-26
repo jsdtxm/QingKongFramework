@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, List, Literal, Optional, Self, Tuple, Type
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 from tortoise.fields import relational
 from tortoise.models import Model as TortoiseModel
@@ -253,6 +254,11 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
         _meta: "MetaInfo"
 
         @classmethod
+        def all(
+            cls, using_db: Optional[BaseDBAsyncClient] = None
+        ) -> QuerySet[Self]: ...
+
+        @classmethod
         def filter(cls, *args: Q, **kwargs: Any) -> QuerySet[Self]: ...
 
         @classmethod
@@ -265,8 +271,6 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
     # Allow generic typing checking for generic views.
     def __class_getitem__(cls, *args, **kwargs):
         return cls
-
-    
 
     @classmethod
     def generate_query_params(cls, mode: Literal["full", "lite"] = "lite"):

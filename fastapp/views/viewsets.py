@@ -463,6 +463,7 @@ class GenericAPIView(APIView, Generic[MODEL]):
         method if you want to apply the configured filtering backend to the
         default queryset.
         """
+        # TODO 缺少根据权限过滤
         for backend in list(self.filter_backends):
             queryset = backend().filter_queryset(self.request, queryset, self)
         return queryset
