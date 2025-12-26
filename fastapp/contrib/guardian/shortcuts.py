@@ -1,4 +1,4 @@
-from typing import List, Type
+from typing import List, Type, TypeVar
 
 from fastapp.contrib.auth.models import Group
 from fastapp.contrib.auth.typing import UserProtocol
@@ -12,11 +12,13 @@ from fastapp.models import BaseModel, Model, Q, Subquery
 from fastapp.models.queryset import QuerySet
 from fastapp.utils.module_loading import import_string
 
+MODEL = TypeVar("MODEL", bound="Model")
+
 
 async def get_objects_for_user(
     user: UserProtocol,
     perms: str | List[str],
-    klass: Type[Model] | QuerySet[Model],
+    klass: Type[MODEL] | QuerySet[MODEL],
     use_groups=True,
     with_superuser=True,
     accept_model_perms=True,
