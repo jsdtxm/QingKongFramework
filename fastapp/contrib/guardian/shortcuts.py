@@ -119,3 +119,22 @@ async def assign_perm(perms, user_or_group, obj):
 
     for perm in perms:
         await PermissionModel.objects.bulk_assign_perm(perm, user_or_group, obj)
+
+
+async def remove_perm(perms, user_or_group, obj) -> None:
+    if isinstance(perms, str):
+        perms = [perms]
+
+    user, group = get_identity(user_or_group)
+
+    if isinstance(obj, BaseModel):
+        obj = [
+            obj,
+        ]
+
+    PermissionModel = (
+        get_user_obj_perms_model_class() if user else get_group_obj_perms_model_class()
+    )
+
+    for perm in perms:
+        await PermissionModel.objects.bulk_remove_perm(perm, user_or_group, obj)

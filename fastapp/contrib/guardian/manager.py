@@ -4,7 +4,10 @@ from fastapp import models
 from fastapp.contrib.auth.models import Permission
 from fastapp.contrib.contenttypes.models import ContentType
 from fastapp.contrib.guardian.exceptions import ObjectNotPersisted
-from fastapp.contrib.guardian.shortcuts import get_objects_for_group, get_objects_for_user
+from fastapp.contrib.guardian.shortcuts import (
+    get_objects_for_group,
+    get_objects_for_user,
+)
 from fastapp.models import QuerySet
 from fastapp.models.base import MODEL
 
@@ -36,7 +39,7 @@ class BaseObjectPermissionManager(models.Manager[MODEL]):
             "permission": permission,
             self.user_or_group_field: user_or_group,
             "content_type": ctype,
-            "object_pk": obj.pk,
+            "object_id": obj.pk,
         }
 
         obj_perm, _ = await self.get_or_create(**kwargs)
@@ -98,3 +101,62 @@ class BaseObjectPermissionManager(models.Manager[MODEL]):
         await self._model.bulk_create(assigned_perms)
 
         return assigned_perms
+
+    async def remove_perm(self, perm: str, user_or_group, obj: models.Model):
+        """
+        Removes permission with given ``perm`` for an instance ``obj`` and
+        ``user_or_group``.
+        """
+
+        if getattr(obj, "pk", None) is None:
+            raise ObjectNotPersisted("Object %s needs to be persisted first" % obj)
+
+        ctype = await ContentType.from_model(obj)
+
+        if not isinstance(perm, Permission):
+            permission = await Permission.objects.get(content_type=ctype, perm=perm)
+        else:
+            permission = perm
+
+        kwargs = {
+            "permission": permission,
+            self.user_or_group_field: user_or_group,
+            "content_type": ctype,
+            "object_id": obj.pk,
+        }
+
+        deleted_count = await self.filter(**kwargs).delete()
+        return deleted_count
+
+    async def bulk_remove_perm(self, perm, user_or_group, queryset: QuerySet):
+        """
+        Bulk removes permissions with given ``perm`` for objects in ``queryset`` and
+        ``user_or_group``.
+        """
+
+        if isinstance(queryset, list):
+            klass = queryset[0].__class__
+        else:
+            klass = queryset.model
+
+        ctype = await ContentType.from_model(klass)
+
+        if not isinstance(perm, Permission):
+            permission = await Permission.objects.get(content_type=ctype, perm=perm)
+        else:
+            permission = perm
+
+        kwargs = {
+            "permission": permission,
+            self.user_or_group_field: user_or_group,
+            "content_type": ctype,
+        }
+
+        if isinstance(queryset, list):
+            object_pks = [obj.pk for obj in queryset]
+        else:
+            object_pks = await queryset.values_list("pk", flat=True)
+
+        deleted_perms = await self.filter(**kwargs, object_id__in=object_pks).delete()
+
+        return deleted_perms
