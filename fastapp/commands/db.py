@@ -195,6 +195,8 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
     Args:
         apps (list[str]): 要处理的应用列表。
     """
+    apps = [x.replace(".", "_") for x in apps]
+
     process_apps = []
     for app in Tortoise.apps:
         if not apps or app in apps:
