@@ -21,7 +21,17 @@ class AccessMixin:
     permission_denied_message = ""
     raise_exception = False
 
-    def handle_no_permission(self):
+    async def handle_no_permission(self):
+        action = getattr(self, self.action, None)  # type: ignore[missing-attribute]
+        if (
+            action
+            and isinstance(getattr(action, "kwargs", None), dict)
+            and (permission_classes := action.kwargs.get("permission_classes"))
+        ):
+            for permission_class in permission_classes:
+                if not await permission_class().has_permission(self.request, self):  # type: ignore[missing-attribute]
+                    raise NotAuthenticated()
+            return
         raise NotAuthenticated()
 
 
@@ -30,7 +40,7 @@ class LoginRequiredMixin(AccessMixin):
 
     async def dispatch(self, request, *args, **kwargs):
         if request.user is None or not request.user.is_authenticated:
-            return self.handle_no_permission()
+            await self.handle_no_permission()
         return await super().dispatch(request, *args, **kwargs)
 
 
@@ -43,7 +53,7 @@ class SuperUserRequiredMixin(AccessMixin):
             or not request.user.is_authenticated
             or not request.user.is_superuser
         ):
-            return self.handle_no_permission()
+            await self.handle_no_permission()
         return await super().dispatch(request, *args, **kwargs)
 
 
@@ -56,7 +66,7 @@ class ReadonlyOrSuperUserMixin(AccessMixin):
             or not request.user.is_authenticated
             or not request.user.is_superuser
         ):
-            return self.handle_no_permission()
+            await self.handle_no_permission()
         return await super().dispatch(request, *args, **kwargs)
 
 
