@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
     INSTALLED_APPS: List[str] = [
+        "fastapp.contrib.contenttypes",
         "fastapp.contrib.auth",
         "apps.main",
         "apps.fake",
