@@ -15,15 +15,15 @@ from typing import Optional
 
 class FastAppCLI:
     """FastApp框架命令行工具"""
-    
+
     def __init__(self):
         self.commands = {
-            'startproject': self.startproject,
-            '--help': self.help,
-            '--version': self.version,
-            '-h': self.help
+            "startproject": self.startproject,
+            "--help": self.help,
+            "--version": self.version,
+            "-h": self.help,
         }
-    
+
     def help(self):
         """显示帮助信息"""
         print("""
@@ -39,98 +39,100 @@ Options:
 Examples:
     fastapp startproject myproject
         """)
-    
+
     def version(self):
         """显示版本信息"""
-        print('fastapp Framework CLI v1.0.0')
-    
+        print("fastapp Framework CLI v1.0.0")
+
     def startproject(self, project_name: Optional[str] = None):
         """创建新项目"""
         if not project_name:
-            print('Error: Project name is required')
-            print('Usage: fastapp startproject <project_name>')
+            print("Error: Project name is required")
+            print("Usage: fastapp startproject <project_name>")
             sys.exit(1)
-        
+
         # 验证项目名称
-        if not re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', project_name):
-            print('Error: Invalid project name. Must start with a letter and contain only letters, numbers, underscores, and hyphens.')
+        if not re.match(r"^[a-zA-Z][a-zA-Z0-9_-]*$", project_name):
+            print(
+                "Error: Invalid project name. Must start with a letter and contain only letters, numbers, underscores, and hyphens."
+            )
             sys.exit(1)
-        
+
         current_dir = Path.cwd()
         project_path = current_dir / project_name
-        
+
         # 检查项目目录是否已存在
         if project_path.exists():
             print(f"Error: Directory '{project_name}' already exists")
             sys.exit(1)
-        
+
         print(f"Creating project '{project_name}'...")
-        
+
         try:
             # 创建项目目录
             project_path.mkdir(parents=True, exist_ok=True)
-            
+
             # 获取CLI脚本所在目录
             cli_parent_dir = Path(__file__).parent.parent.resolve()
 
             # 复制common目录
-            common_src = cli_parent_dir / 'common'
+            common_src = cli_parent_dir / "common"
             if common_src.exists():
-                self.copy_directory(common_src, project_path / 'common')
-                print('✓ Copied common directory')
+                self.copy_directory(common_src, project_path / "common")
+                print("✓ Copied common directory")
             else:
-                print('⚠ Warning: common template not found')
-            
+                print("⚠ Warning: common template not found")
+
             # 复制apps目录
-            apps_src = cli_parent_dir / 'apps'
+            apps_src = cli_parent_dir / "apps"
             if apps_src.exists():
-                self.copy_directory(apps_src, project_path / 'apps')
-                print('✓ Copied apps directory')
+                self.copy_directory(apps_src, project_path / "apps")
+                print("✓ Copied apps directory")
             else:
-                print('⚠ Warning: apps template not found')
-            
+                print("⚠ Warning: apps template not found")
+
             # 创建额外的项目文件
             self.create_project_files(project_path, project_name)
-            
+
             print(f"\nProject '{project_name}' created successfully!")
             print(f"\nTo get started:")
             print(f"    cd {project_name}")
             print(f"    python manage.py runserver")
-            
+
         except Exception as error:
-            print(f'Error creating project: {error}')
+            print(f"Error creating project: {error}")
             # 清理已创建的目录
             if project_path.exists():
                 shutil.rmtree(project_path)
             sys.exit(1)
-    
+
     def copy_directory(self, src: Path, dest: Path):
         """复制目录"""
         if not src.exists():
             return
-        
+
         dest.mkdir(parents=True, exist_ok=True)
-        
+
         for item in src.iterdir():
             src_item = src / item.name
             dest_item = dest / item.name
-            
+
             if item.is_dir():
                 self.copy_directory(src_item, dest_item)
             else:
                 shutil.copy2(src_item, dest_item)
-    
+
     def create_project_files(self, project_path: Path, project_name: str):
         """创建项目文件"""
         # 创建requirements.txt
         requirements = ""
-        
-        with open(project_path / 'requirements.txt', 'w', encoding='utf-8') as f:
+
+        with open(project_path / "requirements.txt", "w", encoding="utf-8") as f:
             f.write(requirements)
-        print('✓ Created requirements.txt')
-        
+        print("✓ Created requirements.txt")
+
         # 创建manage.py
-        manage_py = '''import multiprocessing
+        manage_py = """import multiprocessing
 
 from fastapp.commands import about, cli, migrate, gateway, runserver, startapp
 
@@ -139,14 +141,14 @@ cli.register_commands(runserver, gateway, startapp, migrate, about)
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     cli()
-'''
-        
-        with open(project_path / 'manage.py', 'w', encoding='utf-8') as f:
+"""
+
+        with open(project_path / "manage.py", "w", encoding="utf-8") as f:
             f.write(manage_py)
-        print('✓ Created manage.py')
-        
+        print("✓ Created manage.py")
+
         # 创建.gitignore
-        gitignore = '''# Python
+        gitignore = """# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -181,48 +183,46 @@ Thumbs.db
 
 /fastapp
 /fastapp_pro
-'''
-        
-        with open(project_path / '.gitignore', 'w', encoding='utf-8') as f:
+"""
+
+        with open(project_path / ".gitignore", "w", encoding="utf-8") as f:
             f.write(gitignore)
-        print('✓ Created .gitignore')
+        print("✓ Created .gitignore")
 
         pyproject = f'''[project]
 name = "{project_name}"
-authors = [{{name = "{get_git_config('user.name') or os.getlogin()}", email = "{get_git_config('user.email') or 'jsdtxm@live.com'}"}}]
+authors = [{{name = "{get_git_config("user.name") or os.getlogin()}", email = "{get_git_config("user.email") or "jsdtxm@live.com"}"}}]
 version = "0.1.0"
 requires-python = ">=3.12"
 '''
-        
-        with open(project_path / 'pyproject.toml', 'w', encoding='utf-8') as f:
+
+        with open(project_path / "pyproject.toml", "w", encoding="utf-8") as f:
             f.write(pyproject)
-        print('✓ Created pyproject.toml')
-    
+        print("✓ Created pyproject.toml")
+
     def run(self):
         """运行CLI"""
         args = sys.argv[1:]
-        
+
         if not args:
             self.help()
             return
-        
+
         command = args[0]
         command_args = args[1:]
-        
+
         if command in self.commands:
             self.commands[command](*command_args)
         else:
-            print(f'Unknown command: {command}')
+            print(f"Unknown command: {command}")
             print('Run "fastapp --help" for available commands.')
             sys.exit(1)
+
 
 def get_git_config(key):
     try:
         result = subprocess.run(
-            ['git', 'config', '--get', key],
-            capture_output=True,
-            text=True,
-            check=True
+            ["git", "config", "--get", key], capture_output=True, text=True, check=True
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError:
@@ -235,5 +235,5 @@ def main():
     cli.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
