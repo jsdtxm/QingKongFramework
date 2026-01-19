@@ -4,9 +4,11 @@ FastApp Framework CLI
 类似于django-admin的命令行工具
 """
 
-import sys
-import shutil
+import os
 import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -164,6 +166,7 @@ build/
 
 # IDE
 .vscode/
+.trae/
 .idea/
 *.swp
 *.swo
@@ -183,6 +186,17 @@ Thumbs.db
         with open(project_path / '.gitignore', 'w', encoding='utf-8') as f:
             f.write(gitignore)
         print('✓ Created .gitignore')
+
+        pyproject = f'''[project]
+name = "{project_name}"
+authors = [{{name = "{get_git_config('user.name') or os.getlogin()}", email = "{get_git_config('user.email') or 'jsdtxm@live.com'}"}}]
+version = "0.1.0"
+requires-python = ">=3.12"
+'''
+        
+        with open(project_path / 'pyproject.toml', 'w', encoding='utf-8') as f:
+            f.write(pyproject)
+        print('✓ Created pyproject.toml')
     
     def run(self):
         """运行CLI"""
@@ -201,6 +215,18 @@ Thumbs.db
             print(f'Unknown command: {command}')
             print('Run "fastapp --help" for available commands.')
             sys.exit(1)
+
+def get_git_config(key):
+    try:
+        result = subprocess.run(
+            ['git', 'config', '--get', key],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return None  # 配置项未设置或 git 命令失败
 
 
 def main():
