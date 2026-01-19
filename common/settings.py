@@ -5,6 +5,8 @@ from fastapp.conf import BaseSettings
 
 
 class Settings(BaseSettings):
+    INTERNAL_APP_PREFIX: str = "fastapp"
+
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
     INSTALLED_APPS: List[str] = [
