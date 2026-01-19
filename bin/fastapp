@@ -183,6 +183,7 @@ Thumbs.db
 
 /fastapp
 /fastapp_pro
+/service_ports.json
 """
 
         with open(project_path / ".gitignore", "w", encoding="utf-8") as f:
