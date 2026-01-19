@@ -10,6 +10,7 @@ from fastapp.conf import settings
 from fastapp.contrib.auth.typing import TokenTypeEnum, UserProtocol
 from fastapp.django.hashers import check_password
 from fastapp.exceptions import ImproperlyConfigured
+from fastapp.models import Q
 from fastapp.security.jwt import ALGORITHM, global_bearer_token_header
 from fastapp.utils.module_loading import import_string
 
@@ -44,7 +45,13 @@ async def get_user(username: str) -> Optional["UserProtocol"]:
     user_model: "UserProtocol" = import_string(settings.AUTH_USER_MODEL)
     if user_model is None:
         raise Exception("AUTH_USER_MODEL IS NOT SET")
-    user = await user_model.objects.get_or_none(username=username)
+
+    if "@" in username:
+        user = await user_model.objects.get_or_none(
+            Q(email=username) | Q(username=username)
+        )
+    else:
+        user = await user_model.objects.get_or_none(username=username)
 
     if user and not user.is_active:
         return None
