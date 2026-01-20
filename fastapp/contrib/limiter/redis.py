@@ -52,12 +52,19 @@ end"""
             callback=callback,
             connection_alias=connection_alias,
         )
+
+        self.initialized = False
+        self.lock = asyncio.Lock()
+
+    async def initialize(self):
         self.connection = get_redis_connection(self.connection_alias)
 
         if self.connection.__class__.__name__ != "Redis":
             raise Exception("Redis connection Invalid")
 
-        asyncio.create_task(self.script_load())
+        await self.script_load()
+
+        self.initialized = True
 
     async def script_load(self):
         self.lua_sha = lua_sha_dict.get(
@@ -72,8 +79,9 @@ end"""
         return pexpire
 
     async def __call__(self, request: Request, response: Response):
-        if not self.connection:
-            raise Exception("Redis connection Invalid")
+        async with self.lock:
+            if not self.initialized:
+                await self.initialize()
 
         key = await self.get_key(request)
 
