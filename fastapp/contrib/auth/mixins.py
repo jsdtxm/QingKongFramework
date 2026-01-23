@@ -22,16 +22,19 @@ class AccessMixin:
     raise_exception = False
 
     async def handle_no_permission(self):
-        action = getattr(self, self.action, None)  # type: ignore[missing-attribute]
-        if (
-            action
-            and isinstance(getattr(action, "kwargs", None), dict)
-            and (permission_classes := action.kwargs.get("permission_classes"))
-        ):
-            for permission_class in permission_classes:
-                if not await permission_class().has_permission(self.request, self):  # type: ignore[missing-attribute]
-                    raise NotAuthenticated()
-            return
+        action_name = getattr(self, "action", None)
+        if action_name:
+            action = getattr(self, action_name, None)  # type: ignore[missing-attribute]
+            if (
+                action
+                and isinstance(getattr(action, "kwargs", None), dict)
+                and (permission_classes := action.kwargs.get("permission_classes"))
+            ):
+                for permission_class in permission_classes:
+                    if not await permission_class().has_permission(self.request, self):  # type: ignore[missing-attribute]
+                        raise NotAuthenticated()
+                return
+
         raise NotAuthenticated()
 
 
