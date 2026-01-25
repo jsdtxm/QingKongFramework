@@ -265,7 +265,7 @@ class AdminUserViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
         return self.serializer_class
 
     @action(detail=True, methods=["post"], url_path="change-password")
-    async def change_password(self, request, pk=None):
+    async def change_password(self, request, id=None):
         user: AbstractUser = await self.get_object()
 
         data = await request.json()
