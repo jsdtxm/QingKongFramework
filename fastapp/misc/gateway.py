@@ -180,25 +180,52 @@ def handler_factory(proxy_loc: ProxyLocation):
             request_url = proxy_loc.construct_target_url(request.path_qs)
             request_content = await request.read()
 
+            headers = {}
             if proxy_loc.add_forwarded_host:
                 headers = parse_forwarded_for(request)
 
             if proxy_loc.rewrite_host:
                 headers["Host"] = proxy_loc.parsed_target.hostname
 
+            # 准备透传 headers（可选择性过滤）
+            proxy_headers = {}
+            for key, value in headers.items():
+                # 跳过 hop-by-hop headers（根据 RFC，代理不应转发）
+                if key.lower() in (
+                    "connection",
+                    "keep-alive",
+                    "proxy-authenticate",
+                    "proxy-authorization",
+                    "te",
+                    "trailers",
+                    "transfer-encoding",
+                    "upgrade",
+                ):
+                    continue
+                proxy_headers[key] = value
+
             async with session.request(
                 method=request.method,
                 url=request_url,
-                headers=headers,
+                headers=proxy_headers,
                 allow_redirects=False,
                 data=request_content,
             ) as response:
-                if response.content_type == "text/event-stream":
+                content_type = response.headers.get("Content-Type", "")
+                is_sse = "text/event-stream" in content_type
+
+                if is_sse:
                     # SSE
-                    sse_response = aiohttp.web.StreamResponse(
-                        status=response.status, headers=response.headers
-                    )
-                    sse_response.content_type = "text/event-stream"
+                    sse_response = aiohttp.web.StreamResponse(status=response.status)
+                    # 透传所有响应头（可选过滤）
+                    for key, value in response.headers.items():
+                        if key.lower() not in ("content-length", "transfer-encoding"):
+                            sse_response.headers[key] = value
+                    # 强制设置关键 SSE 头（以防上游缺失）
+                    sse_response.headers["Content-Type"] = "text/event-stream"
+                    sse_response.headers["Cache-Control"] = "no-cache"
+                    sse_response.headers["Connection"] = "keep-alive"
+                    sse_response.headers["X-Accel-Buffering"] = "no"  # 禁用 nginx 缓冲
 
                     await sse_response.prepare(request)
 
@@ -206,6 +233,7 @@ def handler_factory(proxy_loc: ProxyLocation):
                         # 实时转发数据块
                         async for chunk in response.content.iter_any():
                             await sse_response.write(chunk)
+                            await sse_response.drain()
 
                     except (ConnectionResetError, CancelledError) as e:
                         # 处理客户端断开连接
