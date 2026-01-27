@@ -1,26 +1,25 @@
-from typing import Self, Type
+from typing import ClassVar, Self, Tuple, Type
 
 
-class OperableBase:
-    _sources: tuple[Type[Self], ...]
-    _operation: str
+class OperableClassBase:
+    _sources: ClassVar[Tuple[Type[Self], ...]]
+    _operation: ClassVar[str]
 
 
-class OperableMeta(type):
+class OperableClassMeta(type):
     def __new__(mcs, name, bases, namespace, **kwargs):
-        if OperableBase not in bases and name != "OperableBase":
-            raise TypeError(f"Class {name} must inherit from OperableBase")
         return super().__new__(mcs, name, bases, namespace)
 
-    def __or__(cls: Type[OperableBase], other: "OperableMeta"):
-        if not isinstance(other, OperableMeta):
-            return NotImplemented
+    def __or__(cls, other: Self):
+        if not isinstance(other, OperableClassMeta):
+            raise NotImplementedError
+
         # 生成新类名
         new_name = f"{cls.__name__}_OR_{other.__name__}"
         # 创建新类，继承自 OperableBase
-        new_cls = OperableMeta(
+        new_cls = OperableClassMeta(
             new_name,
-            (OperableBase,),
+            (OperableClassBase,),
             {
                 "_sources": (cls, other),
                 "_operation": "|",
@@ -28,13 +27,14 @@ class OperableMeta(type):
         )
         return new_cls
 
-    def __and__(cls, other: "OperableMeta") -> "OperableMeta":
-        if not isinstance(other, OperableMeta):
-            return NotImplemented
+    def __and__(cls, other: Self):
+        if not isinstance(other, OperableClassMeta):
+            raise NotImplementedError
+
         new_name = f"{cls.__name__}_AND_{other.__name__}"
-        new_cls = OperableMeta(
+        new_cls = OperableClassMeta(
             new_name,
-            (OperableBase,),
+            (OperableClassBase,),
             {
                 "_sources": (cls, other),
                 "_operation": "&",
@@ -42,13 +42,14 @@ class OperableMeta(type):
         )
         return new_cls
 
-    def __xor__(cls, other: "OperableMeta") -> "OperableMeta":
-        if not isinstance(other, OperableMeta):
-            return NotImplemented
+    def __xor__(cls, other: Self):
+        if not isinstance(other, OperableClassMeta):
+            raise NotImplementedError
+
         new_name = f"{cls.__name__}_XOR_{other.__name__}"
-        new_cls = OperableMeta(
+        new_cls = OperableClassMeta(
             new_name,
-            (OperableBase,),
+            (OperableClassBase,),
             {
                 "_sources": (cls, other),
                 "_operation": "^",
@@ -56,12 +57,12 @@ class OperableMeta(type):
         )
         return new_cls
 
-    def __invert__(cls) -> "OperableMeta":
+    def __invert__(cls):
         # TODO 避免重复取反：~~A 应该简化？这里暂不简化，保留结构
         new_name = f"NOT_{cls.__name__}"
-        new_cls = OperableMeta(
+        new_cls = OperableClassMeta(
             new_name,
-            (OperableBase,),
+            (OperableClassBase,),
             {
                 "_sources": (cls,),
                 "_operation": "~",
@@ -69,7 +70,7 @@ class OperableMeta(type):
         )
         return new_cls
 
-    def __repr__(cls: Type[OperableBase]):
+    def __repr__(cls: Type[OperableClassBase]):
         if hasattr(cls, "_sources"):
             op = cls._operation
             if op == "~":
@@ -85,13 +86,13 @@ class OperableMeta(type):
 
 if __name__ == "__main__":
 
-    class A(OperableBase, metaclass=OperableMeta):
+    class A(OperableClassBase, metaclass=OperableClassMeta):
         pass
 
-    class B(OperableBase, metaclass=OperableMeta):
+    class B(OperableClassBase, metaclass=OperableClassMeta):
         pass
 
-    class C(OperableBase, metaclass=OperableMeta):
+    class C(OperableClassBase, metaclass=OperableClassMeta):
         pass
 
     # 基本 OR
@@ -115,8 +116,8 @@ if __name__ == "__main__":
     print(H)  # <OperableClass A_AND_B_OR_NOT_C (from A_AND_B | NOT_C)>
 
     # 验证继承关系
-    assert issubclass(D, OperableBase)
-    assert issubclass(H, OperableBase)
+    assert issubclass(D, OperableClassBase)
+    assert issubclass(H, OperableClassBase)
 
     # 属性检查
     print("H._operation:", H._operation)  # |
