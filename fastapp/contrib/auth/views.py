@@ -285,7 +285,11 @@ class AdminUserViewSet(SuperUserRequiredMixin, viewsets.ModelViewSet):
         ):
             raise ValueError("This email has already been registered")
 
-        return await super().perform_create(serializer)
+        user = await super().perform_create(serializer)
+        user.set_password(serializer.password)
+        await user.save()
+
+        return user
 
     async def perform_update(self, serializer):
         obj = await self.get_object()
