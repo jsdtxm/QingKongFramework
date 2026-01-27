@@ -1,10 +1,12 @@
 import asyncio
+import sys
 from pathlib import Path
 from typing import Type
 
 import click
 from pydantic import BaseModel
 
+from common.settings import settings
 from fastapp.commands.decorators import async_init_fastapp
 from fastapp.serializers.model import ModelSerializerPydanticModel
 
@@ -93,73 +95,49 @@ def get_model_serializers_from_module(module) -> list:
 
 @click.command()
 @click.option(
-    "--apps-dir",
-    default="apps",
-    help="Path to the apps directory",
-)
-@click.option(
     "--output-dir",
     default="types",
     help="Path to the output directory for TypeScript files",
 )
-def generate_typescript(apps_dir: str, output_dir: str):
-    asyncio.run(async_generate_typescript(apps_dir, output_dir))
+def generate_typescript(output_dir: str):
+    asyncio.run(async_generate_typescript(output_dir))
 
 
 @async_init_fastapp
-async def async_generate_typescript(apps_dir: str, output_dir: str):
+async def async_generate_typescript(output_dir: str):
     """
     Generate TypeScript interfaces from ModelSerializerPydanticModel classes.
 
-    This command traverses the apps directory, finds all serializers.py files,
+    This command traverses INSTALLED_APPS, finds all serializers.py modules,
     and generates TypeScript interfaces for ModelSerializerPydanticModel subclasses.
     """
-    apps_path = Path(apps_dir).resolve()
     output_path = Path(output_dir).resolve()
-
-    if not apps_path.exists():
-        click.echo(f"Error: Apps directory '{apps_dir}' does not exist.")
-        return
-
     output_path.mkdir(parents=True, exist_ok=True)
 
     converter = PydanticToTS()
     generated_files = []
 
-    for app_dir in apps_path.iterdir():
-        if not app_dir.is_dir():
-            continue
-
-        serializers_file = app_dir / "serializers.py"
-        if not serializers_file.exists():
-            continue
-
-        app_name = app_dir.name
-        click.echo(f"Processing app: {app_name}")
+    for app_path in settings.INSTALLED_APPS:
+        serializers_module_name = f"{app_path}.serializers"
 
         try:
-            import sys
-
-            module_name = f"apps.{app_name}.serializers"
-            if module_name in sys.modules:
-                module = sys.modules[module_name]
+            if serializers_module_name in sys.modules:
+                module = sys.modules[serializers_module_name]
             else:
-                import importlib.util
+                from importlib import import_module
 
-                spec = importlib.util.spec_from_file_location(
-                    module_name, serializers_file
-                )
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module
-                spec.loader.exec_module(module)
+                module = import_module(serializers_module_name)
+
+            if not hasattr(module, "__name__"):
+                continue
 
             serializers = get_model_serializers_from_module(module)
 
             if not serializers:
-                click.echo(
-                    f"  No ModelSerializerPydanticModel subclasses found in {app_name}"
-                )
                 continue
+
+            app_name = app_path.split(".")[-1]
+            click.echo(f"Processing app: {app_path}")
 
             app_types = []
             for serializer_name, serializer_class in serializers:
@@ -177,8 +155,10 @@ async def async_generate_typescript(apps_dir: str, output_dir: str):
                 generated_files.append(str(output_file))
                 click.echo(f"  Written: {output_file}")
 
+        except (ImportError, AttributeError):
+            continue
         except Exception as e:
-            click.echo(f"Error processing {app_name}: {e}")
+            click.echo(f"Error processing {app_path}: {e}")
 
     if generated_files:
         click.echo(f"\nSuccessfully generated {len(generated_files)} TypeScript files:")
