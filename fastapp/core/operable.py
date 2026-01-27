@@ -7,9 +7,6 @@ class OperableClassBase:
 
 
 class OperableClassMeta(type):
-    def __new__(mcs, name, bases, namespace, **kwargs):
-        return super().__new__(mcs, name, bases, namespace)
-
     def __or__(cls, other: Self):
         if not isinstance(other, OperableClassMeta):
             raise NotImplementedError

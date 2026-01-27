@@ -1,122 +1,150 @@
+from typing import ClassVar, Self, Tuple, Type
+
+from fastapp.core.operable import OperableClassBase, OperableClassMeta
 from fastapp.requests import DjangoStyleRequest
 
 SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
 
 
-class OperationHolderMixin:
-    def __and__(self, other):
-        return OperandHolder(AND, self, other)
+class OperablePermissionBase(OperableClassBase):
+    _sources: ClassVar[Tuple[Type["OperablePermissionBase"], ...]]
+    _operation: ClassVar[str]
 
-    def __or__(self, other):
-        return OperandHolder(OR, self, other)
+    async def has_object_permission(
+        self, request: DjangoStyleRequest, view, obj=None
+    ) -> bool:
+        """
+        子类必须实现此方法（原子权限），
+        或由 OperablePermissionMeta 自动生成（组合权限）。
+        """
+        raise NotImplementedError
 
-    def __rand__(self, other):
-        return OperandHolder(AND, other, self)
-
-    def __ror__(self, other):
-        return OperandHolder(OR, other, self)
-
-    def __invert__(self):
-        return SingleOperandHolder(NOT, self)
-
-
-class SingleOperandHolder(OperationHolderMixin):
-    def __init__(self, operator_class, op1_class):
-        self.operator_class = operator_class
-        self.op1_class = op1_class
-
-    def __call__(self, *args, **kwargs):
-        op1 = self.op1_class(*args, **kwargs)
-        return self.operator_class(op1)
+    async def has_permission(self, request: DjangoStyleRequest, view) -> bool:
+        """
+        子类可选实现此方法（原子权限），
+        或由 OperablePermissionMeta 自动生成（组合权限）。
+        """
+        raise NotImplementedError
 
 
-class OperandHolder(OperationHolderMixin):
-    def __init__(self, operator_class, op1_class, op2_class):
-        self.operator_class = operator_class
-        self.op1_class = op1_class
-        self.op2_class = op2_class
+class OperablePermissionMeta(OperableClassMeta):
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        if "has_permission" not in namespace:
 
-    def __call__(self, *args, **kwargs):
-        op1 = self.op1_class(*args, **kwargs)
-        op2 = self.op2_class(*args, **kwargs)
-        return self.operator_class(op1, op2)
+            async def has_permission(self, request: DjangoStyleRequest, view) -> bool:
+                return await self.has_object_permission(request, view, None)
 
-    def __eq__(self, other):
-        return (
-            isinstance(other, OperandHolder)
-            and self.operator_class == other.operator_class
-            and self.op1_class == other.op1_class
-            and self.op2_class == other.op2_class
+            namespace["has_permission"] = has_permission
+        return super().__new__(mcs, name, bases, namespace, **kwargs)
+
+    def __or__(cls, other: Self):
+        if not isinstance(other, OperablePermissionMeta):
+            raise NotImplementedError
+
+        new_name = f"{cls.__name__}_OR_{other.__name__}"
+
+        async def has_object_permission(self, request, view, obj) -> bool:
+            left = cls().has_object_permission(request, view, obj)
+            right = other().has_object_permission(request, view, obj)
+            return await left or await right
+
+        async def has_permission(self, request: DjangoStyleRequest, view) -> bool:
+            left = cls().has_permission(request, view)
+            right = other().has_permission(request, view)
+            return await left or await right
+
+        return OperablePermissionMeta._create_binary_op(
+            new_name, (cls, other), "|", has_object_permission, has_permission
         )
 
-    def __hash__(self):
-        return hash((self.operator_class, self.op1_class, self.op2_class))
+    def __and__(cls, other: Self):
+        if not isinstance(other, OperablePermissionMeta):
+            raise NotImplementedError
 
+        new_name = f"{cls.__name__}_AND_{other.__name__}"
 
-class AND:
-    def __init__(self, op1: "BasePermission", op2: "BasePermission"):
-        self.op1 = op1
-        self.op2 = op2
+        async def has_object_permission(self, request, view, obj) -> bool:
+            left = await cls().has_object_permission(request, view, obj)
+            right = await other().has_object_permission(request, view, obj)
+            return left and right
 
-    async def has_permission(self, request: DjangoStyleRequest, view):
-        return await self.op1.has_permission(
-            request, view
-        ) and await self.op2.has_permission(request, view)
+        async def has_permission(self, request: DjangoStyleRequest, view) -> bool:
+            left = await cls().has_permission(request, view)
+            right = await other().has_permission(request, view)
+            return left and right
 
-    async def has_object_permission(self, request: DjangoStyleRequest, view, obj):
-        return await self.op1.has_object_permission(
-            request, view, obj
-        ) and await self.op2.has_object_permission(request, view, obj)
-
-
-class OR:
-    def __init__(self, op1: "BasePermission", op2: "BasePermission"):
-        self.op1 = op1
-        self.op2 = op2
-
-    async def has_permission(self, request: DjangoStyleRequest, view):
-        return await self.op1.has_permission(
-            request, view
-        ) or await self.op2.has_permission(request, view)
-
-    async def has_object_permission(self, request: DjangoStyleRequest, view, obj):
-        return (
-            await self.op1.has_permission(request, view)
-            and self.op1.has_object_permission(request, view, obj)
-        ) or (
-            await self.op2.has_permission(request, view)
-            and self.op2.has_object_permission(request, view, obj)
+        return OperablePermissionMeta._create_binary_op(
+            new_name, (cls, other), "&", has_object_permission, has_permission
         )
 
+    def __xor__(cls, other: Self):
+        if not isinstance(other, OperablePermissionMeta):
+            raise NotImplementedError
 
-class NOT:
-    def __init__(self, op1: "BasePermission"):
-        self.op1 = op1
+        new_name = f"{cls.__name__}_XOR_{other.__name__}"
 
-    async def has_permission(self, request: DjangoStyleRequest, view):
-        return not await self.op1.has_permission(request, view)
+        async def has_object_permission(self, request, view, obj) -> bool:
+            left = await cls().has_object_permission(request, view, obj)
+            right = await other().has_object_permission(request, view, obj)
+            return left ^ right
 
-    async def has_object_permission(self, request: DjangoStyleRequest, view, obj):
-        return not await self.op1.has_object_permission(request, view, obj)
+        async def has_permission(self, request: DjangoStyleRequest, view) -> bool:
+            left = await cls().has_permission(request, view)
+            right = await other().has_permission(request, view)
+            return left ^ right
 
+        return OperablePermissionMeta._create_binary_op(
+            new_name, (cls, other), "^", has_object_permission, has_permission
+        )
 
-class BasePermissionMetaclass(OperationHolderMixin, type):
-    pass
+    def __invert__(cls):
+        new_name = f"NOT_{cls.__name__}"
 
+        async def has_object_permission(self, request, view, obj) -> bool:
+            val = await cls().has_object_permission(request, view, obj)
+            return not val
 
-class BasePermission(metaclass=BasePermissionMetaclass):
-    """
-    A base class from which all permission classes should inherit.
-    """
+        async def has_permission(self, request: DjangoStyleRequest, view) -> bool:
+            val = await cls().has_permission(request, view)
+            return not val
 
-    async def has_permission(self, request: DjangoStyleRequest, view):
-        """
-        Return `True` if permission is granted, `False` otherwise.
-        """
-        return True
+        return OperablePermissionMeta._create_unary_op(
+            new_name, (cls,), "~", has_object_permission, has_permission
+        )
 
-    async def has_object_permission(self, request: DjangoStyleRequest, view, obj):
-        """
-        Return `True` if permission is granted, `False` otherwise.
-        """
-        return True
+    @staticmethod
+    def _create_binary_op(name: str, sources: tuple, op: str, object_method, method):
+        return OperablePermissionMeta(
+            name,
+            (OperablePermissionBase,),
+            {
+                "_sources": sources,
+                "_operation": op,
+                "has_object_permission": object_method,
+                "has_permission": method,
+            },
+        )
+
+    @staticmethod
+    def _create_unary_op(name: str, sources: tuple, op: str, object_method, method):
+        return OperablePermissionMeta(
+            name,
+            (OperablePermissionBase,),
+            {
+                "_sources": sources,
+                "_operation": op,
+                "has_object_permission": object_method,
+                "has_permission": method,
+            },
+        )
+
+    def __repr__(cls: Type[OperableClassBase]):
+        if hasattr(cls, "_sources"):
+            op = cls._operation
+            if op == "~":
+                inner = cls._sources[0].__name__
+                return f"<PermissionClass {cls.__name__} (from ~{inner})>"
+            else:
+                names = f" {op} ".join(c.__name__ for c in cls._sources)
+                return f"<PermissionClass {cls.__name__} (from {names})>"
+        return super().__repr__()

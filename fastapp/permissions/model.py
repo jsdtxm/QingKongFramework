@@ -1,8 +1,10 @@
 from typing import TYPE_CHECKING, Type
 
 from fastapp import exceptions
-from fastapp.exceptions import Http404
-from fastapp.permissions.base import BasePermission
+from fastapp.permissions.base import (
+    OperablePermissionBase,
+    OperablePermissionMeta,
+)
 
 if TYPE_CHECKING:
     from fastapp import models
@@ -10,7 +12,7 @@ if TYPE_CHECKING:
     from fastapp.views.viewsets import View
 
 
-class ModelPermissions(BasePermission):
+class ModelPermissions(OperablePermissionBase, metaclass=OperablePermissionMeta):
     """
     The request is authenticated using `django.contrib.auth` permissions.
     See: https://docs.djangoproject.com/en/dev/topics/auth/#permissions
@@ -104,7 +106,7 @@ class ObjectPermissions(ModelPermissions):
     def get_required_object_permissions(self, method, model_cls):
         return super().get_required_permissions(method, model_cls)
 
-    async def has_object_permission(self, request, view, obj):
+    async def has_object_permission(self, request, view, obj=None):
         # authentication checks have already executed via has_permission
         queryset = self._queryset(view)
         model_cls = queryset.model
@@ -113,6 +115,6 @@ class ObjectPermissions(ModelPermissions):
         perms = self.get_required_object_permissions(request.method, model_cls)
 
         if not await user.has_perms(perms, obj):
-            raise Http404
+            return False
 
         return True

@@ -31,7 +31,7 @@ from fastapp.models import BaseModel as BaseDBModel
 from fastapp.models import Manager, Model, get_object_or_404
 from fastapp.paginate.base import BasePaginate
 from fastapp.paginate.serializers import PaginateResponse
-from fastapp.permissions.base import BasePermission
+from fastapp.permissions.base import OperablePermissionBase as BasePermission
 from fastapp.requests import DjangoStyleRequest
 from fastapp.responses import JSONResponse
 from fastapp.utils.functional import classonlymethod, copy_method_signature
@@ -43,9 +43,7 @@ from fastapp.views.class_based import View, ViewWrapper
 from fastapp.views.decorators import ActionMethodMapper
 
 DEFAULTS = {
-    "DEFAULT_PERMISSION_CLASSES": [
-        "fastapp.permissions.AllowAny",
-    ],
+    "DEFAULT_PERMISSION_CLASSES": [],
     "DEFAULT_PAGINATION_CLASS": settings.DEFAULT_PAGINATION_CLASS,
 }
 
@@ -220,6 +218,11 @@ class APIView(View):
         if request.user is None:
             raise exceptions.NotAuthenticated()
         raise exceptions.PermissionDenied(detail=message, code=code)
+
+    async def dispatch(self, request: DjangoStyleRequest, *args, **kwargs):
+        await self.check_permissions(request)
+
+        return await super().dispatch(request, *args, **kwargs)
 
     def get_permissions(self) -> list[BasePermission]:
         """
@@ -567,6 +570,7 @@ class GenericViewSet(GenericAPIView[MODEL]):
         self.kwargs = kwargs
 
     async def dispatch(self, request: DjangoStyleRequest, *args, **kwargs):
+        await self.check_permissions(request)
         handler = getattr(self, self.action, self.http_method_not_allowed)
 
         return await handler(request, *args, **kwargs)
