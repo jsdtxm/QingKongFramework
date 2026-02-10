@@ -44,6 +44,7 @@ class ProxyLocation:
         fastapi_redirect=False,
         add_forwarded_host=True,
         rewrite_host=False,
+        redirect_cache=True,
     ):
         self.path = path
         self.target = target
@@ -56,8 +57,11 @@ class ProxyLocation:
 
         self.add_forwarded_host = add_forwarded_host
         self.rewrite_host = rewrite_host
+        self.redirect_cache_enabled = redirect_cache
 
         self.parsed_target = urlparse(self.target)
+
+        self.redirect_cache = {}
 
     def __repr__(self):
         return (
@@ -76,6 +80,7 @@ class ProxyLocation:
         fastapi_redirect=False,
         add_forwarded_host=True,
         rewrite_host=False,
+        redirect_cache=True,
     ):
         if prefix == "":
             return cls(
@@ -86,6 +91,7 @@ class ProxyLocation:
                 fastapi_redirect=fastapi_redirect,
                 add_forwarded_host=add_forwarded_host,
                 rewrite_host=rewrite_host,
+                redirect_cache=redirect_cache,
             )
 
         return cls(
@@ -96,6 +102,7 @@ class ProxyLocation:
             fastapi_redirect=fastapi_redirect,
             add_forwarded_host=add_forwarded_host,
             rewrite_host=rewrite_host,
+            redirect_cache=redirect_cache,
         )
 
     def rewrite_path(self, path):
@@ -177,7 +184,17 @@ def parse_forwarded_for(request: aiohttp.web.Request):
 def handler_factory(proxy_loc: ProxyLocation):
     async def handler(request: aiohttp.web.Request):
         async with aiohttp.ClientSession() as session:
-            request_url = proxy_loc.construct_target_url(request.path_qs)
+            original_path_qs = request.path_qs
+
+            if (
+                proxy_loc.fastapi_redirect
+                and proxy_loc.redirect_cache_enabled
+                and original_path_qs in proxy_loc.redirect_cache
+            ):
+                request_url = proxy_loc.redirect_cache[original_path_qs]
+            else:
+                request_url = proxy_loc.construct_target_url(original_path_qs)
+
             request_content = await request.read()
 
             headers = {}
@@ -254,14 +271,21 @@ def handler_factory(proxy_loc: ProxyLocation):
 
                             if proxy_loc.fastapi_redirect:
                                 parsed_request_url = urlparse(request_url)
+                                redirected_url = parsed_request_url._replace(
+                                    path=parsed_url.path,
+                                    query=parsed_url.query,
+                                    fragment=parsed_url.fragment,
+                                    params=parsed_url.params,
+                                ).geturl()
+
+                                if proxy_loc.redirect_cache_enabled:
+                                    proxy_loc.redirect_cache[original_path_qs] = (
+                                        redirected_url
+                                    )
+
                                 response = await session.request(
                                     method=request.method,
-                                    url=parsed_request_url._replace(
-                                        path=parsed_url.path,
-                                        query=parsed_url.query,
-                                        fragment=parsed_url.fragment,
-                                        params=parsed_url.params,
-                                    ).geturl(),
+                                    url=redirected_url,
                                     headers=headers,
                                     allow_redirects=False,
                                     data=await request.read(),
@@ -316,6 +340,7 @@ def run_gateway(
     default_upstream="127.0.0.1",
     add_slashes=False,
     fastapi_redirect=False,
+    redirect_cache=True,
     debug=False,
 ):
     os.environ["FASTAPP_COMMAND"] = "gateway"
@@ -338,6 +363,7 @@ def run_gateway(
             f"http://{upstream_dict.get(v.prefix, default_upstream)}:{v.port}",
             add_slashes=add_slashes,
             fastapi_redirect=fastapi_redirect,
+            redirect_cache=redirect_cache,
         )
         for v in app_configs
     ]
@@ -352,6 +378,7 @@ def run_gateway(
                 fastapi_redirect=p.get("fastapi_redirect", fastapi_redirect),
                 add_forwarded_host=p.get("add_forwarded_host", True),
                 rewrite_host=p.get("rewrite_host", False),
+                redirect_cache=p.get("redirect_cache", redirect_cache),
             )
             for p in settings.EXTRA_PROXY
         ]

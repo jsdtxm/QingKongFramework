@@ -36,10 +36,30 @@ def runserver_aio(host, port, workers, reload):
 @click.option("--add-slashes", is_flag=True, type=click.BOOL)
 @click.option("--fastapi-redirect", is_flag=True, type=click.BOOL)
 @click.option("--redirect", is_flag=True, type=click.BOOL)
+@click.option("--redirect-cache", is_flag=True, type=click.BOOL, default=True)
 @click.option("--debug", is_flag=True, type=click.BOOL)
-def gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirect, redirect, debug):
+def gateway(
+    host,
+    port,
+    upstream,
+    default_upstream,
+    add_slashes,
+    fastapi_redirect,
+    redirect,
+    redirect_cache,
+    debug,
+):
     print_logo()
-    run_gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirect or redirect, debug)
+    run_gateway(
+        host,
+        port,
+        upstream,
+        default_upstream,
+        add_slashes,
+        fastapi_redirect or redirect,
+        redirect_cache,
+        debug,
+    )
 
 
 @click.option("--host", default="127.0.0.1", type=click.STRING)
@@ -49,4 +69,6 @@ def gateway(host, port, upstream, default_upstream, add_slashes, fastapi_redirec
 @click.option("--api-target", default="http://127.0.0.1:8000", type=click.STRING)
 def serve_static(host, port, root, api_prefix, api_target):
     print_logo()
-    run_static_server(host, port, root_dir=root, api_prefix=api_prefix, api_target=api_target)
+    run_static_server(
+        host, port, root_dir=root, api_prefix=api_prefix, api_target=api_target
+    )
