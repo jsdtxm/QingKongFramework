@@ -4,6 +4,7 @@ from fastapp.db.backends.postgresql.base import AsyncpgDBClient
 from tortoise.backends.asyncpg import schema_generator
 
 from fastapp.db.backends.mixin import SchemaGeneratorMixin
+from fastapp.db.backends.postgresql.executor import AsyncpgExecutor
 
 
 class PostgreSQLSchemaGenerator(
@@ -13,6 +14,7 @@ class PostgreSQLSchemaGenerator(
 
 
 class PostgreSQLClient(AsyncpgDBClient):
+    executor_class = AsyncpgExecutor
     schema_generator = PostgreSQLSchemaGenerator
 
     def __init__(
