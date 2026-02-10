@@ -1,6 +1,6 @@
 from typing import Any, Optional, SupportsInt
 
-from tortoise.backends import asyncpg
+from fastapp.db.backends.postgresql.base import AsyncpgDBClient
 from tortoise.backends.asyncpg import schema_generator
 
 from fastapp.db.backends.mixin import SchemaGeneratorMixin
@@ -12,7 +12,7 @@ class PostgreSQLSchemaGenerator(
     pass
 
 
-class PostgreSQLClient(asyncpg.AsyncpgDBClient):
+class PostgreSQLClient(AsyncpgDBClient):
     schema_generator = PostgreSQLSchemaGenerator
 
     def __init__(
@@ -29,12 +29,6 @@ class PostgreSQLClient(asyncpg.AsyncpgDBClient):
         if "configure" in kwargs:
             kwargs["init"] = kwargs.pop("configure")
         super().__init__(user, password, database, host, port, **kwargs)
-
-    async def _translate_exceptions(self, func, *args, **kwargs) -> Exception:
-        try:
-            return await func(self, *args, **kwargs)
-        finally:
-            await self._expire_connections()
 
 
 client_class = PostgreSQLClient
