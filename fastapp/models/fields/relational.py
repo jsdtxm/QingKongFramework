@@ -158,7 +158,7 @@ def ForeignKeyField(
 
 @overload
 def ForeignKeyField(
-    model_name: Union[str, Type[Model]],
+    model_name: Union[str, Type[MODEL]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
@@ -170,7 +170,7 @@ def ForeignKeyField(
 
 @overload
 def ForeignKeyField(
-    model_name: Union[str, Type[Model]],
+    model_name: Union[str, Type[MODEL]],
     related_name: Union[Optional[str], Literal[False]] = None,
     to_field: Optional[str] = None,
     source_field: Optional[str] = None,
@@ -184,7 +184,7 @@ def ForeignKeyField(
 
 @overload
 def ForeignKeyField(
-    model_name: Union[str, Type[Model]],
+    model_name: Union[str, Type[MODEL]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
@@ -194,7 +194,7 @@ def ForeignKeyField(
 
 
 def ForeignKeyField(
-    model_name: Union[str, Type[Model]],
+    model_name: Union[str, Type[MODEL]],
     related_name: Union[Optional[str], Literal[False]] = None,
     on_delete: OnDelete = CASCADE,
     db_constraint: bool = True,
@@ -259,7 +259,7 @@ def ForeignKeyField(
 
 
 def ManyToManyField(
-    model_name: Union[str, Type[Model]],
+    model_name: Union[str, Type[MODEL]],
     through: Optional[str] = None,
     forward_key: Optional[str] = None,
     backward_key: str = "",
