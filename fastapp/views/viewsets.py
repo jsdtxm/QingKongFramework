@@ -228,6 +228,11 @@ class APIView(View):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
+        # support action permission classes
+        if (action := getattr(self, "action", None)) and action not in {"list", "create", "retrieve", "update", "destroy"}:
+            action_func = getattr(self, action)
+            if ps := action_func.kwargs.get("permission_classes"):
+                return [permission() for permission in ps]
         return [permission() for permission in self.permission_classes]
 
     async def check_permissions(self, request):
