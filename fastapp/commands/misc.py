@@ -1,3 +1,5 @@
+from typing import Literal
+
 import click
 
 from common.settings import settings
@@ -13,9 +15,9 @@ def about():
     print_logo()
 
 
-@click.option("--mode", default="lite", type=click.STRING)
+@click.option("--mode", default="mini", type=click.STRING)
 @click.option("--apps", multiple=True)
-def stubgen(mode="lite", apps=None):
+def stubgen(mode: Literal["lite", "full", "mini"] = "mini", apps=None):
     """
     stubgen
     """

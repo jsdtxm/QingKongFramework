@@ -65,7 +65,7 @@ def complete(module_name: str):
     tmp_part = []
     model_name = None
     model_desc_dict = defaultdict(dict)
-    for line in lines:
+    for line in lines:  # type: ignore
         if m := CLASS_PATTERN.match(line):
             _model_name = m.group(1)
             model_class = getattr(module, _model_name)
@@ -113,8 +113,8 @@ def complete(module_name: str):
                 or issubclass(field_type, relational.BackwardFKRelation)
                 or issubclass(field_type, relational.ManyToManyFieldInstance)
             ):
-                ptype = field["python_type"].__name__
-                if field["nullable"] is True:
+                ptype = desc["python_type"].__name__
+                if desc["nullable"] is True:
                     ptype = f"typing.Optional[{ptype}]"
 
                 if ptype == "User":

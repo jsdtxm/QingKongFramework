@@ -2,13 +2,14 @@ import re
 import sys
 from collections import defaultdict
 from itertools import chain
+from typing import Literal
 
 from fastapp.misc.complete_type import CLASS_PATTERN
 from fastapp.models.base import BaseModel
 from fastapp.utils.module_loading import import_module
 
 
-def generate(module_name: str, mode: str):
+def generate(module_name: str, mode: Literal["lite", "full", "mini"] = "lite"):
     from mypy.stubgen import Options, generate_stubs
 
     module = import_module(module_name)
@@ -91,35 +92,37 @@ def generate(module_name: str, mode: str):
             for k, v in sub_need_import.items():
                 need_import[k].update(v)
 
-            objects_typing = f'typing.Type["{model_name}"]'
-            if manager := getattr(model_class.Meta, "manager", None):
-                objects_typing = manager.__class__.__name__
+            if mode != "mini":
+                # MINI模式下不需要生成query_params
+                objects_typing = f'typing.Type["{model_name}"]'
+                if manager := getattr(model_class.Meta, "manager", None):
+                    objects_typing = manager.__class__.__name__
 
-            modified_lines.extend(
-                map(
-                    lambda x: f"    {x}\n",
-                    query_params.split("\n"),
-                )
-            )
-            indent = " " * 4
-            modified_lines.extend(
-                chain(
-                    [
-                        f"    objects: {objects_typing} # type: ignore\n\n",
-                    ],
+                modified_lines.extend(
                     map(
-                        lambda x: f"{indent}@classmethod\n{indent}{x}\n{indent * 2}...\n\n",
-                        [
-                            """async def create(cls, **kwargs: typing.Unpack[CreateParams]) -> typing.Self: # type: ignore""",
-                            """def filter(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
-                            """def exclude(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
-                            """async def get(cls, *args: Q, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> QuerySetSingle[typing.Self]: # type: ignore""",
-                            """async def get_or_none(cls, *args: Q, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> QuerySetSingle[typing.Optional[typing.Self]]: # type: ignore""",
-                            """async def get_or_create(cls, defaults: typing.Optional[dict] = None, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> typing.Tuple[typing.Self, bool]: # type: ignore""",
-                        ],
-                    ),
+                        lambda x: f"    {x}\n",
+                        query_params.split("\n"),
+                    )
                 )
-            )
+                indent = " " * 4
+                modified_lines.extend(
+                    chain(
+                        [
+                            f"    objects: {objects_typing} # type: ignore\n\n",
+                        ],
+                        map(
+                            lambda x: f"{indent}@classmethod\n{indent}{x}\n{indent * 2}...\n\n",
+                            [
+                                """async def create(cls, **kwargs: typing.Unpack[CreateParams]) -> typing.Self: # type: ignore""",
+                                """def filter(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
+                                """def exclude(cls, *args: Q, **kwargs: typing.Unpack[QueryParams]) -> QuerySet[typing.Self]: # type: ignore""",
+                                """async def get(cls, *args: Q, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> QuerySetSingle[typing.Self]: # type: ignore""",
+                                """async def get_or_none(cls, *args: Q, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> QuerySetSingle[typing.Optional[typing.Self]]: # type: ignore""",
+                                """async def get_or_create(cls, defaults: typing.Optional[dict] = None, using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Unpack[QueryParams]) -> typing.Tuple[typing.Self, bool]: # type: ignore""",
+                            ],
+                        ),
+                    )
+                )
         else:
             modified_lines.append(line)
 

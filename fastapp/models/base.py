@@ -95,7 +95,7 @@ def field_filter(stubgen_meta: "BaseModel.StubGenMeta", fields):
 
 
 def generate_query_params_attrs(
-    cls: "BaseModel", mode: Literal["full", "lite"] = "lite", depth=0, max_depth=1
+    cls: "BaseModel", mode: Literal["full", "lite", "mini"] = "lite", depth=0, max_depth=1
 ):
     from fastapp.models.fields import data as data_fields
 
