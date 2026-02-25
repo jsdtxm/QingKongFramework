@@ -92,7 +92,9 @@ def generate(module_name: str, mode: Literal["lite", "full", "mini"] = "lite"):
             for k, v in sub_need_import.items():
                 need_import[k].update(v)
 
-            if mode != "mini":
+            if mode == "mini":
+                modified_lines.append("    pass\n")
+            else:
                 # MINI模式下不需要生成query_params
                 objects_typing = f'typing.Type["{model_name}"]'
                 if manager := getattr(model_class.Meta, "manager", None):
