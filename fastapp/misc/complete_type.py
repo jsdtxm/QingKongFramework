@@ -122,10 +122,10 @@ def complete(module_name: str):
 
                 if issubclass(field_type, relational.ManyToManyFieldInstance):
                     tmp_part.append(
-                        line.replace("Incomplete", f"ManyToManyRelation[{ptype}]")
+                        line.replace("Incomplete", f"typing.Awaitable[ManyToManyRelation[{ptype}]]")
                     )
                 else:
-                    tmp_part.append(line.replace("Incomplete", ptype))
+                    tmp_part.append(line.replace("Incomplete", f"typing.Awaitable[{ptype}]"))
                 continue
 
             ptype = desc["python_type"]
