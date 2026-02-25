@@ -1,8 +1,9 @@
-import re
 from collections import defaultdict
 from itertools import chain
+import re
 
 from tortoise.fields import relational
+from tortoise.fields.base import Field
 
 from fastapp.models.base import BaseModel
 from fastapp.models.choices import Choices
@@ -12,6 +13,7 @@ from fastapp.utils.typing import type_to_str
 CLASS_PATTERN = re.compile(
     r"class\s([A-Za-z_][A-Za-z_0-9]*)\([A-Za-z_][A-Za-z_0-9.\[\]\s\,]+\):(\s+...)?"
 )
+GENERAL_CLASS_PATTERN = re.compile(r"class\s([A-Za-z_][A-Za-z_0-9]*)\s*:(\s+...)?")
 INCOMPLETE_PATTERN = re.compile(r"\s+([A-Za-z_][A-Za-z_0-9]*)\s*:\s*Incomplete")
 
 
@@ -122,10 +124,15 @@ def complete(module_name: str):
 
                 if issubclass(field_type, relational.ManyToManyFieldInstance):
                     tmp_part.append(
-                        line.replace("Incomplete", f"typing.Awaitable[ManyToManyRelation[{ptype}]]")
+                        line.replace(
+                            "Incomplete",
+                            f"typing.Awaitable[ManyToManyRelation[{ptype}]]",
+                        )
                     )
                 else:
-                    tmp_part.append(line.replace("Incomplete", f"typing.Awaitable[{ptype}]"))
+                    tmp_part.append(
+                        line.replace("Incomplete", f"typing.Awaitable[{ptype}]")
+                    )
                 continue
 
             ptype = desc["python_type"]
@@ -144,8 +151,34 @@ def complete(module_name: str):
 
     result_parts.append(tmp_part)
     lines = remove_meta_class(chain(*result_parts))
+    lines = complete_mixin_types(module, lines)
     with open(file_path, "w", encoding="utf-8") as file:
         file.writelines(lines)
+
+
+def complete_mixin_types(module, lines: list[str]):
+    model_class = None
+    for line_index, line in enumerate(lines):  # type: ignore
+        if m := CLASS_PATTERN.match(line):
+            model_class = None
+        elif m := GENERAL_CLASS_PATTERN.match(line):
+            model_class = getattr(module, m.group(1))
+
+            if not any(
+                filter(lambda x: isinstance(x, Field), model_class.__dict__.values())
+            ):
+                model_class = None
+                continue
+        elif model_class and (m := INCOMPLETE_PATTERN.match(line)):
+            field_name = m.group(1)
+            field = getattr(model_class, field_name)
+
+            ptype_str = type_to_str(field.field_type)
+
+            line_type_str = f"typing.Optional[{ptype_str}]" if field.null else ptype_str
+            lines[line_index] = line.replace("Incomplete", line_type_str)
+
+    return lines
 
 
 def complete_choices(module_name: str):
