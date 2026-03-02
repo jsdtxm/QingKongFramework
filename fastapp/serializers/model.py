@@ -1,17 +1,7 @@
 import asyncio
 from collections import defaultdict
 from datetime import date, datetime
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Self,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Dict, Iterable, List, Optional, Self, Tuple, Type, Union
 
 from pydantic import BaseModel, ValidationInfo, model_validator
 from pydantic._internal import _model_construction
@@ -76,7 +66,106 @@ def _get_fetch_fields(
     return fetch_fields
 
 
-class ModelSerializerPydanticModel(PydanticModel):
+def merge_dicts(data: List[Tuple[Dict[str, Any]]]) -> Dict[str, Any]:
+    result = {}
+
+    for tuple_item in data:
+        result.update(tuple_item[0])
+
+    return result
+
+
+class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
+    # TODO
+    # read_only_fields = ['account_name']
+    # extra_kwargs = {'password': {'write_only': True}}
+    # validators = [
+    #             UniqueTogetherValidator(
+    #                 queryset=Event.objects.all(),
+    #                 fields=['room_number', 'date']
+    #             )
+    #         ]
+    def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict, **kwargs):
+        fields, exclude = (), ()
+
+        # 尝试从父类获取Meta
+        meta = attrs.get("Meta", None)
+        if meta is None and bases[0].__name__ not in {
+            "ModelSerializer",
+            "PydanticModel",
+            "BaseSerializer",
+            "ModelSerializerPydanticModel",
+        }:
+            meta = getattr(bases[0], "_meta", None)
+
+        inheritance_chain = getattr(bases[0], "_inheritance_chain", [])
+
+        if meta:
+            fields = getattr(meta, "fields", ())
+            exclude = getattr(meta, "exclude", ())
+            read_only_fields = getattr(meta, "read_only_fields", ())
+            write_only_fields = getattr(meta, "write_only_fields", ())
+            hidden_fields = getattr(meta, "hidden_fields", ())
+
+            if fields == "__all__":
+                fields = ()
+
+            # 融合attrs
+            attrs = merge_dicts(inheritance_chain) | attrs
+
+            extra_fields = {
+                name: value
+                for name, value in attrs.items()
+                if isinstance(value, BaseModel) or isinstance(value, Field)
+            }
+
+            validators_map = get_validators_map(attrs)
+            serializers_map = get_serializer_map(
+                attrs
+            ) | get_serializers_map_from_fields(extra_fields)
+
+            # TODO 添加一个validator来移除掉不需要的属性
+            if hidden_fields or read_only_fields:
+                validators_map["remove_hidden_fields"] = remove_hidden_fields_builder(
+                    hidden_fields
+                )
+
+            if write_only_fields:
+                pass
+
+            # HACK exclude VectorField
+            for k, v in meta.model._meta.fields_map.items():
+                if VectorField and isinstance(v, VectorField):
+                    exclude += (k,)
+
+            pydantic_model = pydantic_model_creator(
+                meta.model,
+                name=f"{attrs['__module__']}.{name}",
+                bases=ModelSerializerPydanticModel,
+                extra_fields=extra_fields,
+                include=fields,
+                exclude=exclude,
+                read_only_fields=read_only_fields,
+                write_only_fields=write_only_fields,
+                hidden_fields=hidden_fields,
+                validators=validators_map | serializers_map,
+                depth=getattr(meta, "depth", 0),
+            )
+
+            pydantic_model._meta = meta  # 这有啥用？
+            pydantic_model._mcs = []
+
+            pydantic_model._my_meta = meta
+            pydantic_model._inheritance_chain = getattr(
+                bases[0], "_inheritance_chain", []
+            ) + [({k: v for k, v in attrs.items() if not k.startswith("__")},)]
+
+            return pydantic_model
+
+        return super().__new__(mcs, name, bases, attrs)
+
+
+class ModelSerializerPydanticModel(PydanticModel, metaclass=ModelSerializerMetaclass):
     _instance: Optional[BaseDBModel] = None
     _instance_processed: bool = False
 
@@ -235,7 +324,6 @@ class ModelSerializerPydanticModel(PydanticModel):
         m2m_fields = self.model_description().get("m2m_fields", [])
         backward_fk_fields = self.model_description().get("backward_fk_fields", [])
 
-        # print("[self]", self)
         instance = await self.to_model(**extra_fields)
 
         transaction_context_manager = (
@@ -244,7 +332,6 @@ class ModelSerializerPydanticModel(PydanticModel):
 
         async with transaction_context_manager(instance.app.default_connection):
             # TODO 这里需要识别创建的情况
-            # print("[instance]", instance, instance.id, update_fields, force_create, force_update)
             await instance.save(using_db, update_fields, force_create, force_update)
 
             m2m_objects = await self._build_related_objects(
@@ -444,76 +531,6 @@ def remove_hidden_fields_builder(fields):
     return remove_hidden_fields
 
 
-class ModelSerializerMetaclass(_model_construction.ModelMetaclass):
-    # TODO
-    # read_only_fields = ['account_name']
-    # extra_kwargs = {'password': {'write_only': True}}
-    # validators = [
-    #             UniqueTogetherValidator(
-    #                 queryset=Event.objects.all(),
-    #                 fields=['room_number', 'date']
-    #             )
-    #         ]
-    def __new__(mcs, name: str, bases: Tuple[Type, ...], attrs: dict):
-        fields, exclude = (), ()
-
-        if meta := attrs.get("Meta", None):
-            fields = getattr(meta, "fields", ())
-            exclude = getattr(meta, "exclude", ())
-            read_only_fields = getattr(meta, "read_only_fields", ())
-            write_only_fields = getattr(meta, "write_only_fields", ())
-            hidden_fields = getattr(meta, "hidden_fields", ())
-
-            if fields == "__all__":
-                fields = ()
-
-            extra_fields = {
-                name: value
-                for name, value in attrs.items()
-                if isinstance(value, BaseModel) or isinstance(value, Field)
-            }
-
-            validators_map = get_validators_map(attrs)
-            serializers_map = get_serializer_map(
-                attrs
-            ) | get_serializers_map_from_fields(extra_fields)
-
-            # TODO 添加一个validator来移除掉不需要的属性
-            if hidden_fields or read_only_fields:
-                validators_map["remove_hidden_fields"] = remove_hidden_fields_builder(
-                    hidden_fields
-                )
-
-            if write_only_fields:
-                pass
-
-            # HACK exclude VectorField
-            for k, v in meta.model._meta.fields_map.items():
-                if VectorField and isinstance(v, VectorField):
-                    exclude += (k,)
-
-            pydantic_model = pydantic_model_creator(
-                meta.model,
-                name=f"{attrs['__module__']}.{name}",
-                bases=ModelSerializerPydanticModel,
-                extra_fields=extra_fields,
-                include=fields,
-                exclude=exclude,
-                read_only_fields=read_only_fields,
-                write_only_fields=write_only_fields,
-                hidden_fields=hidden_fields,
-                validators=validators_map | serializers_map,
-                depth=getattr(meta, "depth", 0),
-            )
-
-            pydantic_model._meta = meta
-
-            return pydantic_model
-
-        return super().__new__(mcs, name, bases, attrs)
-
-
-# FIXME 不支持继承
 class ModelSerializer(
     BaseSerializer, ModelSerializerPydanticModel, metaclass=ModelSerializerMetaclass
 ):
