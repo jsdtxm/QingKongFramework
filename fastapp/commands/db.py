@@ -186,7 +186,9 @@ def reverse_generation(connection, db, table):
 
 
 @async_init_fastapp
-async def async_auto_migrate(apps: list[str], guided: bool = True):
+async def async_auto_migrate(
+    apps: list[str], guided: bool = True, continue_on_error: bool = False
+):
     """
     异步自动迁移数据库的函数。
 
@@ -275,11 +277,17 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
             return
 
         if user_input == "Y":
-            if dialect == "postgres":
-                for q in alert_sql:
-                    await conn.execute_query(q)
-            else:
-                await conn.execute_query(alert_sql)
+            try:
+                if dialect == "postgres":
+                    for q in alert_sql:
+                        await conn.execute_query(q)
+                else:
+                    await conn.execute_query(alert_sql)
+            except Exception as e:  # pylint: disable=W0718
+                if continue_on_error:
+                    print(f"Error: {e}")
+                else:
+                    raise e
         elif user_input == "N":
             continue
         elif user_input == "Q":
@@ -288,7 +296,8 @@ async def async_auto_migrate(apps: list[str], guided: bool = True):
 
 @click.option("--apps", multiple=True)
 @click.option("--guided", default=True)
-def auto_migrate(apps, guided):
+@click.option("--continue-on-error", is_flag=True, default=False)
+def auto_migrate(apps, guided, continue_on_error):
     """
     自动迁移数据库的函数。
 
@@ -297,4 +306,4 @@ def auto_migrate(apps, guided):
     Args:
         apps (list[str]): 要处理的应用列表。
     """
-    asyncio.run(async_auto_migrate(apps, guided))
+    asyncio.run(async_auto_migrate(apps, guided, continue_on_error))
