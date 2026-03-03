@@ -17,6 +17,7 @@ import asyncio
 from itertools import chain
 
 import click
+from colorama import Fore, Style, init
 
 from common.settings import settings
 from fastapp.commands.decorators import async_init_fastapp
@@ -197,6 +198,8 @@ async def async_auto_migrate(
     Args:
         apps (list[str]): 要处理的应用列表。
     """
+    init()
+
     apps = [x.replace(".", "_") for x in apps]
 
     process_apps = []
@@ -253,14 +256,17 @@ async def async_auto_migrate(
         if not alert_sql:
             continue
 
+        print(f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}SQL Statement ({dialect}):{Style.RESET_ALL}")
         print(alert_sql)
+        print(f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}")
 
         user_input = "Y"
         try:
             while guided:
                 user_input = (
                     input(
-                        "Please enter '[Y]' to execute the sql, 'N' to skip the sql, or 'Q' to quit: "
+                        f"{Fore.GREEN}Please enter '[Y]' to execute the sql, 'N' to skip the sql, or 'Q' to quit: {Style.RESET_ALL}"
                     )
                     .strip()
                     .upper()
@@ -269,7 +275,7 @@ async def async_auto_migrate(
                     user_input = "Y"
                     break
                 elif user_input not in ("Y", "N", "Q"):
-                    print(f"Invalid input '{user_input}'")
+                    print(f"{Fore.RED}Invalid input '{user_input}'{Style.RESET_ALL}")
                     continue
                 else:
                     break
@@ -283,12 +289,14 @@ async def async_auto_migrate(
                         await conn.execute_query(q)
                 else:
                     await conn.execute_query(alert_sql)
+                print(f"{Fore.GREEN}SQL executed successfully!{Style.RESET_ALL}")
             except Exception as e:  # pylint: disable=W0718
                 if continue_on_error:
-                    print(f"Error: {e}")
+                    print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
                 else:
                     raise e
         elif user_input == "N":
+            print(f"{Fore.YELLOW}Skipped.{Style.RESET_ALL}")
             continue
         elif user_input == "Q":
             return
