@@ -14,6 +14,8 @@ TIMESTAMP_TOLERANCE = 600  # 10分钟
 class KeyAuthMixin(AccessMixin):
     """Verify that the current user is authenticated using API key."""
 
+    api_key_model = APIKey
+
     @staticmethod
     def md5_encryption(data: str) -> str:
         """MD5 加密函数"""
@@ -36,7 +38,9 @@ class KeyAuthMixin(AccessMixin):
             return self.handle_no_permission()
 
         # 2. 从数据库查询有效的 appKey
-        api_key_obj = await APIKey.filter(app_key=app_key, is_active=True).first()
+        api_key_obj = await self.api_key_model.filter(
+            app_key=app_key, is_active=True
+        ).first()
         if not api_key_obj or not api_key_obj.app_secret:
             return self.handle_no_permission()
 
