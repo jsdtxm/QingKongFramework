@@ -3,14 +3,18 @@ from fastapp.contrib.key_auth.models import APIKey
 
 
 class APIKeyCreateSerializer(serializers.ModelSerializer):
-    key = serializers.CharField(null=True)
+    """
+    API Key Create Serializer
+    """
+
+    app_key = serializers.CharField(max_length=64, null=True)
+    app_secret = serializers.CharField(max_length=64, null=True)
 
     class Meta:
         model = APIKey
-        hidden_fields = ("uuid",)
 
 
 class APIKeySerializer(serializers.ModelSerializer):
-
     class Meta:
         model = APIKey
+        exclude = ("app_key", "app_secret")
