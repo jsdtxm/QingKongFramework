@@ -33,6 +33,8 @@ class BaseSettings(PydanticBaseSettings):
     # TODO 后续修改为MIDDLEWARES
     MIDDLEWARE: List[str] = ["fastapp.middleware.trustedhost.TrustedHostMiddleware"]
 
+    LIFESPANS: List[str] = []
+
     NO_EXPORT_APPS: List[str] = []
 
     DATABASES: dict[str, dict[str, Any]]
@@ -67,7 +69,9 @@ class BaseSettings(PydanticBaseSettings):
 
     AUTH_USER_MODEL: str = "fastapp.contrib.auth.models.User"
     AUTH_USER_DB_CONSTRAINT: bool = True
-    AUTH_CURRENT_USER_FACTORY: str = "fastapp.contrib.auth.utils._get_current_user_factory"
+    AUTH_CURRENT_USER_FACTORY: str = (
+        "fastapp.contrib.auth.utils._get_current_user_factory"
+    )
 
     ACCESS_TOKEN_LIFETIME: int = 60 * 60
     REFRESH_TOKEN_LIFETIME: int = 60 * 60 * 24 * 7

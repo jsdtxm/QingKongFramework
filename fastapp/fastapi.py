@@ -54,8 +54,22 @@ def lifespan_wrapper(lifespan: Callable[[RawFastAPI], _AsyncGeneratorContextMana
         if p := settings.XCAPTCHA_LIMITER_CLASS:
             await import_string(p).init()
 
-        async with lifespan(app):
-            yield
+        lifespans = [import_string(x)(app) for x in settings.LIFESPANS]
+
+        try:
+            for sp in lifespans:
+                await sp.__aenter__()
+
+            async with lifespan(app):
+                yield
+        except Exception as e:
+            for sp in lifespans:
+                suppress = await sp.__aexit__(type(e), e, e.__traceback__)
+                if not suppress:
+                    raise
+        else:
+            for sp in lifespans:
+                await sp.__aexit__(None, None, None)
 
         await Tortoise.close_connections()
 
@@ -121,13 +135,9 @@ class FastAPI(RawFastAPI):
         if include_healthz:
             self.include_router(import_string("fastapp.contrib.healthz.views.router"))
 
-        if auto_load_urls and (
-            internal_views := apps.app_configs[package].import_module("internal.views")
-        ):
+        if auto_load_urls and (internal_views := apps.app_configs[package].import_module("internal.views")):
             router = APIRouter(prefix="/_internal", tags=["_internal"])
-            for name, cls in inspect.getmembers(
-                internal_views, lambda x: hasattr(x, "_cross_service")
-            ):
+            for name, cls in inspect.getmembers(internal_views, lambda x: hasattr(x, "_cross_service")):
                 router.add_api_route(
                     path=f"/{name}",
                     endpoint=cls.wrapped_view,
@@ -170,8 +180,6 @@ class FastAPI(RawFastAPI):
 
         self.add_route("/docs", custom_swagger_ui_html, include_in_schema=False)
         if use_local_swagger_ui:
-            self.mount(
-                "/docs/static", StaticFiles(directory=Path(__file__).parent / "static")
-            )
+            self.mount("/docs/static", StaticFiles(directory=Path(__file__).parent / "static"))
 
         add_pagination(self)
