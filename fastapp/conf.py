@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from pydantic_settings import BaseSettings as PydanticBaseSettings
 from pydantic_settings import SettingsConfigDict
@@ -28,6 +28,9 @@ class BaseSettings(PydanticBaseSettings):
 
     INSTALLED_APPS: List[str] = []
 
+    ASGI_APP_FACTORY: Optional[str] = None
+
+    # TODO 后续修改为MIDDLEWARES
     MIDDLEWARE: List[str] = ["fastapp.middleware.trustedhost.TrustedHostMiddleware"]
 
     NO_EXPORT_APPS: List[str] = []

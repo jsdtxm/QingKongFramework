@@ -15,6 +15,7 @@ from fastapp.initialize.apps import init_apps
 from fastapp.logging import get_log_config_template
 from fastapp.patchs.uvicorn.subprocess import subprocess_started
 from fastapp.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
+from fastapp.utils.module_loading import import_string
 
 try:
     import uvloop
@@ -51,8 +52,15 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
     for formatter in log_config["formatters"].values():
         formatter["app_label"] = app_config.label
 
+    asgi_app = f"{app_name}.asgi:app"
+    factory = False
+    if settings.ASGI_APP_FACTORY:
+        asgi_app_wrapper = import_string(settings.ASGI_APP_FACTORY)
+        asgi_app = asgi_app_wrapper(asgi_app)
+        factory = True
+
     uvicorn.run(
-        f"{app_name}.asgi:app",
+        asgi_app,
         host=host,
         port=app_config.port,
         log_level="info",
@@ -66,6 +74,7 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         if reload
         else None,
         log_config=log_config,
+        factory=factory,
     )
 
 
