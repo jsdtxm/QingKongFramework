@@ -315,3 +315,75 @@ def auto_migrate(apps, guided, continue_on_error):
         apps (list[str]): 要处理的应用列表。
     """
     asyncio.run(async_auto_migrate(apps, guided, continue_on_error))
+
+
+@async_init_fastapp
+async def async_fix_sequence(db_name: str = "default"):
+    """
+    修复 PostgreSQL 数据库中所有表的序列值。
+
+    Args:
+        db_name: 数据库连接名称，默认为 "default"。
+    """
+    conn = Tortoise.get_connection(db_name)
+    if "PostgreSQL" not in conn.__class__.__name__:
+        click.echo(f"Error: This command only supports PostgreSQL, current database is {conn.__class__.__name__}")
+        return
+
+    tables_query = """
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_type = 'BASE TABLE'
+        ORDER BY table_name;
+    """
+
+    result = await conn.execute_query(tables_query)
+    tables = [row[0] for row in result[1]]
+
+    fixed_count = 0
+    error_count = 0
+
+    for table in tables:
+        column_query = """
+            SELECT column_name, column_default
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+            AND table_name = $1
+            AND column_default LIKE 'nextval%';
+        """
+
+        result = await conn.execute_query(column_query, [table,])
+        columns = result[1]
+
+        for column_name, column_default in columns:
+            match = column_default.split("'")
+            if len(match) >= 2:
+                sequence_name = match[1]
+                setval_query = f'''SELECT setval(
+                    '{sequence_name}',
+                    COALESCE((SELECT MAX("{column_name}") FROM "{table}"), 1)
+                );'''
+
+                try:
+                    await conn.execute_query(setval_query)
+                    click.echo(f"Fixed sequence {sequence_name} for table {table}, column {column_name}")
+                    fixed_count += 1
+                except Exception as e:
+                    click.echo(f"Error fixing sequence {sequence_name}: {e}")
+                    error_count += 1
+
+    await Tortoise.close_connections()
+    click.echo(f"\nSequence fix complete: {fixed_count} fixed, {error_count} errors")
+
+
+@click.option("--db", default="default", help="Database connection name")
+def fix_sequence(db):
+    """
+    修复 PostgreSQL 数据库中所有表的序列值。
+
+    此命令会遍历指定数据库的所有表，查找带有序列的列，并修正其序列值。
+    """
+    asyncio.run(async_fix_sequence(db))
+
+

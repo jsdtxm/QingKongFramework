@@ -1,6 +1,6 @@
 from .check import check
 from .create import startapp
-from .db import async_migrate, auto_migrate, migrate, reverse_generation
+from .db import async_migrate, auto_migrate, fix_sequence, migrate, reverse_generation
 from .decorators import async_init_fastapp
 from .dump_data import dumpdata
 from .group import Group
