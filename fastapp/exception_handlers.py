@@ -1,3 +1,4 @@
+import sys
 from typing import TYPE_CHECKING
 
 from fastapi.encoders import jsonable_encoder
@@ -7,7 +8,7 @@ from fastapi.utils import is_body_allowed_for_status_code
 from pydantic import ValidationError as PydanticValidationError
 from starlette import status
 from starlette.exceptions import HTTPException
-from starlette.responses import JSONResponse, Response
+from starlette.responses import HTMLResponse, JSONResponse, Response
 from tortoise.exceptions import DoesNotExist, OperationalError
 from tortoise.exceptions import ValidationError as TortoiseValidationError
 
@@ -122,6 +123,23 @@ async def permission_error_exception_handler(
         },
     )
 
+
+async def exception_handler(
+    request: "Request", exc: Exception
+) -> HTMLResponse:
+    from fastapp.views.debug import exception_report_html
+
+    exc_type, exc_value, tb = sys.exc_info()
+    html = exception_report_html(
+        exc_type=exc_type or type(exc),
+        exc_value=exc_value or exc,
+        tb=tb,
+        request=request,
+    )
+    return HTMLResponse(
+        content=html,
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
 
 def get_default_exception_handlers():
     return {
