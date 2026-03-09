@@ -108,7 +108,7 @@
 {% if request %}
     <tr>
       <th scope="row">Request Method:</th>
-      {# FIXME <td>{{ request.META.REQUEST_METHOD }}</td>#}
+      <td>{{ request.method }}</td>
     </tr>
     <tr>
       <th scope="row">Request URL:</th>
@@ -302,7 +302,7 @@
 Environment:
 
 {% if request %}
-Request Method: {# FIXME {{ request.META.REQUEST_METHOD }} #}
+Request Method: {{ request.method }}
 Request URL: {{ request_insecure_uri }}
 {% endif %}
 FastApp Version: {{ framework_version_info }}
