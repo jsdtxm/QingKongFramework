@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime
 from types import TracebackType
 from typing import Optional, Any
-
+from starlette.requests import Request
 import jinja2
 from pydantic import BaseModel
 
@@ -81,7 +81,6 @@ class ExceptionReportData(BaseModel):
     frames: list[FrameInfo] = []
     lastframe: Optional[FrameInfo] = None
     request: Optional[Any] = None
-    request_insecure_uri: Optional[str] = None
     framework_version_info: Optional[str] = None
     raising_view_name: Optional[str] = None
     sys_executable: Optional[str] = None
@@ -91,7 +90,6 @@ class ExceptionReportData(BaseModel):
     unicode_hint: Optional[str] = None
     template_does_not_exist: bool = False
     postmortem: Optional[list] = None
-    template_info: Optional[dict] = None
     user_str: Optional[str] = None
     request_GET_items: Optional[list] = None
     filtered_POST_items: Optional[list] = None
@@ -217,12 +215,13 @@ class ExceptionReporter:
         exc_type: Optional[type] = None,
         exc_value: Optional[BaseException] = None,
         tb: Optional[TracebackType] = None,
-        request: Optional[Any] = None,
+        request: Optional[Request] = None,
         is_email: bool = False,
     ):
         self.exc_type = exc_type
         self.exc_value = exc_value
         self.tb = tb
+        print()
         self.request = request
         self.is_email = is_email
 
@@ -236,7 +235,6 @@ class ExceptionReporter:
         system_info = get_system_info()
         framework_info = get_framework_info()
 
-        request_insecure_uri = None
         user_str = None
         request_GET_items = None
         filtered_POST_items = None
@@ -245,11 +243,6 @@ class ExceptionReporter:
         request_meta = {}
 
         if self.request:
-            try:
-                request_insecure_uri = str(self.request)
-            except Exception:
-                pass
-
             try:
                 if hasattr(self.request, "user"):
                     user = self.request.user
@@ -296,13 +289,12 @@ class ExceptionReporter:
             frames=frames,
             lastframe=lastframe,
             request=self.request,
-            request_insecure_uri=request_insecure_uri,
             framework_version_info=framework_info.get("framework_version_info"),
             raising_view_name=None,
             sys_executable=system_info.get("sys_executable"),
             sys_version_info=system_info.get("sys_version_info"),
             sys_path=system_info.get("sys_path"),
-            server_time=datetime.now(),
+            server_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             user_str=user_str,
             request_GET_items=request_GET_items,
             filtered_POST_items=filtered_POST_items,
