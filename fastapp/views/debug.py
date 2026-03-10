@@ -104,16 +104,42 @@ def get_traceback_frames(
     exc_value: BaseException,
     tb: Optional[TracebackType],
     context_lines: int = 10,
+    include_packages: Optional[list[str]] = None,
+    project_root: Optional[str] = None,
 ) -> list[FrameInfo]:
     frames: list[FrameInfo] = []
     exc_cause: Optional[BaseException] = None
     exc_cause_explicit: bool = False
+
+    # Default include packages if not provided
+    if include_packages is None:
+        include_packages = []
+
+    # Get project root if not provided
+    if project_root is None:
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+    def should_include_frame(filename: str) -> bool:
+        # Include if file is in project root
+        if filename.startswith(project_root):
+            return True
+        # Include if file is in any of the specified packages
+        for package in include_packages:
+            if f"/{package}/" in filename or filename.endswith(f"/{package}.py"):
+                return True
+        # Exclude otherwise (library code)
+        return False
 
     while tb is not None:
         frame = tb.tb_frame
         filename = frame.f_code.co_filename
         lineno = tb.tb_lineno
         function = frame.f_code.co_name
+
+        # Skip frames that should not be included
+        if not should_include_frame(filename):
+            tb = tb.tb_next
+            continue
 
         pre_context_lineno = max(1, lineno - context_lines)
         post_context_lineno = lineno + context_lines + 1
@@ -217,6 +243,8 @@ class ExceptionReporter:
         tb: Optional[TracebackType] = None,
         request: Optional[Request] = None,
         is_email: bool = False,
+        include_packages: Optional[list[str]] = None,
+        project_root: Optional[str] = None,
     ):
         self.exc_type = exc_type
         self.exc_value = exc_value
@@ -224,9 +252,16 @@ class ExceptionReporter:
         print()
         self.request = request
         self.is_email = is_email
+        self.include_packages = include_packages
+        self.project_root = project_root
 
     def get_traceback_frames(self) -> list[FrameInfo]:
-        return get_traceback_frames(self.exc_value, self.tb)
+        return get_traceback_frames(
+            self.exc_value, 
+            self.tb,
+            include_packages=self.include_packages,
+            project_root=self.project_root
+        )
 
     def get_exception_data(self) -> ExceptionReportData:
         frames = self.get_traceback_frames()
@@ -343,6 +378,8 @@ def exception_report_html(
     tb: Optional[TracebackType],
     request: Optional[Any] = None,
     is_email: bool = False,
+    include_packages: Optional[list[str]] = None,
+    project_root: Optional[str] = None,
 ) -> str:
     reporter = ExceptionReporter(
         exc_type=exc_type,
@@ -350,5 +387,7 @@ def exception_report_html(
         tb=tb,
         request=request,
         is_email=is_email,
+        include_packages=include_packages,
+        project_root=project_root,
     )
     return reporter.get_html()
