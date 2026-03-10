@@ -346,20 +346,34 @@ async def async_fix_sequence(db_name: str = "default"):
 
     for table in tables:
         column_query = """
-            SELECT column_name, column_default
-            FROM information_schema.columns
-            WHERE table_schema = 'public'
-            AND table_name = $1
-            AND column_default LIKE 'nextval%';
+            SELECT 
+                c.column_name, 
+                c.column_default, 
+                c.is_identity, 
+                pg_get_serial_sequence(c.table_schema || '.' || c.table_name, c.column_name) AS serial_seq 
+            FROM information_schema.columns c 
+            WHERE c.table_schema = 'public' 
+              AND c.table_name = $1 
+              AND ( 
+                  c.column_default LIKE 'nextval(%' 
+                  OR c.is_identity = 'YES' 
+                  OR pg_get_serial_sequence(c.table_schema || '.' || c.table_name, c.column_name) IS NOT NULL 
+              );
         """
 
         result = await conn.execute_query(column_query, [table,])
         columns = result[1]
 
-        for column_name, column_default in columns:
-            match = column_default.split("'")
-            if len(match) >= 2:
-                sequence_name = match[1]
+        for column_name, column_default, is_identity, serial_seq in columns:
+            sequence_name = None
+            if column_default and 'nextval(' in column_default:
+                match = column_default.split("'")
+                if len(match) >= 2:
+                    sequence_name = match[1]
+            elif serial_seq:
+                sequence_name = serial_seq
+            
+            if sequence_name:
                 setval_query = f'''SELECT setval(
                     '{sequence_name}',
                     COALESCE((SELECT MAX("{column_name}") FROM "{table}"), 1)
