@@ -426,7 +426,7 @@ async def handler_adapter(request, exc):
     )
 
     await mail_admins(
-        subject=exc_type.__name__ if exc_type else "Exception Report",
+        subject=str(exc_value) if exc_type else "Exception Report",
         message="Exception Report",
         html_message=html,
     )
