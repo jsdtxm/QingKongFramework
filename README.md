@@ -62,6 +62,12 @@ python -m build
 python setup-pure.py bdist_wheel
 ```
 
+## Submodule
+```
+git submodule init
+git submodule update
+```
+
 ## Author
 
 Vincent (jsdtxm@live.com)
