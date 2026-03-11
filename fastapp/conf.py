@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from pydantic_settings import BaseSettings as PydanticBaseSettings
 from pydantic_settings import SettingsConfigDict
@@ -83,7 +83,7 @@ class BaseSettings(PydanticBaseSettings):
     INTERNAL_APP_PREFIX: str = "qingkong"
 
     # EMAIL
-    EMAIL_BACKEND: str = "fastapp.core.mail.backends.smtp.EmailBackend"
+    EMAIL_BACKEND: str = "fastapp.core.mail.backends.async.smtp.EmailBackend"
     EMAIL_HOST: str = "smtp.example.com"
     EMAIL_PORT: int = 465
     EMAIL_HOST_USER: str = ""
@@ -91,7 +91,7 @@ class BaseSettings(PydanticBaseSettings):
     EMAIL_FROM: str = ""
     EMAIL_USE_SSL: bool = False
     EMAIL_USE_TLS: bool = False
-    EMAIL_TIMEOUT: Optional[int] = None
+    EMAIL_TIMEOUT: Optional[int] = 15
     EMAIL_SUBJECT_PREFIX: str = "[FastAPP]"
     EMAIL_SSL_CERTFILE: Optional[str] = None
     EMAIL_SSL_KEYFILE: Optional[str] = None
@@ -99,7 +99,7 @@ class BaseSettings(PydanticBaseSettings):
     DEFAULT_FROM_EMAIL: str = "webmaster@localhost"
     SERVER_EMAIL: str = "root@localhost"
 
-    ADMINS: List[str] = []
+    ADMINS: List[Tuple[str, str]] = []
     DEFAULT_CHARSET: str = "utf-8"
 
     ENABLE_PORT_MAP_FILE: bool = True
