@@ -55,6 +55,7 @@ RUN remove-dev-requirements requirements.txt requirements.txt.clean && \
 
 COPY ./fastapp /app/fastapp
 COPY ./common /app/common
+COPY ./uvicorn/uvicorn /app/uvicorn
 COPY ./manage.py /app/
 
 EXPOSE 8000
