@@ -127,10 +127,10 @@ async def permission_error_exception_handler(
 async def exception_handler(
     request: "Request", exc: Exception
 ) -> HTMLResponse:
-    from fastapp.views.debug import exception_report_html
+    from fastapp.debug.core import exception_report_html
 
     exc_type, exc_value, tb = sys.exc_info()
-    html = exception_report_html(
+    html = await exception_report_html(
         exc_type=exc_type or type(exc),
         exc_value=exc_value or exc,
         tb=tb,

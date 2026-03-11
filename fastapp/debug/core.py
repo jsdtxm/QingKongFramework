@@ -1,13 +1,14 @@
-import sys
-import os
 import json
-import traceback
+import os
+import sys
 from datetime import datetime
 from types import TracebackType
-from typing import Optional, Any
-from starlette.requests import Request
+from typing import Any, Optional
+from starlette.datastructures import UploadFile
+
 import jinja2
 from pydantic import BaseModel
+from starlette.requests import Request
 
 
 def pprint_filter(value: Any) -> str:
@@ -15,12 +16,6 @@ def pprint_filter(value: Any) -> str:
         return json.dumps(value, indent=4, ensure_ascii=False, default=str)
     except Exception:
         return repr(value)
-
-
-def force_escape_filter(value: Any) -> str:
-    if value is None:
-        return ""
-    return jinja2.escape(str(value))
 
 
 def add_filter(value: Any, arg: Any) -> Any:
@@ -35,6 +30,7 @@ def dictsort_filter(value: Any, arg: str = "0") -> list:
     if isinstance(value, dict):
         items = list(value.items())
         return sorted(items, key=lambda item: str(item[0]))
+
     # 如果传入的是列表
     def sort_key(item):
         if isinstance(item, tuple):
@@ -42,6 +38,7 @@ def dictsort_filter(value: Any, arg: str = "0") -> list:
         elif isinstance(item, dict):
             return str(item.get(arg, ""))
         return ""
+
     return sorted(value, key=sort_key)
 
 
@@ -95,7 +92,7 @@ class ExceptionReportData(BaseModel):
     filtered_POST_items: Optional[list] = None
     request_FILES_items: Optional[list] = None
     request_COOKIES_items: Optional[list] = None
-    request_meta: Optional[dict] = None
+    request_HEADERS_items: Optional[list] = None
     settings: Optional[dict] = None
     is_email: bool = False
 
@@ -117,7 +114,9 @@ def get_traceback_frames(
 
     # Get project root if not provided
     if project_root is None:
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        project_root = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..")
+        )
 
     def should_include_frame(filename: str) -> bool:
         # Include if file is in project root
@@ -249,7 +248,6 @@ class ExceptionReporter:
         self.exc_type = exc_type
         self.exc_value = exc_value
         self.tb = tb
-        print()
         self.request = request
         self.is_email = is_email
         self.include_packages = include_packages
@@ -257,13 +255,13 @@ class ExceptionReporter:
 
     def get_traceback_frames(self) -> list[FrameInfo]:
         return get_traceback_frames(
-            self.exc_value, 
+            self.exc_value,
             self.tb,
             include_packages=self.include_packages,
-            project_root=self.project_root
+            project_root=self.project_root,
         )
 
-    def get_exception_data(self) -> ExceptionReportData:
+    async def get_exception_data(self) -> ExceptionReportData:
         frames = self.get_traceback_frames()
         lastframe = get_last_frame(frames)
 
@@ -275,7 +273,7 @@ class ExceptionReporter:
         filtered_POST_items = None
         request_FILES_items = None
         request_COOKIES_items = None
-        request_meta = {}
+        request_HEADERS_items = None
 
         if self.request:
             try:
@@ -287,32 +285,33 @@ class ExceptionReporter:
                 pass
 
             try:
-                if hasattr(self.request, "GET"):
-                    request_GET_items = list(self.request.GET.items())
+                request_GET_items = list(self.request.query_params.items())
             except Exception:
                 pass
 
             try:
-                if hasattr(self.request, "POST"):
-                    filtered_POST_items = list(self.request.POST.items())
+                json_data = json.loads(self.request.state.cache_body)
+                filtered_POST_items = list(json_data.items())
+            except Exception:
+                pass
+            
+            try:
+                request_FILES_items = [
+                    (k, f"<UploadFile '{v.filename}' size={v.size} content_type='{v.content_type}'>")
+                    for k, v in self.request.state.cache_form.multi_items()
+                    if isinstance(v, UploadFile)
+                ]
+              
             except Exception:
                 pass
 
             try:
-                if hasattr(self.request, "FILES"):
-                    request_FILES_items = list(self.request.FILES.items())
+                request_COOKIES_items = list(self.request.cookies.items())
             except Exception:
                 pass
 
             try:
-                if hasattr(self.request, "COOKIES"):
-                    request_COOKIES_items = list(self.request.COOKIES.items())
-            except Exception:
-                pass
-
-            try:
-                if hasattr(self.request, "META"):
-                    request_meta = dict(self.request.META)
+                request_HEADERS_items = list(filter(lambda x: x[0] != "cookie", self.request.headers.items()))
             except Exception:
                 pass
 
@@ -335,23 +334,20 @@ class ExceptionReporter:
             filtered_POST_items=filtered_POST_items,
             request_FILES_items=request_FILES_items,
             request_COOKIES_items=request_COOKIES_items,
-            request_meta=request_meta,
+            request_HEADERS_items=request_HEADERS_items,
             settings=settings_dict,
             is_email=self.is_email,
         )
 
-    def get_html(self) -> str:
+    async def get_html(self) -> str:
         env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(
-                os.path.dirname(self.template_path)
-            ),
+            loader=jinja2.FileSystemLoader(os.path.dirname(self.template_path)),
             autoescape=jinja2.select_autoescape(
                 enabled_extensions=("html", "xml"),
                 default_for_string=True,
             ),
         )
 
-        env.filters["force_escape"] = force_escape_filter
         env.filters["pprint"] = pprint_filter
         env.filters["add"] = add_filter
         env.filters["dictsort"] = dictsort_filter
@@ -359,20 +355,18 @@ class ExceptionReporter:
 
         template = env.get_template(os.path.basename(self.template_path))
 
-        context = self.get_exception_data()
+        context = await self.get_exception_data()
         context_dict = context.model_dump()
-        
+
         if context_dict.get("sys_path"):
             context_dict["sys_path"] = pprint_filter(context_dict["sys_path"])
         if context_dict.get("settings"):
             context_dict["settings"] = pprint_filter(context_dict["settings"])
-        if context_dict.get("request_meta"):
-            context_dict["request_meta"] = pprint_filter(context_dict["request_meta"])
-            
+
         return template.render(**context_dict)
 
 
-def exception_report_html(
+async def exception_report_html(
     exc_type: Optional[type],
     exc_value: Optional[BaseException],
     tb: Optional[TracebackType],
@@ -390,4 +384,4 @@ def exception_report_html(
         include_packages=include_packages,
         project_root=project_root,
     )
-    return reporter.get_html()
+    return await reporter.get_html()

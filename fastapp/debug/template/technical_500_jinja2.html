@@ -296,7 +296,7 @@
         {% for k, v in request_GET_items %}
           <tr>
             <td>{{ k }}</td>
-            <td class="code"><pre>{{ pprint(v) }}</pre></td>
+            <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -318,7 +318,7 @@
         {% for k, v in filtered_POST_items %}
           <tr>
             <td>{{ k }}</td>
-            <td class="code"><pre>{{ pprint(v) }}</pre></td>
+            <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -340,7 +340,7 @@
         {% for k, v in request_FILES_items %}
           <tr>
             <td>{{ k }}</td>
-            <td class="code"><pre>{{ pprint(v) }}</pre></td>
+            <td class="code"><pre>{{ v | pprint }}</pre></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -362,7 +362,7 @@
         {% for k, v in request_COOKIES_items %}
           <tr>
             <td>{{ k }}</td>
-            <td class="code"><pre>{{ pprint(v) }}</pre></td>
+            <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -371,7 +371,7 @@
     <p>No cookie data</p>
   {% endif %}
 
-  <h3 id="meta-info">META</h3>
+  <h3 id="meta-info">HEADERS</h3>
   <table class="req">
     <thead>
       <tr>
@@ -380,10 +380,10 @@
       </tr>
     </thead>
     <tbody>
-      {% for k, v in request_meta|dictsort(0) %}
+      {% for k, v in request_HEADERS_items|dictsort(0) %}
         <tr>
           <td>{{ k }}</td>
-          <td class="code"><pre>{{ pprint(v) }}</pre></td>
+          <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
         </tr>
       {% endfor %}
     </tbody>
@@ -405,7 +405,7 @@
       {% for k, v in settings|dictsort(0) %}
         <tr>
           <td>{{ k }}</td>
-          <td class="code"><pre>{{ pprint(v) }}</pre></td>
+          <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
         </tr>
       {% endfor %}
     </tbody>
