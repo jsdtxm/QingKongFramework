@@ -124,25 +124,16 @@ async def permission_error_exception_handler(
     )
 
 
-async def exception_handler(
-    request: "Request", exc: Exception
-) -> HTMLResponse:
-    from fastapp.debug.core import exception_report_html
+async def exception_handler(request: "Request", exc: Exception) -> HTMLResponse:
+    from fastapp.debug.core import handler_adapter
 
-    exc_type, exc_value, tb = sys.exc_info()
-    html = await exception_report_html(
-        exc_type=exc_type or type(exc),
-        exc_value=exc_value or exc,
-        tb=tb,
-        request=request,
-    )
-    return HTMLResponse(
-        content=html,
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    )
+    await handler_adapter(request, exc)
+    raise exc
+
 
 def get_default_exception_handlers():
     return {
+        Exception: exception_handler,
         HTTPException: http_exception_handler,
         RequestValidationError: request_validation_exception_handler,
         WebSocketRequestValidationError: websocket_request_validation_exception_handler,

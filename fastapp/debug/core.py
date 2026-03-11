@@ -12,6 +12,9 @@ from pydantic import BaseModel
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
 
+from fastapp.conf import settings
+from fastapp.core.mail import mail_admins
+
 SECRET_URI_PATTERN = re.compile(r"([a-zA-Z0-9_]+://)([^:@]*:)?([^@]+)@")
 
 
@@ -357,10 +360,7 @@ class ExceptionReporter:
 
         settings_items = {}
         try:
-            from fastapp.conf import settings
-
             settings_items = list(map(hidden_password, settings.model_dump().items()))
-            print(settings_items)
         except Exception as e:
             raise e
             pass
@@ -412,6 +412,24 @@ class ExceptionReporter:
             context_dict["sys_path"] = pprint_filter(context_dict["sys_path"])
 
         return template.render(**context_dict)
+
+
+async def handler_adapter(request, exc):
+    exc_type, exc_value, tb = sys.exc_info()
+    exc_type, exc_value = exc_type or type(exc), exc_value or exc
+
+    html = await exception_report_html(
+        exc_type=exc_type,
+        exc_value=exc_value,
+        tb=tb,
+        request=request,
+    )
+
+    await mail_admins(
+        subject=exc_type.__name__ if exc_type else "Exception Report",
+        message="Exception Report",
+        html_message=html,
+    )
 
 
 async def exception_report_html(
