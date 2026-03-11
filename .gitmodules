@@ -1,0 +1,4 @@
+[submodule "uvicorn"]
+	path = uvicorn
+	url = https://github.com/jsdtxm/uvicorn
+	branch = fastapp

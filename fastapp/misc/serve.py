@@ -7,15 +7,14 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-import uvicorn
 import uvicorn._subprocess
 
+import uvicorn
 from common.settings import settings
 from fastapp.initialize.apps import init_apps
 from fastapp.logging import get_log_config_template
 from fastapp.patchs.uvicorn.subprocess import subprocess_started
 from fastapp.patchs.uvicorn.watchfilesreload import WatchFilesReload_init
-from fastapp.utils.module_loading import import_string
 
 try:
     import uvloop
@@ -53,11 +52,6 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         formatter["app_label"] = app_config.label
 
     asgi_app = f"{app_name}.asgi:app"
-    factory = False
-    if settings.ASGI_APP_FACTORY:
-        asgi_app_wrapper = import_string(settings.ASGI_APP_FACTORY)
-        asgi_app = asgi_app_wrapper(asgi_app)
-        factory = True
 
     uvicorn.run(
         asgi_app,
@@ -74,7 +68,7 @@ def serve_app(app_name: str, host: str = "127.0.0.1", workers=1, reload=False):
         if reload
         else None,
         log_config=log_config,
-        factory=factory,
+        factory=settings.ASGI_APP_FACTORY,
     )
 
 
