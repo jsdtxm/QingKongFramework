@@ -27,6 +27,7 @@
     tbody th { width:12em; text-align:right; color:#666; padding-right:.5em; }
     table.vars { margin:5px 10px 2px 40px; width: auto; }
     table.vars td, table.req td { font-family:monospace; }
+    table.vars td, table.req td:first-child { white-space: nowrap; }
     table td.code { width:100%; }
     table td.code pre { overflow:hidden; }
     table.source th { color:#666; }
@@ -296,7 +297,7 @@
         {% for k, v in request_GET_items %}
           <tr>
             <td>{{ k }}</td>
-            <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
+            <td class="code"><pre>{{ v | pprint }}</pre></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -318,7 +319,7 @@
         {% for k, v in filtered_POST_items %}
           <tr>
             <td>{{ k }}</td>
-            <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
+            <td class="code"><pre>{{ v | pprint }}</pre></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -362,7 +363,7 @@
         {% for k, v in request_COOKIES_items %}
           <tr>
             <td>{{ k }}</td>
-            <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
+            <td class="code"><pre>{{ v | pprint }}</pre></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -383,7 +384,7 @@
       {% for k, v in request_HEADERS_items|dictsort(0) %}
         <tr>
           <td>{{ k }}</td>
-          <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
+          <td class="code"><pre>{{ v | pprint }}</pre></td>
         </tr>
       {% endfor %}
     </tbody>
@@ -405,7 +406,7 @@
       {% for k, v in settings|dictsort(0) %}
         <tr>
           <td>{{ k }}</td>
-          <td class="code"><pre>{{ v | tojson(indent=2) }}</pre></td>
+          <td class="code"><pre>{{ v | pprint }}</pre></td>
         </tr>
       {% endfor %}
     </tbody>

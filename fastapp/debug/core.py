@@ -1,14 +1,17 @@
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from types import TracebackType
-from typing import Any, Optional
-from starlette.datastructures import UploadFile
+from typing import Any, Optional, Tuple
 
 import jinja2
 from pydantic import BaseModel
+from starlette.datastructures import UploadFile
 from starlette.requests import Request
+
+SECRET_URI_PATTERN = re.compile(r"([a-zA-Z0-9_]+://)([^:@]*:)?([^@]+)@")
 
 
 def pprint_filter(value: Any) -> str:
@@ -54,6 +57,33 @@ def date_filter(value: Any, format_string: str = "r") -> str:
     return str(value)
 
 
+def hidden_password(pair: Tuple[str, Any]):
+    k, v = pair
+    k = k.lower()
+    if (
+        "password" in k
+        or "secret" in k
+        or "api_key" in k
+        or "token" in k
+        or k in {"pwd"}
+    ):
+        return k, "<hidden>"
+
+    if isinstance(v, str) and SECRET_URI_PATTERN.match(v):
+        return k, SECRET_URI_PATTERN.sub(r"\g<1>\g<2><hidden>@", v)
+
+    if v and isinstance(v, dict) and isinstance(next(iter(v.values()), None), dict):
+        for _, item in v.items():
+            if item.get("PASSWORD") or item.get("API_KEY"):
+                item["PASSWORD"] = "<hidden>"
+            elif item.get("LOCATION") and SECRET_URI_PATTERN.match(item["LOCATION"]):
+                item["LOCATION"] = SECRET_URI_PATTERN.sub(
+                    r"\g<1>\g<2><hidden>@", item["LOCATION"]
+                )
+
+    return k, v
+
+
 class FrameInfo(BaseModel):
     filename: str
     lineno: int
@@ -93,7 +123,7 @@ class ExceptionReportData(BaseModel):
     request_FILES_items: Optional[list] = None
     request_COOKIES_items: Optional[list] = None
     request_HEADERS_items: Optional[list] = None
-    settings: Optional[dict] = None
+    settings: Optional[list] = None
     is_email: bool = False
 
 
@@ -291,17 +321,20 @@ class ExceptionReporter:
 
             try:
                 json_data = json.loads(self.request.state.cache_body)
-                filtered_POST_items = list(json_data.items())
+                filtered_POST_items = list(map(hidden_password, json_data.items()))
             except Exception:
                 pass
-            
+
             try:
                 request_FILES_items = [
-                    (k, f"<UploadFile '{v.filename}' size={v.size} content_type='{v.content_type}'>")
+                    (
+                        k,
+                        f"<UploadFile '{v.filename}' size={v.size} content_type='{v.content_type}'>",
+                    )
                     for k, v in self.request.state.cache_form.multi_items()
                     if isinstance(v, UploadFile)
                 ]
-              
+
             except Exception:
                 pass
 
@@ -311,11 +344,21 @@ class ExceptionReporter:
                 pass
 
             try:
-                request_HEADERS_items = list(filter(lambda x: x[0] != "cookie", self.request.headers.items()))
+                request_HEADERS_items = list(
+                    filter(lambda x: x[0] != "cookie", self.request.headers.items())
+                )
             except Exception:
                 pass
 
-        settings_dict = {}
+        settings_items = {}
+        try:
+            from fastapp.conf import settings
+
+            settings_items = list(map(hidden_password, settings.model_dump().items()))
+            print(settings_items)
+        except Exception as e:
+            raise e
+            pass
 
         return ExceptionReportData(
             exception_type=self.exc_type.__name__ if self.exc_type else None,
@@ -335,7 +378,7 @@ class ExceptionReporter:
             request_FILES_items=request_FILES_items,
             request_COOKIES_items=request_COOKIES_items,
             request_HEADERS_items=request_HEADERS_items,
-            settings=settings_dict,
+            settings=settings_items,
             is_email=self.is_email,
         )
 
@@ -360,8 +403,6 @@ class ExceptionReporter:
 
         if context_dict.get("sys_path"):
             context_dict["sys_path"] = pprint_filter(context_dict["sys_path"])
-        if context_dict.get("settings"):
-            context_dict["settings"] = pprint_filter(context_dict["settings"])
 
         return template.render(**context_dict)
 
