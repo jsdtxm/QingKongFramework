@@ -9,7 +9,6 @@ from fastapp.conf import settings
 from fastapp.core.mail.backends.base import BaseEmailBackend
 from fastapp.core.mail.message import sanitize_address
 from fastapp.core.mail.utils import DNS_NAME
-from fastapp.utils.functional import cached_property
 
 
 class EmailBackend(BaseEmailBackend):
@@ -57,15 +56,6 @@ class EmailBackend(BaseEmailBackend):
     def connection_class(self):
         return aiosmtplib.SMTP
 
-    @cached_property
-    def ssl_context(self):
-        if self.ssl_certfile or self.ssl_keyfile:
-            ssl_context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS_CLIENT)
-            ssl_context.load_cert_chain(self.ssl_certfile, self.ssl_keyfile)
-            return ssl_context
-        else:
-            return ssl.create_default_context()
-
     async def open(self):
         """
         Ensure an open connection to the email server. Return whether or not a
@@ -79,21 +69,22 @@ class EmailBackend(BaseEmailBackend):
         # If local_hostname is not specified, socket.getfqdn() gets used.
         # For performance, we use the cached FQDN for local_hostname.
         connection_params = {"local_hostname": DNS_NAME.get_fqdn()}
+        connection_params = {}
         if self.timeout is not None:
             connection_params["timeout"] = self.timeout
+
         if self.use_ssl:
-            connection_params["tls_context"] = self.ssl_context
+            connection_params["use_tls"] = True
         try:
             self.connection = self.connection_class(
                 hostname=self.host, port=self.port, **connection_params
             )
 
-            # TLS/SSL are mutually exclusive, so only attempt TLS over
-            # non-secure connections.
-            if not self.use_ssl and self.use_tls:
-                await self.connection.starttls(tls_context=self.ssl_context)
+            await self.connection.connect()
+
             if self.username and self.password:
                 await self.connection.login(self.username, self.password)
+
             return True
         except OSError:
             if not self.fail_silently:
