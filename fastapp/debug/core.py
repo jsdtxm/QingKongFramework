@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import socket
 import sys
 from datetime import datetime
 from types import TracebackType
@@ -113,6 +114,8 @@ class ExceptionReportData(BaseModel):
     sys_executable: Optional[str] = None
     sys_version_info: Optional[str] = None
     sys_path: Optional[list] = None
+    hostname: Optional[str] = None
+    system_user: Optional[str] = None
     server_time: Optional[datetime] = None
     unicode_hint: Optional[str] = None
     template_does_not_exist: bool = False
@@ -251,6 +254,8 @@ def get_system_info() -> dict:
         "sys_executable": sys.executable,
         "sys_version_info": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "sys_path": sys.path,
+        "hostname": socket.gethostname(),
+        "system_user": os.getlogin(),
     }
 
 
@@ -371,6 +376,8 @@ class ExceptionReporter:
             sys_executable=system_info.get("sys_executable"),
             sys_version_info=system_info.get("sys_version_info"),
             sys_path=system_info.get("sys_path"),
+            hostname=system_info.get("hostname"),
+            system_user=system_info.get("system_user"),
             server_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             user_str=user_str,
             request_GET_items=request_GET_items,
