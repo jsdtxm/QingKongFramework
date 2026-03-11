@@ -1,4 +1,3 @@
-import sys
 from typing import TYPE_CHECKING
 
 from fastapi.encoders import jsonable_encoder
@@ -8,9 +7,11 @@ from fastapi.utils import is_body_allowed_for_status_code
 from pydantic import ValidationError as PydanticValidationError
 from starlette import status
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse, Response
+from starlette.responses import JSONResponse, Response
 from tortoise.exceptions import DoesNotExist, OperationalError
 from tortoise.exceptions import ValidationError as TortoiseValidationError
+
+from fastapp.debug.core import handler_adapter
 
 if TYPE_CHECKING:
     from fastapi import Request
@@ -47,6 +48,8 @@ async def request_validation_exception_handler(
 async def tortoise_operation_exception_handler(
     request: "Request", exc: OperationalError
 ) -> JSONResponse:
+    await handler_adapter(request, exc)
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -73,8 +76,10 @@ async def tortoise_doesnotexist_exception_handler(
 async def tortoise_validation_exception_handler(
     request: "Request", exc: TortoiseValidationError
 ) -> JSONResponse:
+    await handler_adapter(request, exc)
+
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "error": exc.__class__.__name__,
             "message": str(exc),
@@ -124,11 +129,17 @@ async def permission_error_exception_handler(
     )
 
 
-async def exception_handler(request: "Request", exc: Exception) -> HTMLResponse:
-    from fastapp.debug.core import handler_adapter
-
+async def exception_handler(request: "Request", exc: Exception) -> JSONResponse:
     await handler_adapter(request, exc)
-    raise exc
+
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": exc.__class__.__name__,
+            "message": str(exc),
+            "detail": str(exc),
+        },
+    )
 
 
 def get_default_exception_handlers():
