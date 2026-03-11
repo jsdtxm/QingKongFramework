@@ -113,7 +113,7 @@
     </tr>
     <tr>
       <th scope="row">Request URL:</th>
-      <td>{{ request.url }}</td>
+      <td>{{ request.url.scheme }}://{{ request.url.netloc }}{{ request.url.path }}</td>
     </tr>
 {% endif %}
     <tr>
