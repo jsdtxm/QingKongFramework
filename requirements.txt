@@ -29,7 +29,7 @@ asyncmy==0.2.9
 
 # Cache
 fastapi-cache2==0.2.2
-redis==4.6.0
+redis==7.1.0
 diskcache==5.6.3
 
 # Auth
@@ -39,13 +39,14 @@ passlib==1.7.4
 python-multipart==0.0.19
 
 # Xcaptcha
-cryptography==44.0.0
+cryptography==46.0.3
 
 # Cache
 async-lru==2.0.4
 
 # Register
 etcd3-py==0.1.6
+pyOpenSSL==25.3.0
 
 # Migrate
 sqlglot==26.10.1
@@ -54,7 +55,7 @@ sqlglot==26.10.1
 aiosmtplib==4.0.0
 
 # Accelerate
-uvloop==0.21.0
+uvloop==0.22.1
 
 # Dev
 mypy==1.13.0
