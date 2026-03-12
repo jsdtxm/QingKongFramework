@@ -81,7 +81,7 @@ def hidden_password(pair: Tuple[str, Any]):
 
     if v and isinstance(v, dict) and isinstance(next(iter(v.values()), None), dict):
         for _, item in v.items():
-            if item.get("PASSWORD") or item.get("API_KEY"):
+            if item.get("PASSWORD") or item.get("API_KEY") or item.get("ACCESS_KEY") or item.get("SECRET_KEY"):
                 item["PASSWORD"] = "<hidden>"
             elif item.get("LOCATION") and SECRET_URI_PATTERN.match(item["LOCATION"]):
                 item["LOCATION"] = SECRET_URI_PATTERN.sub(
