@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import socket
@@ -14,6 +15,8 @@ from starlette.requests import Request
 
 from fastapp.conf import settings
 from fastapp.core.mail import mail_admins
+
+error_logger = logging.getLogger("qingkong.error")
 
 SECRET_URI_PATTERN = re.compile(r"([a-zA-Z0-9_]+://)([^:@]*:)?([^@]+)@")
 
@@ -431,11 +434,14 @@ async def handler_adapter(request, exc):
             request=request,
         )
 
-        await mail_admins(
-            subject=str(exc_value) if exc_type else "Exception Report",
-            message="Exception Report",
-            html_message=html,
-        )
+        try:
+            await mail_admins(
+                subject=str(exc_value) if exc_type else "Exception Report",
+                message="Exception Report",
+                html_message=html,
+            )
+        except Exception as e:
+            error_logger.error(f"Failed to send email: {e}")
 
 
 async def exception_report_html(
