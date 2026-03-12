@@ -253,12 +253,17 @@ def get_caller_frame(frames: list[FrameInfo]) -> Optional[FrameInfo]:
 
 
 def get_system_info() -> dict:
+    try:
+        system_user = os.getlogin()
+    except Exception:
+        system_user = os.getuid()
+
     return {
         "sys_executable": sys.executable,
         "sys_version_info": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "sys_path": sys.path,
         "hostname": socket.gethostname(),
-        "system_user": os.getlogin(),
+        "system_user": system_user,
     }
 
 
