@@ -266,7 +266,7 @@ def get_system_info() -> dict:
         "sys_version_info": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "sys_path": sys.path,
         "hostname": socket.gethostname(),
-        "system_user": system_user,
+        "system_user": str(system_user),
     }
 
 
