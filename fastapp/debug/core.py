@@ -369,8 +369,7 @@ class ExceptionReporter:
         settings_items = {}
         try:
             settings_items = list(map(hidden_password, settings.model_dump().items()))
-        except Exception as e:
-            raise e
+        except Exception:
             pass
 
         return ExceptionReportData(
