@@ -423,18 +423,19 @@ async def handler_adapter(request, exc):
     exc_type, exc_value, tb = sys.exc_info()
     exc_type, exc_value = exc_type or type(exc), exc_value or exc
 
-    html = await exception_report_html(
-        exc_type=exc_type,
-        exc_value=exc_value,
-        tb=tb,
-        request=request,
-    )
+    if settings.ADMINS:
+        html = await exception_report_html(
+            exc_type=exc_type,
+            exc_value=exc_value,
+            tb=tb,
+            request=request,
+        )
 
-    await mail_admins(
-        subject=str(exc_value) if exc_type else "Exception Report",
-        message="Exception Report",
-        html_message=html,
-    )
+        await mail_admins(
+            subject=str(exc_value) if exc_type else "Exception Report",
+            message="Exception Report",
+            html_message=html,
+        )
 
 
 async def exception_report_html(
