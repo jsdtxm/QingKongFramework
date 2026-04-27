@@ -1,4 +1,4 @@
-from typing import Any, Optional, Type
+from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union
 from uuid import UUID
 
 from tortoise.exceptions import ConfigurationError
@@ -10,6 +10,10 @@ try:
     from asyncpg.pgproto.pgproto import UUID as AsyncpgUUID
 except Exception:
     AsyncpgUUID = None
+
+T = TypeVar("T")
+if TYPE_CHECKING:
+    T = TypeVar("T", default=Union[dict, list])
 
 
 # Integer
@@ -293,7 +297,7 @@ class BinaryField(tortoise_data_fields.BinaryField):
         super().__init__(**kwargs)
 
 
-class JSONField(tortoise_data_fields.JSONField):
+class JSONField(tortoise_data_fields.JSONField, Generic[T]):
     def __init__(self, verbose_name=None, db_column=None, **kwargs: Any) -> None:
         self.verbose_name = verbose_name
 
@@ -303,6 +307,13 @@ class JSONField(tortoise_data_fields.JSONField):
         kwargs["description"] = kwargs.get("description", self.verbose_name)
 
         super().__init__(**kwargs)
+
+    if TYPE_CHECKING:
+
+        def __new__(
+            cls, *args: Any, default: Optional[Type[T]] = None, **kwargs: Any
+        ) -> "tortoise_data_fields.Field[T]":
+            return super().__new__(cls)  # type: ignore
 
 
 class UUIDField(tortoise_data_fields.UUIDField):
