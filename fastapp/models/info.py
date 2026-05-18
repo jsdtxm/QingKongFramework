@@ -36,3 +36,13 @@ class MetaInfo(TortoiseMetaInfo):
             for name, field in self.fields_map.items()
             if name != self.pk_attr and name in (self.fields - self.fetch_fields)
         ]
+
+    # FIXME 这里不会用到router的路径
+    # @property
+    # def db(self) -> BaseDBAsyncClient:
+    #     if self.default_connection is None:
+    #         print("[db]", self.default_connection)
+    #         raise ConfigurationError(
+    #             f"default_connection for the model {self._model} cannot be None"
+    #         )
+    #     return connections.get(self.default_connection)
