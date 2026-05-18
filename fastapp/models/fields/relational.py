@@ -42,11 +42,28 @@ class ForeignKeyFieldInstance(TortoiseForeignKeyFieldInstance[MODEL]):
         super().__init__(*args, **kwargs)
 
 
+class ForeignKeyNullableRelation(ForeignKeyFieldInstance[MODEL]):
+    if TYPE_CHECKING:
+
+        @overload
+        def __get__(
+            self, instance: None, owner: Type["Model"]
+        ) -> "RelationalField[MODEL] | None": ...
+
+        @overload
+        def __get__(self, instance: "Model", owner: Type["Model"]) -> MODEL | None: ...
+
+        def __get__(
+            self, instance: Optional["Model"], owner: Type["Model"]
+        ) -> "RelationalField[MODEL] | MODEL  | None": ...
+
+        def __set__(self, instance: "Model", value: MODEL) -> None: ...
+
+
 OneToOneRelation = OneToOneFieldInstance[MODEL]
-OneToOneNullableRelation = Optional[OneToOneFieldInstance[MODEL]]
+OneToOneNullableRelation = OneToOneFieldInstance[MODEL] | None
 
 ForeignKeyRelation = ForeignKeyFieldInstance[MODEL]
-ForeignKeyNullableRelation = Optional[ForeignKeyFieldInstance[MODEL]]
 
 
 @overload

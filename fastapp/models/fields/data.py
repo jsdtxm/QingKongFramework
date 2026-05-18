@@ -1,4 +1,14 @@
-from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Literal,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    overload,
+)
 from uuid import UUID
 
 from tortoise.exceptions import ConfigurationError
@@ -10,6 +20,9 @@ try:
     from asyncpg.pgproto.pgproto import UUID as AsyncpgUUID
 except Exception:
     AsyncpgUUID = None
+
+if TYPE_CHECKING:  # pragma: nocoverage
+    from tortoise.models import Model
 
 T = TypeVar("T")
 if TYPE_CHECKING:
@@ -182,6 +195,18 @@ class CharField(tortoise_data_fields.CharField):
             desc["choices"] = self.choices
 
         return desc
+
+    if TYPE_CHECKING:
+
+        @overload
+        def __new__(
+            cls, *args: Any, null: Literal[True], **kwargs: Any
+        ) -> "tortoise_data_fields.Field[str|None]": ...
+
+        @overload
+        def __new__(
+            cls, *args: Any, null: None | Literal[False] = False, **kwargs: Any
+        ) -> "tortoise_data_fields.Field[str]": ...
 
 
 class TextField(tortoise_data_fields.TextField):
