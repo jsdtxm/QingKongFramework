@@ -441,13 +441,21 @@ def generate_diff_sql(old_schema, new_schema, dialect):
     return res
 
 
-async def async_auto_migrate():
+async def async_auto_migrate(dialect="mysql", conn_name="default"):
     """
     异步自动执行数据库迁移的函数。
     该函数会解析旧的和新的数据库模式，生成差异 SQL 脚本，并打印出来。
+
+    Args:
+        dialect: 数据库方言 (mysql/postgres/sqlite)
+        conn_name: 数据库连接名称，用于读取对应的 schema 文件
+                   文件命名规则: {conn_name}_old_schema.sql / {conn_name}_new_schema.sql
     """
-    old_schema = parse_sql("old_schema.sql")
-    new_schema = parse_sql("new_schema.sql")
-    changes = generate_diff_sql(old_schema, new_schema)
-    print("-- 数据库变更脚本")
-    print("\n".join(changes))
+    old_file = f"{conn_name}_old_schema.sql"
+    new_file = f"{conn_name}_new_schema.sql"
+    old_schema = parse_sql(old_file, dialect_name=dialect)
+    new_schema = parse_sql(new_file, dialect_name=dialect)
+    changes = generate_diff_sql(old_schema, new_schema, dialect)
+    print(f"-- 数据库变更脚本 (连接: {conn_name})")
+    for line in chain(*changes):
+        print(line)
