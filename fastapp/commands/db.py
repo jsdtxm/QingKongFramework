@@ -29,6 +29,7 @@ from fastapp.initialize.db import async_init_db, get_tortoise_config
 from fastapp.models.tortoise import Tortoise
 from fastapp.tools.get_table_structure import SchemaExporter
 from fastapp.tools.reverse_generation import table_to_django_model
+from tortoise.router import router
 
 INTERNAL_CONTENTTYPES_APP_LABEL = "fastapp.contrib.contenttypes"
 INTERNAL_AUTH_APP_LABEL = "fastapp.contrib.auth"
@@ -215,15 +216,25 @@ async def async_auto_migrate(
 
             table = model._meta.db_table  # pylint: disable=W0212
 
+            # 通过 Router 机制获取该 Model 实际使用的数据库连接
+            conn = router.db_for_write(model)
+            if conn is None:
+                conn = connections[model._meta.default_connection]
+
+            # 根据连接对象反查连接名称
+            conn_name = model._meta.default_connection
+            for name in connections.keys():
+                if connections[name] is conn:
+                    conn_name = name
+                    break
+
             exporter = SchemaExporter(
-                "default",
+                conn_name,
                 [
                     table,
                 ],
             )
             res = await exporter.export()
-
-            conn = connections["default"]
 
             generator = conn.schema_generator(conn)
 
@@ -250,14 +261,16 @@ async def async_auto_migrate(
                     if dialect.lower() == "postgres"
                     else "\n".join(changes[0])
                 )
-                alert_sql_list.append((alert_sql, dialect.lower()))
+                alert_sql_list.append((alert_sql, dialect.lower(), conn_name))
 
-    for alert_sql, dialect in alert_sql_list:
+    for alert_sql, dialect, conn_name in alert_sql_list:
         if not alert_sql:
             continue
 
+        conn = connections[conn_name]
+
         print(f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}SQL Statement ({dialect}):{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}SQL Statement ({dialect}) on connection '{conn_name}':{Style.RESET_ALL}")
         print(alert_sql)
         print(f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}")
 
