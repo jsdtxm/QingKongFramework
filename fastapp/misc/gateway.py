@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import logging
 import logging.config
@@ -181,6 +182,36 @@ def parse_forwarded_for(request: aiohttp.web.Request):
     return headers
 
 
+class ReplayableStream:
+    """可重放的异步字节流，包装 request.content 实现流式转发 + 307 重试。
+
+    第一次迭代时边读取边缓存所有 chunk；如果发生 307 需要重试，
+    再次迭代时直接从缓存重放，无需重新读取 request body。
+    """
+
+    def __init__(self, stream):
+        self._stream = stream
+        self._chunks: list[bytes] = []
+        self._exhausted = False
+
+    def __aiter__(self):
+        return self._iter()
+
+    async def _iter(self):
+        if self._exhausted:
+            for chunk in self._chunks:
+                yield chunk
+            return
+
+        while True:
+            chunk = await self._stream.read(65536)
+            if not chunk:
+                break
+            self._chunks.append(chunk)
+            yield chunk
+        self._exhausted = True
+
+
 def handler_factory(proxy_loc: ProxyLocation):
     async def handler(request: aiohttp.web.Request):
         async with aiohttp.ClientSession() as session:
@@ -195,7 +226,24 @@ def handler_factory(proxy_loc: ProxyLocation):
             else:
                 request_url = proxy_loc.construct_target_url(original_path_qs)
 
-            request_content = await request.read()
+            # multipart 请求必须用 BytesIO（IOBase 子类）传递，
+            # 自定义 async iterable 会破坏 boundary 导致上游解析失败。
+            # 从 request.content 逐 chunk 读取，绕过 client_max_size 限制。
+            # 普通请求用 ReplayableStream 实现流式转发 + 307 重试。
+            content_type_header = request.headers.get("Content-Type", "")
+            is_multipart = "multipart/form-data" in content_type_header
+
+            if is_multipart:
+                multipart_chunks: list[bytes] = []
+                while True:
+                    chunk = await request.content.read(65536)
+                    if not chunk:
+                        break
+                    multipart_chunks.append(chunk)
+                multipart_body = b"".join(multipart_chunks)
+                body_data = io.BytesIO(multipart_body)
+            else:
+                body_data = ReplayableStream(request.content)
 
             headers = {}
             if proxy_loc.add_forwarded_host:
@@ -208,8 +256,10 @@ def handler_factory(proxy_loc: ProxyLocation):
             proxy_headers = {}
             for key, value in headers.items():
                 # 跳过 hop-by-hop headers（根据 RFC，代理不应转发）
+                # content-length 也需要跳过，因为流式转发使用 chunked encoding
                 if key.lower() in (
                     "connection",
+                    "content-length",
                     "keep-alive",
                     "proxy-authenticate",
                     "proxy-authorization",
@@ -226,7 +276,7 @@ def handler_factory(proxy_loc: ProxyLocation):
                 url=request_url,
                 headers=proxy_headers,
                 allow_redirects=False,
-                data=request_content,
+                data=body_data,
             ) as response:
                 content_type = response.headers.get("Content-Type", "")
                 is_sse = "text/event-stream" in content_type
@@ -283,12 +333,16 @@ def handler_factory(proxy_loc: ProxyLocation):
                                         redirected_url
                                     )
 
+                                # multipart 用新的 BytesIO；ReplayableStream 自动重放
+                                if is_multipart:
+                                    body_data = io.BytesIO(multipart_body)
+
                                 response = await session.request(
                                     method=request.method,
                                     url=redirected_url,
                                     headers=headers,
                                     allow_redirects=False,
-                                    data=await request.read(),
+                                    data=body_data,
                                 )
 
                                 content = await response.read()
@@ -318,10 +372,6 @@ def handler_factory(proxy_loc: ProxyLocation):
                             headers["Access-Control-Allow-Origin"] = origin or referer
                             headers["Access-Control-Allow-Credentials"] = "true"
                             headers["Access-Control-Allow-Headers"] = "Content-Type"
-
-                    if debug_flag:
-                        print(request_content)
-                        print(content)
 
                     if "Content-Encoding" in headers:
                         headers.pop("Content-Encoding")
