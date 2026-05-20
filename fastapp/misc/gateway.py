@@ -1,5 +1,4 @@
 import asyncio
-import io
 import json
 import logging
 import logging.config
@@ -182,34 +181,20 @@ def parse_forwarded_for(request: aiohttp.web.Request):
     return headers
 
 
-class ReplayableStream:
-    """可重放的异步字节流，包装 request.content 实现流式转发 + 307 重试。
+def _build_proxy_headers(request: aiohttp.web.Request, proxy_loc: ProxyLocation):
+    """构建转发到上游的请求头，过滤 hop-by-hop 及 body 相关头。"""
+    headers = {}
+    if proxy_loc.add_forwarded_host:
+        headers = parse_forwarded_for(request)
+    if proxy_loc.rewrite_host:
+        headers["Host"] = proxy_loc.parsed_target.hostname
 
-    第一次迭代时边读取边缓存所有 chunk；如果发生 307 需要重试，
-    再次迭代时直接从缓存重放，无需重新读取 request body。
-    """
-
-    def __init__(self, stream):
-        self._stream = stream
-        self._chunks: list[bytes] = []
-        self._exhausted = False
-
-    def __aiter__(self):
-        return self._iter()
-
-    async def _iter(self):
-        if self._exhausted:
-            for chunk in self._chunks:
-                yield chunk
-            return
-
-        while True:
-            chunk = await self._stream.read(65536)
-            if not chunk:
-                break
-            self._chunks.append(chunk)
-            yield chunk
-        self._exhausted = True
+    hop_by_hop = {
+        "connection", "content-length", "keep-alive",
+        "proxy-authenticate", "proxy-authorization",
+        "te", "trailers", "transfer-encoding", "upgrade",
+    }
+    return {k: v for k, v in headers.items() if k.lower() not in hop_by_hop}
 
 
 def handler_factory(proxy_loc: ProxyLocation):
@@ -217,6 +202,7 @@ def handler_factory(proxy_loc: ProxyLocation):
         async with aiohttp.ClientSession() as session:
             original_path_qs = request.path_qs
 
+            # --- 1. 解析目标 URL（HEAD 预检消解 307）---
             if (
                 proxy_loc.fastapi_redirect
                 and proxy_loc.redirect_cache_enabled
@@ -226,88 +212,67 @@ def handler_factory(proxy_loc: ProxyLocation):
             else:
                 request_url = proxy_loc.construct_target_url(original_path_qs)
 
-            # multipart 请求必须用 BytesIO（IOBase 子类）传递，
-            # 自定义 async iterable 会破坏 boundary 导致上游解析失败。
-            # 从 request.content 逐 chunk 读取，绕过 client_max_size 限制。
-            # 普通请求用 ReplayableStream 实现流式转发 + 307 重试。
-            content_type_header = request.headers.get("Content-Type", "")
-            is_multipart = "multipart/form-data" in content_type_header
+                # HEAD 预检：内网延迟极低，一次往返换零缓冲流式转发
+                if proxy_loc.fastapi_redirect:
+                    pf_headers = {
+                        k: v
+                        for k, v in _build_proxy_headers(request, proxy_loc).items()
+                        if k.lower() not in ("content-type",)
+                    }
+                    try:
+                        async with session.head(
+                            request_url,
+                            headers=pf_headers,
+                            allow_redirects=False,
+                        ) as preflight:
+                            if preflight.status == 307:
+                                location = preflight.headers.get("Location", "")
+                                if location:
+                                    parsed_loc = urlparse(location)
+                                    parsed_req = urlparse(request_url)
+                                    request_url = parsed_req._replace(
+                                        path=parsed_loc.path,
+                                        query=parsed_loc.query,
+                                    ).geturl()
+                                    if proxy_loc.redirect_cache_enabled:
+                                        proxy_loc.redirect_cache[original_path_qs] = (
+                                            request_url
+                                        )
+                    except Exception:
+                        pass  # 预检失败则用原始 URL，极罕见
 
-            if is_multipart:
-                multipart_chunks: list[bytes] = []
-                while True:
-                    chunk = await request.content.read(65536)
-                    if not chunk:
-                        break
-                    multipart_chunks.append(chunk)
-                multipart_body = b"".join(multipart_chunks)
-                body_data = io.BytesIO(multipart_body)
-            else:
-                body_data = ReplayableStream(request.content)
-
-            headers = {}
-            if proxy_loc.add_forwarded_host:
-                headers = parse_forwarded_for(request)
-
-            if proxy_loc.rewrite_host:
-                headers["Host"] = proxy_loc.parsed_target.hostname
-
-            # 准备透传 headers（可选择性过滤）
-            proxy_headers = {}
-            for key, value in headers.items():
-                # 跳过 hop-by-hop headers（根据 RFC，代理不应转发）
-                # content-length 也需要跳过，因为流式转发使用 chunked encoding
-                if key.lower() in (
-                    "connection",
-                    "content-length",
-                    "keep-alive",
-                    "proxy-authenticate",
-                    "proxy-authorization",
-                    "te",
-                    "trailers",
-                    "transfer-encoding",
-                    "upgrade",
-                ):
-                    continue
-                proxy_headers[key] = value
+            # --- 2. 直传 request.content（零缓冲，绕过 client_max_size）---
+            proxy_headers = _build_proxy_headers(request, proxy_loc)
 
             async with session.request(
                 method=request.method,
                 url=request_url,
                 headers=proxy_headers,
                 allow_redirects=False,
-                data=body_data,
+                data=request.content,  # StreamReader 直传，multipart 边界完整
             ) as response:
                 content_type = response.headers.get("Content-Type", "")
                 is_sse = "text/event-stream" in content_type
 
                 if is_sse:
-                    # SSE
                     sse_response = aiohttp.web.StreamResponse(status=response.status)
-                    # 透传所有响应头（可选过滤）
                     for key, value in response.headers.items():
                         if key.lower() not in ("content-length", "transfer-encoding"):
                             sse_response.headers[key] = value
-                    # 强制设置关键 SSE 头（以防上游缺失）
                     sse_response.headers["Content-Type"] = "text/event-stream"
                     sse_response.headers["Cache-Control"] = "no-cache"
                     sse_response.headers["Connection"] = "keep-alive"
-                    sse_response.headers["X-Accel-Buffering"] = "no"  # 禁用 nginx 缓冲
+                    sse_response.headers["X-Accel-Buffering"] = "no"
 
                     await sse_response.prepare(request)
 
                     try:
-                        # 实时转发数据块
                         async for chunk in response.content.iter_any():
                             await sse_response.write(chunk)
                             await sse_response.drain()
-
                     except (ConnectionResetError, CancelledError) as e:
-                        # 处理客户端断开连接
                         request.app.logger.info(f"Client disconnected: {e}")
-
                     finally:
-                        # 确保关闭连接
                         await sse_response.write_eof()
 
                     return sse_response
@@ -315,69 +280,49 @@ def handler_factory(proxy_loc: ProxyLocation):
                 else:
                     content = await response.read()
 
+                    # 307 兜底：HEAD 预检已覆盖绝大多数场景，此处仅处理非 fastapi_redirect 模式
                     if response.status == 307:
                         if location := response.headers.get("Location"):
                             parsed_url = urlparse(location)
 
-                            if proxy_loc.fastapi_redirect:
-                                parsed_request_url = urlparse(request_url)
-                                redirected_url = parsed_request_url._replace(
-                                    path=parsed_url.path,
-                                    query=parsed_url.query,
-                                    fragment=parsed_url.fragment,
-                                    params=parsed_url.params,
-                                ).geturl()
-
-                                if proxy_loc.redirect_cache_enabled:
-                                    proxy_loc.redirect_cache[original_path_qs] = (
-                                        redirected_url
-                                    )
-
-                                # multipart 用新的 BytesIO；ReplayableStream 自动重放
-                                if is_multipart:
-                                    body_data = io.BytesIO(multipart_body)
-
-                                response = await session.request(
-                                    method=request.method,
-                                    url=redirected_url,
-                                    headers=headers,
-                                    allow_redirects=False,
-                                    data=body_data,
-                                )
-
-                                content = await response.read()
-                            else:
+                            if not proxy_loc.fastapi_redirect:
                                 parsed_url = parsed_url._replace(
                                     path=f"/{proxy_loc.prefix}" + parsed_url.path
                                 )
-
-                                headers = create_new_headers(response.headers)
-                                headers["Location"] = parsed_url.geturl()
-
                                 return aiohttp.web.Response(
                                     body=content,
-                                    status=response.status,
-                                    headers=headers,
+                                    status=307,
+                                    headers={
+                                        **create_new_headers(response.headers),
+                                        "Location": parsed_url.geturl(),
+                                    },
                                 )
+                            # fastapi_redirect 模式：预检已消解，此处缓存 URL 并透传
+                            if proxy_loc.redirect_cache_enabled:
+                                parsed_req = urlparse(request_url)
+                                redirected = parsed_req._replace(
+                                    path=parsed_url.path,
+                                    query=parsed_url.query,
+                                ).geturl()
+                                proxy_loc.redirect_cache[original_path_qs] = redirected
 
                     content = swagger_proxy_middleware(proxy_loc, request, content)
 
-                    headers = create_new_headers(response.headers)
+                    resp_headers = create_new_headers(response.headers)
 
                     if settings.ADD_CORS_HEADERS:
                         origin = request.headers.get("Origin", "")
                         referer = request.headers.get("Referer", "")
-
                         if check_origin(origin, referer):
-                            headers["Access-Control-Allow-Origin"] = origin or referer
-                            headers["Access-Control-Allow-Credentials"] = "true"
-                            headers["Access-Control-Allow-Headers"] = "Content-Type"
+                            resp_headers["Access-Control-Allow-Origin"] = origin or referer
+                            resp_headers["Access-Control-Allow-Credentials"] = "true"
+                            resp_headers["Access-Control-Allow-Headers"] = "Content-Type"
 
-                    if "Content-Encoding" in headers:
-                        headers.pop("Content-Encoding")
+                    if "Content-Encoding" in resp_headers:
+                        resp_headers.pop("Content-Encoding")
 
                     return aiohttp.web.Response(
-                        body=content, status=response.status, headers=headers
+                        body=content, status=response.status, headers=resp_headers
                     )
 
     return handler
