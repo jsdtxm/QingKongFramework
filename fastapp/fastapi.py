@@ -146,7 +146,16 @@ class FastAPI(RawFastAPI):
             self.include_router(router)
 
         if auto_load_urls:
-            asyncio.create_task(load_url_module(self, apps, package))
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop:
+                asyncio.create_task(load_url_module(self, apps, package))
+            else:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(load_url_module(self, apps, package))
 
         # static assets
         async def custom_swagger_ui_html(req: Request) -> HTMLResponse:
