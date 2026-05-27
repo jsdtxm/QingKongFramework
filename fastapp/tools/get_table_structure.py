@@ -138,10 +138,18 @@ class AsyncpgDumper(BaseSchemaDumper):
                 if vector_length is not None and vector_length != -1:
                     length_data = [str(vector_length)]
 
-        # 有点hack的生成括号数据的方案
-        length_data = length_data or list(
-            map(str, filter(bool, [col["character_maximum_length"], col["numeric_precision"], col["numeric_scale"]]))
-        )
+        # DOUBLE PRECISION 和 REAL 在 PostgreSQL DDL 中不支持精度参数，
+        # 但 information_schema 会返回内部二进制精度（如53/24），必须过滤掉，
+        # 否则会导致 auto-migrate 每次误判为类型变更。
+        if data_type in ("DOUBLE PRECISION", "REAL"):
+            # 只保留 character_maximum_length，忽略 numeric_precision/numeric_scale
+            length_data = length_data or list(
+                map(str, filter(bool, [col["character_maximum_length"]]))
+            )
+        else:
+            length_data = length_data or list(
+                map(str, filter(bool, [col["character_maximum_length"], col["numeric_precision"], col["numeric_scale"]]))
+            )
         if length_data:
             data_type += "(" + ",".join(length_data) + ")"
 
