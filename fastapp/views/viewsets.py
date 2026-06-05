@@ -229,7 +229,13 @@ class APIView(View):
         Instantiates and returns the list of permissions that this view requires.
         """
         # support action permission classes
-        if (action := getattr(self, "action", None)) and action not in {"list", "create", "retrieve", "update", "destroy"}:
+        if (action := getattr(self, "action", None)) and action not in {
+            "list",
+            "create",
+            "retrieve",
+            "update",
+            "destroy",
+        }:
             action_func = getattr(self, action)
             if ps := action_func.kwargs.get("permission_classes"):
                 return [permission() for permission in ps]
@@ -331,11 +337,14 @@ class GenericAPIView(APIView, Generic[MODEL]):
         )
 
         queryset = self.queryset
-        if isinstance(queryset, type) and issubclass(queryset, Model):
+        pk_field = "id"
+        if isinstance(queryset, type) and issubclass(queryset, (Model, BaseDBModel)):
+            pk_field = queryset._meta.pk_attr
             queryset = queryset.objects.all()
         elif isinstance(queryset, TortoiseQuerySet):
+            pk_field = queryset.model._meta.pk_attr
             queryset = queryset.all()
-        return queryset.order_by("id")
+        return queryset.order_by(pk_field)
 
     async def get_object(self) -> MODEL:
         """
