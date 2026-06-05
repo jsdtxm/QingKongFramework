@@ -6,7 +6,7 @@ from typing import List, Optional, Union
 from fastapp.apps import Apps
 from fastapp.exceptions import Http404
 from fastapp.models.exceptions import DoesNotExist
-from fastapp.models.model import Model
+from fastapp.models.model import BaseModel, Model
 
 
 def model_object_to_name(model: "Model"):
@@ -25,7 +25,7 @@ def model_name_preprocess(model_name: Union[str, "Model"]):
 
             return f"{app_config.label}.{model_name}"
 
-    elif issubclass(model_name, Model):
+    elif issubclass(model_name, (BaseModel, Model)):
         return model_object_to_name(model_name)
 
     return model_name
@@ -50,7 +50,9 @@ def model_to_dict(
 
     opts = instance._meta
     data = {}
-    default_exclude_fields = opts.backward_fk_fields | opts.m2m_fields | opts.fk_fields | opts.o2o_fields
+    default_exclude_fields = (
+        opts.backward_fk_fields | opts.m2m_fields | opts.fk_fields | opts.o2o_fields
+    )
     for f in opts.fields:
         if fields is None and f in default_exclude_fields:
             continue
