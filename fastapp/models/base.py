@@ -95,7 +95,10 @@ def field_filter(stubgen_meta: "BaseModel.StubGenMeta", fields):
 
 
 def generate_query_params_attrs(
-    cls: "BaseModel", mode: Literal["full", "lite", "mini"] = "lite", depth=0, max_depth=1
+    cls: "BaseModel",
+    mode: Literal["full", "lite", "mini"] = "lite",
+    depth=0,
+    max_depth=1,
 ):
     from fastapp.models.fields import data as data_fields
 
@@ -105,8 +108,9 @@ def generate_query_params_attrs(
     global_full = mode == "full"
 
     for _, fields in filter(
-        lambda x: x[0]
-        in {"pk_field", "data_fields", "fk_fields", "backward_fk_fields"},
+        lambda x: (
+            x[0] in {"pk_field", "data_fields", "fk_fields", "backward_fk_fields"}
+        ),
         cls.describe(serializable=False).items(),
     ):
         if not isinstance(fields, list):
@@ -297,7 +301,7 @@ class BaseModel(TortoiseModel, metaclass=ModelMetaClass):
         return need_import, create_params_code + "\n" + query_params_code
 
     class Meta(BaseMeta):
-        pass
+        abstract = True
 
     class PydanticMeta:
         include = ()
