@@ -298,8 +298,9 @@ class GenericAPIView(APIView, Generic[MODEL]):
 
     # If you want to use object lookups other than pk, set 'lookup_field'.
     # For more complex lookup requirements override `get_object()`.
-    lookup_field = "id"
-    lookup_url_kwarg = None
+    # When left as None, the model's primary key field (_meta.pk_attr) is used.
+    lookup_field: Optional[str] = None
+    lookup_url_kwarg: Optional[str] = None
 
     # The filter backend classes to use for queryset filtering
     filter_backends = []
@@ -360,7 +361,8 @@ class GenericAPIView(APIView, Generic[MODEL]):
         queryset = await self.filter_queryset(self.get_queryset())
 
         # Perform the lookup filtering.
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        # URL kwarg: prefer lookup_url_kwarg, then lookup_field, fall back to "id".
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field or "id"
 
         assert lookup_url_kwarg in self.kwargs, (
             "Expected view %s to be called with a URL keyword argument "
@@ -369,7 +371,16 @@ class GenericAPIView(APIView, Generic[MODEL]):
             % (self.__class__.__name__, lookup_url_kwarg)
         )
 
-        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        # Resolve the filter field: if lookup_field is explicitly set, use it;
+        # otherwise resolve from the model's primary key (_meta.pk_attr).
+        if self.lookup_field is not None:
+            filter_field = self.lookup_field
+        elif isinstance(queryset, TortoiseQuerySet):
+            filter_field = queryset.model._meta.pk_attr
+        else:
+            filter_field = "id"
+
+        filter_kwargs = {filter_field: self.kwargs[lookup_url_kwarg]}
         obj = await get_object_or_404(queryset, **filter_kwargs)
 
         # May raise a permission denied
