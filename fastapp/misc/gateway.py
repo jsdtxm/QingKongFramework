@@ -62,6 +62,7 @@ class ProxyLocation:
         self.parsed_target = urlparse(self.target)
 
         self.redirect_cache = {}
+        self.head_preflight_skip = set()
 
     def __repr__(self):
         return (
@@ -213,7 +214,10 @@ def handler_factory(proxy_loc: ProxyLocation):
                 request_url = proxy_loc.construct_target_url(original_path_qs)
 
                 # HEAD 预检：内网延迟极低，一次往返换零缓冲流式转发
-                if proxy_loc.fastapi_redirect:
+                if (
+                    proxy_loc.fastapi_redirect
+                    and original_path_qs not in proxy_loc.head_preflight_skip
+                ):
                     pf_headers = {
                         k: v
                         for k, v in _build_proxy_headers(request, proxy_loc).items()
@@ -238,8 +242,12 @@ def handler_factory(proxy_loc: ProxyLocation):
                                         proxy_loc.redirect_cache[original_path_qs] = (
                                             request_url
                                         )
+                            else:
+                                # 非 307（如 405 等），缓存跳过标记，避免重复无效预检
+                                proxy_loc.head_preflight_skip.add(original_path_qs)
                     except Exception:
-                        pass  # 预检失败则用原始 URL，极罕见
+                        # 预检异常也缓存跳过，避免反复重试
+                        proxy_loc.head_preflight_skip.add(original_path_qs)
 
             # --- 2. 直传 request.content（零缓冲，绕过 client_max_size）---
             proxy_headers = _build_proxy_headers(request, proxy_loc)
