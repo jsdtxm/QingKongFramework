@@ -40,12 +40,19 @@ else:
 
 class SerializerMixin(Generic[VALUE]):
     default_value = None
+    required = None
 
     def describe(self, serializable: bool) -> dict:
         desc = super().describe(serializable)
         if desc["default"] is None:
             desc["default"] = self.default_value
+        if self.required is not None:
+            desc['nullable'] = not self.required
         return desc
+
+    def __init__(self, required: Optional[bool] = None, **kwargs: Any) -> None:
+        self.required = required
+        super().__init__(**kwargs)
 
     if TYPE_CHECKING:
 
