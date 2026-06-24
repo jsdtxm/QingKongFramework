@@ -1,3 +1,4 @@
+import inspect
 from functools import partial
 from typing import Any, List, Optional, Set, Type, Union
 
@@ -79,7 +80,13 @@ def _set_kwargs(self, kwargs: dict) -> Set[str]:
                 self._custom_generated_pk = True
             if value is None:
                 if field_object.default is not None:
-                    value = field_object.default
+                    field_default = field_object.default
+                    if inspect.iscoroutinefunction(field_default):
+                        self._await_when_save[key] = field_default
+                    elif callable(field_default):
+                        value = field_default()
+                    else:
+                        value = field_default
                 elif not field_object.null:
                     raise ValueError(
                         f"{key} is non nullable field, but null was passed"
